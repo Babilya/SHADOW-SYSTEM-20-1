@@ -19,6 +19,11 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+# Reduce verbosity of external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram.ext").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 async def main():

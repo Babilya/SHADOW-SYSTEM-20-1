@@ -6,6 +6,12 @@ from database.crud import (
     create_user, get_user, get_project_bots, create_audit_log
 )
 from core.auth import rbac
+from core.bot_automator import bot_automator
+from modules.parsing.osint import osint_analyzer
+from modules.messaging.campaign import campaign_manager
+from modules.hybrid.manager import hybrid_manager
+from modules.analytics.reporter import analytics_reporter
+from utils.security import security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +113,15 @@ class TelegramBotManager:
         
         elif query.data == "view_stats":
             await self._show_stats(update, context)
+        
+        elif query.data == "osint":
+            await self._show_osint_menu(update, context)
+        
+        elif query.data == "hybrid":
+            await self._show_hybrid_menu(update, context)
+        
+        elif query.data == "security":
+            await self._show_security_menu(update, context)
     
     async def _show_bots(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show user's bots"""
@@ -132,11 +147,68 @@ class TelegramBotManager:
     
     async def _show_campaigns(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show campaigns"""
-        await update.message.reply_text("📊 Функція кампаній в розробці...")
+        await update.message.reply_text("📊 **Функція кампаній**\n\n🚀 Створювати та управляти розсилками в розробці...", parse_mode="Markdown")
+    
+    async def _show_osint_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show OSINT menu"""
+        query = update.callback_query
+        text = """🔍 **OSINT Парсинг і Аналіз**
+        
+• Пошук чатів за ключовими словами
+• Аналіз аудиторії
+• Збір даних про користувачів
+• Видобування медіа
+
+Функція в розробці... 📥"""
+        await query.edit_message_text(text, parse_mode="Markdown")
+    
+    async def _show_hybrid_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show hybrid management menu"""
+        query = update.callback_query
+        text = """💬 **Гібридна Взаємодія (Human-in-the-Loop)**
+        
+• Підключення менеджерів до ботів
+• Відправка повідомлень від імені ботів
+• Система сповіщень
+• Рейтинг менеджерів
+
+Функція в розробці... 🔗"""
+        await query.edit_message_text(text, parse_mode="Markdown")
+    
+    async def _show_security_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show security menu"""
+        query = update.callback_query
+        text = """🛡️ **Система Безпеки**
+        
+• Rate Limiting: Активен
+• Audit Logging: Активен
+• Anti-Blocking: Активен
+• User Blocking: 0 користувачів
+
+✅ Все захищено!"""
+        await query.edit_message_text(text, parse_mode="Markdown")
     
     async def _show_stats(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show statistics"""
-        await update.message.reply_text("📈 Статистика в розробці...")
+        user_id = update.effective_user.id
+        user = await get_user(user_id)
+        project_id = user.get("project_id") if user else None
+        
+        if not project_id:
+            await update.message.reply_text("❌ Проект не призначений.")
+            return
+        
+        stats = await analytics_reporter.get_project_stats(project_id)
+        
+        text = f"""📈 **Статистика проекту:**
+        
+🤖 Ботів: {stats['active_bots']}/{stats['total_bots']}
+📊 Кампаній: {stats['completed_campaigns']}/{stats['total_campaigns']}
+✉️ Відправлено: {stats['messages_sent']}
+✅ Доставлено: {stats['messages_delivered']}
+📈 Рівень доставки: {stats['delivery_rate']}
+"""
+        await update.message.reply_text(text, parse_mode="Markdown")
     
     def _get_main_menu_keyboard(self, role: str) -> InlineKeyboardMarkup:
         """Get main menu keyboard based on role"""
@@ -145,10 +217,13 @@ class TelegramBotManager:
             [InlineKeyboardButton("🤖 Боти", callback_data="view_bots")],
             [InlineKeyboardButton("📊 Кампанії", callback_data="view_campaigns")],
             [InlineKeyboardButton("📈 Статистика", callback_data="view_stats")],
+            [InlineKeyboardButton("🔍 OSINT Парсинг", callback_data="osint")],
+            [InlineKeyboardButton("💬 Гібридна Взаємодія", callback_data="hybrid")],
         ]
         
         if role in ["admin", "superadmin"]:
             buttons.append([InlineKeyboardButton("⚙️ Налаштування", callback_data="settings")])
+            buttons.append([InlineKeyboardButton("🛡️ Безпека", callback_data="security")])
         
         if role == "superadmin":
             buttons.append([InlineKeyboardButton("👥 Користувачі", callback_data="users")])

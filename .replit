@@ -30,6 +30,10 @@ author = "agent"
 task = "workflow.run"
 args = "shadow_bot"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Telegram Bot"
+
 [[workflows.workflow]]
 name = "shadow_bot"
 author = "agent"
@@ -53,6 +57,17 @@ args = "shadow_bot"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Project"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Telegram Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python bot.py"
 
 [workflows.workflow.metadata]
 outputType = "console"

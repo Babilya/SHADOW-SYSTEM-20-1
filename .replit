@@ -33,10 +33,26 @@ args = "shadow_bot"
 [[workflows.workflow]]
 name = "shadow_bot"
 author = "agent"
+mode = "parallel"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd shadow_system_io && python main.py"
+task = "packager.installForLanguage"
+args = "python3"
+
+[[workflows.workflow.tasks]]
+task = "packager.installForLanguage"
+args = "nix"
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "shadow_bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Project"
 
 [workflows.workflow.metadata]
 outputType = "console"

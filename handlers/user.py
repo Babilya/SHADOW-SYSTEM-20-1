@@ -15,6 +15,50 @@ class UserStates(StatesGroup):
     waiting_for_auto_reply_trigger = State()
     waiting_for_auto_reply_text = State()
 
+@user_router.callback_query(F.data == "botnet_main")
+async def botnet_main(query: CallbackQuery):
+    await query.answer()
+    from handlers.botnet import botnet_menu
+    await query.message.delete()
+    await botnet_menu(query.message)
+
+@user_router.callback_query(F.data == "osint_main")
+async def osint_main(query: CallbackQuery):
+    await query.answer()
+    from handlers.osint import osint_menu
+    await query.message.delete()
+    await osint_menu(query.message)
+
+@user_router.callback_query(F.data == "analytics_main")
+async def analytics_main(query: CallbackQuery):
+    await query.answer()
+    from handlers.analytics import analytics_menu
+    await query.message.delete()
+    await analytics_menu(query.message)
+
+@user_router.callback_query(F.data == "team_main")
+async def team_main(query: CallbackQuery):
+    await query.answer()
+    from handlers.team import team_menu
+    await query.message.delete()
+    await team_menu(query.message)
+
+@user_router.callback_query(F.data == "subscription_main")
+async def subscription_main(query: CallbackQuery):
+    await query.answer()
+    from handlers.subscriptions import subscription_menu
+    await subscription_menu(query.message)
+
+@user_router.callback_query(F.data == "payments_main")
+async def payments_main(query: CallbackQuery):
+    await query.answer()
+    await query.message.edit_text("💳 <b>Платежі</b>\n\nБаланс: ₴5,240", reply_markup=payment_methods(), parse_mode="HTML")
+
+@user_router.callback_query(F.data == "settings_main")
+async def settings_main(query: CallbackQuery):
+    await query.answer()
+    await query.message.edit_text("⚙️ <b>Налаштування</b>", reply_markup=settings_menu(), parse_mode="HTML")
+
 @user_router.message(Command("menu"))
 async def cmd_menu(message: Message):
     await message.answer("📱 <b>Головне меню</b>\n\nВиберіть опцію:", reply_markup=main_menu(), parse_mode="HTML")
@@ -135,3 +179,5 @@ async def show_limits(query: CallbackQuery):
 async def go_back(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text("📱 <b>Головне меню</b>\n\nВиберіть опцію:", reply_markup=main_menu(), parse_mode="HTML")
+
+from keyboards.user import payment_methods

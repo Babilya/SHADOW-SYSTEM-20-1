@@ -3,6 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, BotCommand
+from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN
 from handlers.user import user_router
 from handlers.admin import admin_router
@@ -17,9 +18,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
 
-# Спочатку реєструємо роутери (важливо - ДО основних обробників!)
+# Спочатку реєструємо роутери
 dp.include_router(user_router)
 dp.include_router(admin_router)
 dp.include_router(payments_router)
@@ -30,10 +32,8 @@ async def command_start(message: Message):
     """Команда /start"""
     try:
         user = message.from_user
-        
-        # Додаємо користувача в БД
         db.add_user(user.id, user.username or "Unknown", user.first_name or "")
-        logger.info(f"Користувач {user.id} запустив бота")
+        logger.info(f"✅ /start від користувача {user.id} (@{user.username})")
         
         await message.answer(
             f"Привіт, {user.first_name}! 👋\n\n"
@@ -48,13 +48,17 @@ async def command_start(message: Message):
             parse_mode="HTML"
         )
     except Exception as e:
-        logger.error(f"Помилка в /start: {e}")
-        await message.answer(f"❌ Помилка: {str(e)}")
+        logger.error(f"❌ Помилка в /start: {e}", exc_info=True)
+        try:
+            await message.answer(f"❌ Помилка: {str(e)}")
+        except:
+            pass
 
 @dp.message(Command("help"))
 async def command_help(message: Message):
     """Команда /help"""
     try:
+        logger.info(f"📋 /help від користувача {message.from_user.id}")
         await message.answer(
             "📋 <b>Довідка</b>\n\n"
             "<b>Основні команди:</b>\n"
@@ -75,12 +79,13 @@ async def command_help(message: Message):
             parse_mode="HTML"
         )
     except Exception as e:
-        logger.error(f"Помилка в /help: {e}")
+        logger.error(f"❌ Помилка в /help: {e}", exc_info=True)
 
 @dp.message(Command("menu"))
 async def command_menu(message: Message):
     """Команда /menu"""
     try:
+        logger.info(f"📱 /menu від користувача {message.from_user.id}")
         await message.answer(
             "📱 <b>Головне меню</b>\n\n"
             "Виберіть потрібну опцію:",
@@ -88,25 +93,27 @@ async def command_menu(message: Message):
             parse_mode="HTML"
         )
     except Exception as e:
-        logger.error(f"Помилка в /menu: {e}")
+        logger.error(f"❌ Помилка в /menu: {e}", exc_info=True)
 
 @dp.message()
-async def echo(message: Message):
+async def echo_handler(message: Message):
     """Обробник всіх повідомлень"""
     try:
-        logger.info(f"Повідомлення від {message.from_user.id}: {message.text}")
+        logger.info(f"📨 Повідомлення від {message.from_user.id}: {message.text}")
         await message.answer(
             "✉️ Повідомлення отримане!\n\n"
             "Напишіть /help для отримання списку команд"
         )
     except Exception as e:
-        logger.error(f"Помилка в echo: {e}")
+        logger.error(f"❌ Помилка в echo: {e}", exc_info=True)
 
 async def main():
-    logger.info("🤖 Shadow Security Bot v2.0 запускається...")
+    logger.info("=" * 50)
+    logger.info("🤖 SHADOW SECURITY BOT v2.0 ЗАПУСКАЄТЬСЯ")
+    logger.info("=" * 50)
     
     try:
-        # Видаляємо webhook якщо він активний
+        # Видаляємо webhook
         await bot.delete_webhook(drop_pending_updates=True)
         logger.info("✅ Webhook видалений")
         
@@ -119,14 +126,13 @@ async def main():
             BotCommand(command="pay", description="Поповнити"),
             BotCommand(command="admin", description="Адмін панель"),
         ])
-        
         logger.info("✅ Команди встановлені")
-        logger.info("🚀 Бот готовий!")
-        logger.info(f"Polling для боту: @VevvebehBot")
+        logger.info("🚀 БОТ ГОТОВИЙ ДО РОБОТИ!")
+        logger.info("=" * 50)
         
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     except Exception as e:
-        logger.error(f"Критична помилка: {e}", exc_info=True)
+        logger.error(f"❌ КРИТИЧНА ПОМИЛКА: {e}", exc_info=True)
         raise
 
 if __name__ == "__main__":

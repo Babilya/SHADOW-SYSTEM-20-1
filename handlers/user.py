@@ -20,26 +20,6 @@ async def back_to_menu(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")
 
-@user_router.callback_query(F.data == "card_payment")
-async def card_payment(query: CallbackQuery):
-    await query.answer()
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
-    await query.message.edit_text("💳 <b>Оплата карткою</b>\n\nМініму: 100 грн\nМаксимум: 100,000 грн\nКомісія: 1.5%\n\nВведіть суму (у грн):", reply_markup=kb, parse_mode="HTML")
-
-@user_router.callback_query(F.data == "liqpay_payment")
-async def liqpay_payment(query: CallbackQuery):
-    await query.answer()
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
-    await query.message.edit_text("🔗 <b>Оплата через Liqpay</b>\n\nКомісія: 2.5%\n\n<a href='https://liqpay.com'>Перейти до оплати</a>", reply_markup=kb, parse_mode="HTML")
-
-@user_router.callback_query(F.data == "crypto_payment")
-async def crypto_payment(query: CallbackQuery):
-    await query.answer()
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
-    await query.message.edit_text("🪙 <b>Оплата крипто</b>\n\n<b>Bitcoin:</b> 1A1z7agoat5LjSrGFJcn3EYjoz2zWfkwL\n<b>Ethereum:</b> 0x71C7656EC7ab88b098defB751B7401B5f6d8976F\nКомісія: 0%", reply_markup=kb, parse_mode="HTML")
 
 @user_router.callback_query(F.data == "ghost_mode")
 async def ghost_mode(query: CallbackQuery):

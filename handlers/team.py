@@ -60,3 +60,9 @@ async def team_activity(query: CallbackQuery):
     await query.answer()
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="team_main")]])
     await query.message.edit_text("📊 <b>Активність команди</b>\n\nЗавдань виконано: 245\nСередня швидкість: 2.3 год\nПомилок: 3 (98.8% точність)", reply_markup=back_kb, parse_mode="HTML")
+
+@team_router.callback_query(F.data == "back_to_menu")
+async def team_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

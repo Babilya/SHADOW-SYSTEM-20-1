@@ -20,6 +20,86 @@ async def back_to_menu(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")
 
+@user_router.callback_query(F.data == "card_payment")
+async def card_payment(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
+    await query.message.edit_text("💳 <b>Оплата карткою</b>\n\nМініму: 100 грн\nМаксимум: 100,000 грн\nКомісія: 1.5%\n\nВведіть суму (у грн):", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "liqpay_payment")
+async def liqpay_payment(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
+    await query.message.edit_text("🔗 <b>Оплата через Liqpay</b>\n\nКомісія: 2.5%\n\n<a href='https://liqpay.com'>Перейти до оплати</a>", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "crypto_payment")
+async def crypto_payment(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_main")]])
+    await query.message.edit_text("🪙 <b>Оплата крипто</b>\n\n<b>Bitcoin:</b> 1A1z7agoat5LjSrGFJcn3EYjoz2zWfkwL\n<b>Ethereum:</b> 0x71C7656EC7ab88b098defB751B7401B5f6d8976F\nКомісія: 0%", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "ghost_mode")
+async def ghost_mode(query: CallbackQuery):
+    await query.answer("✅ Привидний режим включено")
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="settings_main")]])
+    await query.message.edit_text("👻 <b>Привидний режим: ВКЛ</b>\n\nВаш профіль прихований від інших користувачів.", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "notifications")
+async def notifications(query: CallbackQuery):
+    await query.answer("✅ Сповіщення вимкнено")
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="settings_main")]])
+    await query.message.edit_text("🔔 <b>Сповіщення: ВИМК</b>\n\nВи не будете отримувати сповіщення про нові розсилки.", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "language")
+async def language(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🇺🇦 Українська", callback_data="lang_uk"), InlineKeyboardButton(text="🇺🇸 English", callback_data="lang_en")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="settings_main")]
+    ])
+    await query.message.edit_text("🌐 <b>Мова</b>\n\nВиберіть мову інтерфейсу:", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "security")
+async def security(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="settings_main")]])
+    await query.message.edit_text("🔐 <b>Безпека</b>\n\n2FA: ✅ ВКЛ\nШифрування: ✅ ВКЛ\nСеанси: 1 активний\nПослідній вхід: 1 хв тому", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "tier_free")
+async def tier_free(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]])
+    await query.message.edit_text("🆓 <b>Free - Безкоштовно</b>\n\nБоти: 5\nРозсилок: 10\nПарсинг: 100\nOSINT: 0\n\nІдеально для новачків!", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "tier_standard")
+async def tier_standard(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купити", callback_data="buy_standard"), InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]])
+    await query.message.edit_text("⭐ <b>Standard - 300 грн/мес</b>\n\nБоти: 50\nРозсилок: 500\nПарсинг: 5,000\nOSINT: 50", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "tier_premium")
+async def tier_premium(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купити", callback_data="buy_premium"), InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]])
+    await query.message.edit_text("👑 <b>Premium - 600 грн/мес</b>\n\nБоти: 100\nРозсилок: 5,000\nПарсинг: 50,000\nOSINT: 500\nAI Sentiment: ✅", reply_markup=kb, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "tier_elite")
+async def tier_elite(query: CallbackQuery):
+    await query.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купити", callback_data="buy_elite"), InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]])
+    await query.message.edit_text("💎 <b>VIP Elite - 1,200 грн/мес</b>\n\nВсе необмежено!\nПріоритетна підтримка 24/7\n🎁 Бонус: +30% ліміти", reply_markup=kb, parse_mode="HTML")
+
 @user_router.message(Command("menu"))
 async def cmd_menu(message: Message):
     await message.answer(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

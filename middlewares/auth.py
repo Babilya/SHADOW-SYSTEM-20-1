@@ -20,11 +20,11 @@ class AuthMiddleware(BaseMiddleware):
     ) -> Any:
         """Process update through middleware"""
         
-        # Get user info from message
+        # Get user info from message or callback
         user = None
-        if event.message:
+        if hasattr(event, 'message') and event.message:
             user = event.message.from_user
-        elif event.callback_query:
+        elif hasattr(event, 'callback_query') and event.callback_query:
             user = event.callback_query.from_user
         
         if not user:
@@ -78,9 +78,9 @@ class RateLimitMiddleware(BaseMiddleware):
         """Process update with rate limiting"""
         
         user = None
-        if event.message:
+        if hasattr(event, 'message') and event.message:
             user = event.message.from_user
-        elif event.callback_query:
+        elif hasattr(event, 'callback_query') and event.callback_query:
             user = event.callback_query.from_user
         
         if not user:

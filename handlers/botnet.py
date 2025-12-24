@@ -25,17 +25,17 @@ def botnet_description() -> str:
 <b>🔄 Ротація проксі</b>
 Автоматична ротація IP адрес для уникнення блокування. Підтримує SOCKS5, HTTP, Rotating proxies. Налаштування інтервалів та whitelist.
 
-<b>🔥 Прогрів ботів</b>
+<b>🔥 Прогрій ботів</b>
 Прогрівання ботів перед розсилкою для підвищення успішності. Включає повільне прогрівання та побудову репутації."""
 
 @botnet_router.message(Command("botnet"))
 async def botnet_cmd(message: Message):
-    await message.answer("🤖 <b>Управління Botnet</b>\n\nВиберіть опцію:", reply_markup=botnet_kb(), parse_mode="HTML")
+    await message.answer(botnet_description(), reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "botnet_main")
 async def botnet_menu(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text("🤖 <b>Управління Botnet</b>\n\nВиберіть опцію:", reply_markup=botnet_kb(), parse_mode="HTML")
+    await query.message.edit_text(botnet_description(), reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "add_bots")
 async def add_bots(query: CallbackQuery):
@@ -59,4 +59,10 @@ async def proxy_rotation(query: CallbackQuery):
 async def warm_bots(query: CallbackQuery):
     await query.answer()
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
-    await query.message.edit_text("🔥 <b>Прогрів ботів</b>\n\nПрогрівання запущено...\nПрогріто: 28/45", reply_markup=back_kb, parse_mode="HTML")
+    await query.message.edit_text("🔥 <b>Прогрій ботів</b>\n\nПрогрівання запущено...\nПрогріто: 28/45", reply_markup=back_kb, parse_mode="HTML")
+
+@botnet_router.callback_query(F.data == "back_to_menu")
+async def botnet_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

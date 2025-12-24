@@ -6,6 +6,15 @@ from aiogram.fsm.state import State, StatesGroup
 
 texting_router = Router()
 
+def texting_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Створити текстовку", callback_data="create_text")],
+        [InlineKeyboardButton(text="📚 Шаблони", callback_data="templates_list")],
+        [InlineKeyboardButton(text="📊 Мої текстовки", callback_data="my_texts")],
+        [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="text_settings")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")],
+    ])
+
 class TextingStates(StatesGroup):
     waiting_campaign_name = State()
     waiting_message_text = State()

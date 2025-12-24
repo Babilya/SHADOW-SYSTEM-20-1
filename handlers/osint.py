@@ -74,3 +74,9 @@ async def deletion_log(query: CallbackQuery):
     await query.answer()
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]])
     await query.message.edit_text("📊 <b>Лог видалень</b>\n\nВидалено повідомлень: 1,234\nВидалено користувачів: 45\nПослідня активність: 2 хв тому", reply_markup=back_kb, parse_mode="HTML")
+
+@osint_router.callback_query(F.data == "back_to_menu")
+async def osint_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

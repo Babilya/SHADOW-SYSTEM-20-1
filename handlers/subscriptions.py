@@ -68,3 +68,9 @@ async def tier_elite(query: CallbackQuery):
     await query.answer()
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]])
     await query.message.edit_text("💎 <b>VIP Elite - 1,200 грн/мес</b>\n\nБотів: 500 (необмежено)\nРозсилок: Необмежено\nПарсинг: Необмежено\nOSINT: Необмежено\nAI: Повний доступ\nПріоритетна підтримка\n\n🎁 Бонус: +30% ліміти", reply_markup=back_kb, parse_mode="HTML")
+
+@subscriptions_router.callback_query(F.data == "back_to_menu")
+async def subscriptions_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

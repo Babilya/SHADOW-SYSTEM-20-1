@@ -56,3 +56,9 @@ async def admin_payments(query: CallbackQuery):
 async def admin_block(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text("🚫 <b>Блокування</b>\n\nЗа яких користувачів заблокувати? (напишіть User ID або username)", parse_mode="HTML")
+
+@admin_router.callback_query(F.data == "back_to_menu")
+async def admin_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

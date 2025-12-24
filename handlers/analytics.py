@@ -60,3 +60,9 @@ async def dashboard(query: CallbackQuery):
     await query.answer()
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="analytics_main")]])
     await query.message.edit_text("📊 <b>Дашборд</b>\n\nАктивних проектів: 5\nБотів в роботі: 38\nРозсилок в черзі: 12\nТекучі помилки: 0", reply_markup=back_kb, parse_mode="HTML")
+
+@analytics_router.callback_query(F.data == "back_to_menu")
+async def analytics_back_to_menu(query: CallbackQuery):
+    await query.answer()
+    from keyboards.user import main_menu, main_menu_description
+    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

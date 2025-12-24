@@ -32,7 +32,6 @@ class Key(Base):
     id = Column(Integer, primary_key=True)
     code = Column(String, unique=True)
     tariff = Column(String)
-    key_type = Column(String)
     user_id = Column(String)
     is_used = Column(Boolean, default=False)
     expires_at = Column(DateTime)
@@ -46,8 +45,8 @@ class Project(Base):
     key_id = Column(Integer)
     name = Column(String)
     tariff = Column(String)
-    bots_limit = Column(Integer)
-    managers_limit = Column(Integer)
+    bots_limit = Column(Integer, default=50)
+    managers_limit = Column(Integer, default=5)
     bots_used = Column(Integer, default=0)
     managers_used = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
@@ -60,7 +59,7 @@ class Manager(Base):
     telegram_id = Column(String)
     username = Column(String)
     role = Column(String)
-    manager_key = Column(String)
+    manager_key = Column(String, unique=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
 
@@ -83,6 +82,18 @@ class Bot(Base):
     phone = Column(String)
     status = Column(String, default="active")
     created_at = Column(DateTime, default=datetime.now)
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+    id = Column(Integer, primary_key=True)
+    ticket_id = Column(String, unique=True)
+    user_id = Column(String)
+    subject = Column(String)
+    description = Column(Text)
+    status = Column(String, default="open")
+    priority = Column(String, default="normal")
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now)
 
 class AdminNotification(Base):
     __tablename__ = "admin_notifications"

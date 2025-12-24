@@ -1,85 +1,141 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def main_menu() -> InlineKeyboardMarkup:
-    """Головне меню з 2-3 кнопками в ряді"""
+    """Головне меню - комбіновані кнопки"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        # Рядок 1: Боти & OSINT
+        # Рядок 1: Боти & OSINT (2 кнопки)
         [
-            InlineKeyboardButton(text="🤖 Боти", callback_data="my_bots"),
-            InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_data")
+            InlineKeyboardButton(text="🤖 Боти", callback_data="botnet_main"),
+            InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_main")
         ],
-        # Рядок 2: Кампанії & Аналітика
+        # Рядок 2: Кампанії & Аналітика (2 кнопки)
         [
-            InlineKeyboardButton(text="📝 Кампанії", callback_data="campaigns"),
+            InlineKeyboardButton(text="📝 Кампанії", callback_data="campaigns_main"),
             InlineKeyboardButton(text="📊 Аналітика", callback_data="analytics_main")
         ],
-        # Рядок 3: Платежі & Баланс
+        # Рядок 3: Баланс & Підписки (комбіновані платежі) (2 кнопки)
         [
-            InlineKeyboardButton(text="💳 Платежі", callback_data="payments_main"),
-            InlineKeyboardButton(text="💰 Баланс", callback_data="balance")
+            InlineKeyboardButton(text="⭐ Баланс & Платежі", callback_data="balance_payments_main"),
+            InlineKeyboardButton(text="📦 Підписки", callback_data="subscription_main")
         ],
-        # Рядок 4: Профіль & Налаштування
+        # Рядок 4: Команда & Налаштування (2 кнопки)
         [
-            InlineKeyboardButton(text="👤 Профіль", callback_data="profile"),
+            InlineKeyboardButton(text="👥 Команда", callback_data="team_main"),
             InlineKeyboardButton(text="⚙️ Налаштування", callback_data="settings_main")
         ],
-        # Рядок 5: Текстовки & Довідка
+        # Рядок 5: Текстовки & Довідка (2 кнопки)
         [
-            InlineKeyboardButton(text="📝 Текстовки", callback_data="texting"),
-            InlineKeyboardButton(text="📚 Довідка", callback_data="help")
+            InlineKeyboardButton(text="📝 Текстовки", callback_data="texting_main"),
+            InlineKeyboardButton(text="📚 Довідка", callback_data="help_main")
         ],
-        # Рядок 6: Підписки & Онбординг
+        # Рядок 6: Профіль (1 кнопка - можна розширити)
         [
-            InlineKeyboardButton(text="📦 Підписки", callback_data="subscription_main"),
-            InlineKeyboardButton(text="🎯 Онбординг", callback_data="onboarding_start")
+            InlineKeyboardButton(text="👤 Профіль", callback_data="profile_main")
         ],
     ])
 
 def main_menu_description() -> str:
-    """Опис функцій для головного меню"""
+    """Розширений опис з проектом"""
     return """<b>🌟 SHADOW SYSTEM iO v2.0</b>
+<i>Комплексна платформа для управління ботами, OSINT та маркетинг-кампаніями</i>
 
-<b>🤖 BOTNET</b> - Управління ботами
-✓ Додавайте до 1000+ ботів | ✓ Ротація проксі | ✓ Прогрів ботів
-✓ Масове керування | ✓ Логування & Статистика
+<b>📋 ОСНОВНІ РОЗДІЛИ:</b>
 
-<b>🔍 OSINT</b> - Розвідка & Парсинг  
-✓ Геосканування за локацією | ✓ Аналіз користувачів | ✓ Аналіз чатів
-✓ Лог видалень | ✓ Експорт контактів | ✓ Пошук за інтересами
+<b>🤖 BOTNET</b> - Управління Telegram ботами
+├ ➕ Додавання (CSV з телефонів)
+├ 📋 Список ботів (статус, активність)
+├ 🔄 Ротація проксі (SOCKS5, HTTP)
+└ 🔥 Прогрів ботів перед розсилкою
 
-<b>📊 АНАЛІТИКА</b> - Звіти & Метрики
-✓ Дашборд кампаній | ✓ AI Sentiment | ✓ Прогноз ризиків  
-✓ ROI аналіз | ✓ Експорт в PDF/Excel | ✓ Порівняння періодів
+<b>🔍 OSINT & ПАРСИНГ</b> - Розвідка даних
+├ 📍 Геосканування за локацією
+├ 👤 Аналіз користувачів (профілі)
+├ 💬 Аналіз чатів та трендів
+└ 📊 Логи видалень з архівом
 
-<b>👥 КОМАНДА</b> - Управління менеджерами
-✓ Список менеджерів | ✓ Додавання в команду | ✓ Рейтинг якості
-✓ Статистика активності | ✓ Розподіл завдань
+<b>📝 КАМПАНІЇ</b> - Управління проектами
+├ 🤖 Управління ботами в кампаніях
+├ 👥 Команда менеджерів & рейтинг
+├ 📊 Статистика та метрики
+└ 💬 Текстовки та шаблони повідомлень
 
-<b>📦 ПІДПИСКИ</b> - Тарифи від Free до Elite
-• 🆓 Free (0 грн) - 5 ботів, 10 розсилок
-• ⭐ Standard (300 грн) - 50 ботів, 500 розсилок  
-• 👑 Premium (600 грн) - 100 ботів, 5000 розсилок
-• 💎 VIP Elite (1200 грн) - Необмежено всього
+<b>📊 АНАЛІТИКА</b> - Звіти & метрики
+├ 📈 Дашборд кампаній (CTR, ROI)
+├ 🤖 AI Sentiment (позитив/негатив)
+├ ⚠️ Прогноз ризиків блокування
+└ 💾 Експорт в PDF/Excel
 
-<b>💳 ПЛАТЕЖІ</b> - Способи оплати
-✓ Карта (комісія 1.5%) | ✓ Liqpay (2.5%) | ✓ Крипто BTC/ETH (0%)
-✓ Історія платежів | ✓ Рахунки | ✓ Повернення коштів
+<b>⭐ БАЛАНС & ПЛАТЕЖІ</b> - Система рахунків
+├ 💵 Баланс (поточний: 5,240 ⭐)
+├ ➕ Поповнення (Telegram Stars, Карта, Liqpay)
+├ 📜 Історія платежів
+└ 💎 Розраховані кошти за проекти
 
-<b>⚙️ НАЛАШТУВАННЯ</b> - Конфіг & Безпека
-✓ Профіль & статистика | ✓ Привидний режим | ✓ Сповіщення  
-✓ 2FA & Шифрування | ✓ Мовні налаштування | ✓ Інтеграції
+<b>📦 ПІДПИСКИ</b> - Тарифи
+├ 🆓 Free (0 ⭐) - 5 ботів, 10 розсилок
+├ ⭐ Standard (300 ⭐/мес) - 50 ботів
+├ 👑 Premium (600 ⭐/мес) - 100 ботів
+└ 💎 Elite (1200 ⭐/мес) - Необмежено
 
-<b>📝 ТЕКСТОВКИ</b> - Кампанії з шаблонами
-✓ 6 готових шаблонів | ✓ A/B тестування | ✓ Сегментація
-✓ Автовідправка | ✓ Відкладена розсилка | ✓ Аналіз результатів
+<b>👥 КОМАНДА</b> - Гібридне управління
+├ 👥 Менеджери (додавання, рейтинг)
+├ 📊 Активність (статистика)
+└ ⭐ Рейтинг якості роботи
 
-<b>📚 ДОВІДКА</b> - Детальна документація
-✓ Інструкції по модулям | ✓ Примери & кейси | ✓ FAQ
-✓ Відео-туторіали | ✓ Техпідтримка 24/7
+<b>⚙️ НАЛАШТУВАННЯ</b> - Конфіг профілю
+├ 👻 Привидний режим
+├ 🔔 Сповіщення (вкл/вимк)
+├ 🌐 Мова інтерфейсу
+└ 🔐 Безпека (2FA, шифрування)
 
-<b>🎯 ОНБОРДИНГ</b> - Навчання новачків
-✓ 3-рівнева воронка | ✓ Sales воронка | ✓ Градуальне навчання
-✓ Практичні завдання | ✓ Сертифікація"""
+<b>📝 ТЕКСТОВКИ</b> - Кампанії зі шаблонами
+├ 📚 Готові шаблони (6 типів)
+├ ✏️ Редактор текстовок
+└ 📊 Аналіз результатів
+
+<b>📚 ДОВІДКА</b> - Документація & Підтримка
+├ 📖 Інструкції по модулям
+├ ❓ FAQ з відповідями
+├ 💬 Чат з технічною підтримкою
+└ 🎥 Відео-туторіали
+
+<b>👤 ПРОФІЛЬ</b> - Особисні дані
+├ 📊 Статистика користувача
+├ 🎁 Бонуси & промокоди
+└ 🔑 Управління сесіями
+
+<b>💡 ПОРАДИ:</b>
+✓ Почніть з /start для детальної інструкції
+✓ Скористайтеся документацією при запитаннях
+✓ Технічна підтримка доступна 24/7"""
+
+def balance_payments_menu() -> InlineKeyboardMarkup:
+    """Комбіноване меню баланс + платежі"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        # Рядок 1: Баланс & Історія (2 кнопки)
+        [
+            InlineKeyboardButton(text="💵 Мій баланс", callback_data="balance_view"),
+            InlineKeyboardButton(text="📜 Історія", callback_data="payments_history")
+        ],
+        # Рядок 2: Поповнення способи (2 кнопки)
+        [
+            InlineKeyboardButton(text="⭐ Telegram Stars", callback_data="stars_payment"),
+            InlineKeyboardButton(text="💳 Карта", callback_data="card_payment")
+        ],
+        # Рядок 3: Інші способи (2 кнопки)
+        [
+            InlineKeyboardButton(text="🔗 Liqpay", callback_data="liqpay_payment"),
+            InlineKeyboardButton(text="📄 Рахунок", callback_data="create_invoice")
+        ],
+        # Рядок 4: Повернення (1 кнопка)
+        [
+            InlineKeyboardButton(text="♻️ Повернення коштів", callback_data="refund_request")
+        ],
+        # Рядок 5: Назад (1 кнопка)
+        [
+            InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")
+        ],
+    ])
 
 def subscription_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -90,6 +146,10 @@ def subscription_menu() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="👑 Premium", callback_data="tier_premium"),
             InlineKeyboardButton(text="💎 Elite", callback_data="tier_elite")
+        ],
+        [
+            InlineKeyboardButton(text="💬 Підтримка", callback_data="subscription_support"),
+            InlineKeyboardButton(text="❓ FAQ", callback_data="subscription_faq")
         ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
     ])
@@ -110,9 +170,11 @@ def settings_menu() -> InlineKeyboardMarkup:
 def payment_methods() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="💳 Карта", callback_data="card_payment"),
+            InlineKeyboardButton(text="⭐ Telegram Stars", callback_data="stars_payment"),
+            InlineKeyboardButton(text="💳 Карта", callback_data="card_payment")
+        ],
+        [
             InlineKeyboardButton(text="🔗 Liqpay", callback_data="liqpay_payment")
         ],
-        [InlineKeyboardButton(text="🪙 Крипто", callback_data="crypto_payment")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="balance_payments_main")]
     ])

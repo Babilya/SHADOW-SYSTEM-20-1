@@ -188,8 +188,6 @@ async def scan_nearby_chats(lat: float, lng: float, radius: int) -> list:
     
     try:
         from core.session_manager import session_manager
-        from core.osint_telethon import TelethonOSINT
-        import os
         
         available_sessions = list(session_manager.imported_sessions.keys())
         

@@ -125,18 +125,23 @@ async def process_csv_file(message: Message, state: FSMContext):
         
         if imported:
             from utils.db import async_session
-            from database.models import TelegramSession
+            from database.models import Bot
             
-            async with async_session() as session:
-                for bot_data in imported:
-                    new_session = TelegramSession(
-                        phone=bot_data['phone'],
-                        owner_id=message.from_user.id,
-                        is_active=False,
-                        status="pending_validation"
-                    )
-                    session.add(new_session)
-                await session.commit()
+            try:
+                async with async_session() as session:
+                    for bot_data in imported:
+                        new_bot = Bot(
+                            phone=bot_data['phone'],
+                            project_id=message.from_user.id,
+                            session_hash="",
+                            status="pending_validation"
+                        )
+                        session.add(new_bot)
+                    await session.commit()
+            except Exception as db_error:
+                logger.error(f"DB error during CSV import: {db_error}")
+                await message.answer(f"❌ Помилка бази даних")
+                return
             
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="📋 Переглянути", callback_data="list_bots")],
@@ -183,18 +188,23 @@ async def process_csv_text(message: Message, state: FSMContext):
     
     if imported:
         from utils.db import async_session
-        from database.models import TelegramSession
+        from database.models import Bot
         
-        async with async_session() as session:
-            for phone in imported:
-                new_session = TelegramSession(
-                    phone=phone,
-                    owner_id=message.from_user.id,
-                    is_active=False,
-                    status="pending_validation"
-                )
-                session.add(new_session)
-            await session.commit()
+        try:
+            async with async_session() as session:
+                for phone in imported:
+                    new_bot = Bot(
+                        phone=phone,
+                        project_id=message.from_user.id,
+                        session_hash="",
+                        status="pending_validation"
+                    )
+                    session.add(new_bot)
+                await session.commit()
+        except Exception as db_error:
+            logger.error(f"DB error: {db_error}")
+            await message.answer("❌ Помилка бази даних")
+            return
         
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📋 Переглянути", callback_data="list_bots")],

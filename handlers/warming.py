@@ -117,14 +117,14 @@ async def start_warming(query: CallbackQuery):
     await query.answer()
     
     from utils.db import async_session
-    from database.models import TelegramSession
+    from database.models import Bot
     from sqlalchemy import select
     
     async with async_session() as session:
         result = await session.execute(
-            select(TelegramSession).where(
-                TelegramSession.owner_id == query.from_user.id,
-                TelegramSession.is_active == True
+            select(Bot).where(
+                Bot.project_id == query.from_user.id,
+                Bot.status.in_(["active", "pending_validation", "pending"])
             ).limit(10)
         )
         bots = result.scalars().all()
@@ -193,22 +193,23 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
     try:
         from core.session_manager import session_manager
         from utils.db import async_session
-        from database.models import BotWarming, TelegramSession
+        from database.models import BotWarming, Bot
         from sqlalchemy import select, update
         
         async with async_session() as session:
             result = await session.execute(
-                select(TelegramSession).where(TelegramSession.id == bot_id)
+                select(Bot).where(Bot.id == bot_id)
             )
-            bot_session = result.scalar()
+            bot_record = result.scalar()
         
-        if not bot_session:
-            logger.warning(f"No session found for bot {bot_id}")
+        if not bot_record:
+            logger.warning(f"No bot found with id {bot_id}")
             return
         
-        session_hash = bot_session.session_hash if hasattr(bot_session, 'session_hash') else None
+        session_hash = bot_record.session_hash
         if not session_hash:
-            logger.warning(f"No session hash for bot {bot_id}")
+            logger.warning(f"No session hash for bot {bot_id}, running simulation warming")
+            await run_simulation_warming(warming_id)
             return
         
         client = await session_manager.connect_client(session_hash)
@@ -298,19 +299,57 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
     except Exception as e:
         logger.error(f"Warming cycle failed: {e}")
 
+async def run_simulation_warming(warming_id: int):
+    import asyncio
+    from utils.db import async_session
+    from database.models import BotWarming
+    from sqlalchemy import select, update
+    
+    try:
+        for phase in range(1, 4):
+            async with async_session() as session:
+                result = await session.execute(
+                    select(BotWarming.status).where(BotWarming.id == warming_id)
+                )
+                status = result.scalar()
+                if status != "active":
+                    return
+                
+                await session.execute(
+                    update(BotWarming).where(BotWarming.id == warming_id).values(
+                        current_phase=phase
+                    )
+                )
+                await session.commit()
+            
+            logger.info(f"Simulation warming {warming_id} phase {phase}")
+            await asyncio.sleep(10)
+        
+        async with async_session() as session:
+            await session.execute(
+                update(BotWarming).where(BotWarming.id == warming_id).values(
+                    status="completed",
+                    end_time=datetime.now()
+                )
+            )
+            await session.commit()
+        logger.info(f"Simulation warming {warming_id} completed")
+    except Exception as e:
+        logger.error(f"Simulation warming error: {e}")
+
 @warming_router.callback_query(F.data == "warm_all")
 async def warm_all(query: CallbackQuery):
     await query.answer()
     
     from utils.db import async_session
-    from database.models import TelegramSession
+    from database.models import Bot
     from sqlalchemy import select
     
     async with async_session() as session:
         result = await session.execute(
-            select(TelegramSession).where(
-                TelegramSession.owner_id == query.from_user.id,
-                TelegramSession.is_active == True
+            select(Bot).where(
+                Bot.project_id == query.from_user.id,
+                Bot.status.in_(["active", "pending_validation", "pending"])
             )
         )
         bots = result.scalars().all()

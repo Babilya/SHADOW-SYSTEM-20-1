@@ -20,6 +20,9 @@
 │   ├── roles.py        # Система ролей
 │   ├── campaign_manager.py  # Менеджер кампаній
 │   ├── scheduler.py    # Планувальник задач
+│   ├── audit_logger.py # Аудит логування
+│   ├── alerts.py       # Система сповіщень
+│   ├── ai_service.py   # AI аналітика та генерація
 │   └── osint_tools/    # OSINT інструменти
 │       ├── telegram_analyzer.py
 │       ├── dns_whois.py

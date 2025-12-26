@@ -113,6 +113,9 @@ async def process_broadcast(message: Message, state: FSMContext):
 
 @admin_router.callback_query(F.data == "admin_users")
 async def admin_users(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from database.crud import StatsCRUD
@@ -183,6 +186,9 @@ async def admin_stats(query: CallbackQuery):
 
 @admin_router.callback_query(F.data == "admin_payments")
 async def admin_payments(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from utils.db import async_session
@@ -239,6 +245,9 @@ async def admin_payments(query: CallbackQuery):
 
 @admin_router.callback_query(F.data.startswith("confirm_pay_"))
 async def confirm_payment_handler(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from utils.db import async_session
@@ -447,6 +456,9 @@ async def admin_back_to_menu(query: CallbackQuery):
 
 @admin_router.callback_query(F.data == "users_leaders")
 async def users_leaders(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from utils.db import async_session
@@ -477,6 +489,9 @@ async def users_leaders(query: CallbackQuery):
 
 @admin_router.callback_query(F.data == "users_managers")
 async def users_managers(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from utils.db import async_session
@@ -507,6 +522,9 @@ async def users_managers(query: CallbackQuery):
 
 @admin_router.callback_query(F.data == "users_guests")
 async def users_guests(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     await query.answer()
     
     from utils.db import async_session

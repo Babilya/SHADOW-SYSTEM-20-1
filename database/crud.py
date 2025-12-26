@@ -194,6 +194,23 @@ class ProjectCRUD:
     @staticmethod
     def get_by_leader(db: Session, leader_id: str):
         return db.query(Project).filter(Project.leader_id == leader_id).first()
+    
+    @staticmethod
+    async def create_async(leader_id: str, leader_username: str, key_id: int, name: str, tariff: str, bots_limit: int = 50, managers_limit: int = 5) -> Project:
+        async with async_session() as session:
+            project = Project(
+                leader_id=str(leader_id),
+                leader_username=leader_username,
+                key_id=key_id,
+                name=name,
+                tariff=tariff,
+                bots_limit=bots_limit,
+                managers_limit=managers_limit
+            )
+            session.add(project)
+            await session.commit()
+            await session.refresh(project)
+            return project
 
 class SecurityCRUD:
     @staticmethod

@@ -34,6 +34,7 @@ try:
     from handlers.referral import referral_router
     from handlers.mailing import mailing_router
     from handlers.missing_handlers import missing_router
+    from handlers.auth_system import auth_router
     from handlers.proxy import proxy_router
     from handlers.export import export_router
     from handlers.warming import warming_router
@@ -64,7 +65,8 @@ routers = [
     funnels_router, help_router, texting_router, applications_router,
     emergency_router, configurator_router, security_router, 
     tickets_router, referral_router, mailing_router, missing_router,
-    proxy_router, export_router, warming_router, scheduler_router, geo_router
+    proxy_router, export_router, warming_router, scheduler_router, geo_router,
+    auth_router
 ]
 
 for r in routers:

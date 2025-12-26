@@ -12,7 +12,8 @@ from core.alerts import alert_system, AlertType
 from middlewares.security_middleware import (
     blocked_users, kicked_users, 
     is_user_blocked, is_user_kicked,
-    block_user, kick_user, unblock_user, clear_kick
+    block_user, kick_user, unblock_user, clear_kick,
+    persist_block, persist_kick, persist_unblock
 )
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,7 @@ async def process_ban(message: Message, state: FSMContext, bot: Bot):
         user_id = hash(target) % 1000000000
     
     block_user(user_id, message.from_user.id, reason, legal_basis)
+    await persist_block(user_id, message.from_user.id, reason, legal_basis)
     
     await audit_logger.log_security(
         user_id=message.from_user.id,
@@ -182,6 +184,7 @@ async def process_kick(message: Message, state: FSMContext, bot: Bot):
         user_id = hash(target) % 1000000000
     
     kick_user(user_id, message.from_user.id, reason)
+    await persist_kick(user_id, message.from_user.id, reason)
     
     await audit_logger.log_security(
         user_id=message.from_user.id,
@@ -246,6 +249,7 @@ async def process_unban(query: CallbackQuery):
     
     user_id = int(query.data.split("_")[1])
     unblock_user(user_id)
+    await persist_unblock(user_id)
     
     await audit_logger.log_security(
         user_id=query.from_user.id,

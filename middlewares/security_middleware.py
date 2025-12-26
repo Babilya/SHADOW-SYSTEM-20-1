@@ -38,6 +38,59 @@ def clear_kick(user_id: int):
     if user_id in kicked_users:
         kicked_users[user_id]["requires_new_key"] = False
 
+async def sync_from_db():
+    try:
+        from database.crud import UserCRUD
+        from utils.db import async_session
+        from sqlalchemy import select
+        from database.models import User
+        
+        async with async_session() as session:
+            result = await session.execute(select(User).where(User.is_blocked == True))
+            for user in result.scalars().all():
+                blocked_users[int(user.telegram_id)] = {"is_blocked": True, "reason": "From DB"}
+            
+            result = await session.execute(select(User).where(User.is_kicked == True))
+            for user in result.scalars().all():
+                kicked_users[int(user.telegram_id)] = {"requires_new_key": True}
+    except Exception as e:
+        logger.error(f"Failed to sync from DB: {e}")
+
+async def persist_block(user_id: int, admin_id: int, reason: str, legal_basis: str = None):
+    try:
+        from database.crud import UserCRUD, SecurityCRUD
+        await UserCRUD.block_user(str(user_id), True)
+        await SecurityCRUD.add_block(str(user_id), "block", reason, str(admin_id), legal_basis)
+    except Exception as e:
+        logger.error(f"Failed to persist block: {e}")
+
+async def persist_kick(user_id: int, admin_id: int, reason: str):
+    try:
+        from database.crud import UserCRUD, SecurityCRUD
+        await UserCRUD.kick_user(str(user_id), True)
+        await SecurityCRUD.add_block(str(user_id), "kick", reason, str(admin_id))
+    except Exception as e:
+        logger.error(f"Failed to persist kick: {e}")
+
+async def persist_unblock(user_id: int):
+    try:
+        from database.crud import UserCRUD, SecurityCRUD
+        from utils.db import async_session
+        from sqlalchemy import update
+        from database.models import SecurityBlock
+        
+        await UserCRUD.block_user(str(user_id), False)
+        await UserCRUD.kick_user(str(user_id), False)
+        blocks = await SecurityCRUD.get_active_blocks(str(user_id))
+        for block in blocks:
+            async with async_session() as session:
+                await session.execute(
+                    update(SecurityBlock).where(SecurityBlock.id == block.id).values(is_active=False)
+                )
+                await session.commit()
+    except Exception as e:
+        logger.error(f"Failed to persist unblock: {e}")
+
 class SecurityMiddleware(BaseMiddleware):
     async def __call__(
         self,
@@ -74,6 +127,7 @@ class SecurityMiddleware(BaseMiddleware):
                 if isinstance(event, Message):
                     if event.text and event.text.startswith("/activate"):
                         clear_kick(user_id)
+                        await persist_unblock(user_id)
                         return await handler(event, data)
                     
                     await event.answer(

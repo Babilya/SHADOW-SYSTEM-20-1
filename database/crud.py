@@ -1,6 +1,18 @@
+from datetime import datetime
+from typing import Optional, List
+from sqlalchemy import select, update, and_
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from database.models import User, Application, Key, Project
-from datetime import datetime, timedelta
+from database.models import (
+    User, Application, Key, Project, Manager, Campaign, Bot,
+    Ticket, Log, Referral, Payment, SecurityBlock, MailingTask,
+    MonitoringAlert, AuditLog, CMSConfig, UserRole
+)
+from utils.db import async_session, SessionLocal
+import logging
+import secrets
+
+logger = logging.getLogger(__name__)
 
 class UserCRUD:
     @staticmethod
@@ -11,6 +23,72 @@ class UserCRUD:
             db.add(user)
             db.commit()
         return user
+    
+    @staticmethod
+    async def get_user(telegram_id: str) -> Optional[User]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == str(telegram_id))
+            )
+            return result.scalar_one_or_none()
+    
+    @staticmethod
+    async def create_user(telegram_id: str, username: str = None, first_name: str = None) -> User:
+        async with async_session() as session:
+            user = User(
+                telegram_id=str(telegram_id),
+                username=username,
+                first_name=first_name,
+                referral_code=f"REF-{secrets.token_hex(4).upper()}"
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+    
+    @staticmethod
+    async def get_or_create_async(telegram_id: str, username: str = None, first_name: str = None) -> User:
+        user = await UserCRUD.get_user(telegram_id)
+        if not user:
+            user = await UserCRUD.create_user(telegram_id, username, first_name)
+        return user
+    
+    @staticmethod
+    async def update_role(telegram_id: str, role: str) -> bool:
+        async with async_session() as session:
+            result = await session.execute(
+                update(User).where(User.telegram_id == str(telegram_id)).values(role=role)
+            )
+            await session.commit()
+            return result.rowcount > 0
+    
+    @staticmethod
+    async def block_user(telegram_id: str, blocked: bool = True) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(User).where(User.telegram_id == str(telegram_id)).values(is_blocked=blocked)
+            )
+            await session.commit()
+            return True
+    
+    @staticmethod
+    async def kick_user(telegram_id: str, kicked: bool = True) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(User).where(User.telegram_id == str(telegram_id)).values(is_kicked=kicked)
+            )
+            await session.commit()
+            return True
+    
+    @staticmethod
+    async def is_blocked(telegram_id: str) -> bool:
+        user = await UserCRUD.get_user(telegram_id)
+        return user.is_blocked if user else False
+    
+    @staticmethod
+    async def is_kicked(telegram_id: str) -> bool:
+        user = await UserCRUD.get_user(telegram_id)
+        return user.is_kicked if user else False
 
 class ApplicationCRUD:
     @staticmethod
@@ -23,11 +101,46 @@ class ApplicationCRUD:
     @staticmethod
     def get_by_id(db: Session, app_id: int):
         return db.query(Application).filter(Application.id == app_id).first()
+    
+    @staticmethod
+    async def create_async(user_id: str, telegram_id: str, tariff: str, duration: int, name: str, purpose: str, contact: str, amount: int) -> Application:
+        async with async_session() as session:
+            app = Application(
+                user_id=str(user_id),
+                telegram_id=str(telegram_id),
+                tariff=tariff,
+                duration=duration,
+                name=name,
+                purpose=purpose,
+                contact=contact,
+                amount=amount
+            )
+            session.add(app)
+            await session.commit()
+            await session.refresh(app)
+            return app
+    
+    @staticmethod
+    async def get_new_applications() -> List[Application]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Application).where(Application.status == "new")
+            )
+            return list(result.scalars().all())
+    
+    @staticmethod
+    async def update_status(app_id: int, status: str) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(Application).where(Application.id == app_id).values(status=status)
+            )
+            await session.commit()
+            return True
 
 class KeyCRUD:
     @staticmethod
     def create(db: Session, code: str, tariff: str, key_type: str, expires_at: datetime):
-        key = Key(code=code, tariff=tariff, key_type=key_type, expires_at=expires_at)
+        key = Key(code=code, tariff=tariff, expires_at=expires_at)
         db.add(key)
         db.commit()
         return key
@@ -35,6 +148,33 @@ class KeyCRUD:
     @staticmethod
     def get_by_code(db: Session, code: str):
         return db.query(Key).filter(Key.code == code).first()
+    
+    @staticmethod
+    async def create_async(tariff: str, expires_at: datetime) -> Key:
+        async with async_session() as session:
+            code = f"SHADOW-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}"
+            key = Key(code=code, tariff=tariff, expires_at=expires_at)
+            session.add(key)
+            await session.commit()
+            await session.refresh(key)
+            return key
+    
+    @staticmethod
+    async def validate_key(code: str) -> Optional[Key]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Key).where(and_(Key.code == code, Key.is_used == False))
+            )
+            return result.scalar_one_or_none()
+    
+    @staticmethod
+    async def use_key(code: str, user_id: str) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(Key).where(Key.code == code).values(is_used=True, user_id=str(user_id))
+            )
+            await session.commit()
+            return True
 
 class ProjectCRUD:
     @staticmethod
@@ -47,3 +187,162 @@ class ProjectCRUD:
     @staticmethod
     def get_by_leader(db: Session, leader_id: str):
         return db.query(Project).filter(Project.leader_id == leader_id).first()
+
+class SecurityCRUD:
+    @staticmethod
+    async def add_block(user_id: str, block_type: str, reason: str, blocked_by: str, legal_basis: str = None) -> SecurityBlock:
+        async with async_session() as session:
+            block = SecurityBlock(
+                user_id=str(user_id),
+                block_type=block_type,
+                reason=reason,
+                blocked_by=str(blocked_by),
+                legal_basis=legal_basis
+            )
+            session.add(block)
+            await session.commit()
+            await session.refresh(block)
+            return block
+    
+    @staticmethod
+    async def get_active_blocks(user_id: str) -> List[SecurityBlock]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(SecurityBlock).where(
+                    and_(SecurityBlock.user_id == str(user_id), SecurityBlock.is_active == True)
+                )
+            )
+            return list(result.scalars().all())
+
+class ReferralCRUD:
+    @staticmethod
+    async def create_referral(referrer_id: str, referred_id: str) -> Optional[Referral]:
+        async with async_session() as session:
+            existing = await session.execute(
+                select(Referral).where(
+                    and_(Referral.referrer_id == str(referrer_id), Referral.referred_id == str(referred_id))
+                )
+            )
+            if existing.scalar_one_or_none():
+                return None
+            referral = Referral(referrer_id=str(referrer_id), referred_id=str(referred_id))
+            session.add(referral)
+            await session.commit()
+            await session.refresh(referral)
+            return referral
+    
+    @staticmethod
+    async def get_referrals(referrer_id: str) -> List[Referral]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Referral).where(Referral.referrer_id == str(referrer_id))
+            )
+            return list(result.scalars().all())
+
+class PaymentCRUD:
+    @staticmethod
+    async def create_payment(user_id: str, amount: float, method: str) -> Payment:
+        async with async_session() as session:
+            payment = Payment(user_id=str(user_id), amount=amount, method=method)
+            session.add(payment)
+            await session.commit()
+            await session.refresh(payment)
+            return payment
+    
+    @staticmethod
+    async def get_pending_payments() -> List[Payment]:
+        async with async_session() as session:
+            result = await session.execute(select(Payment).where(Payment.status == "pending"))
+            return list(result.scalars().all())
+    
+    @staticmethod
+    async def confirm_payment(payment_id: int, admin_id: str) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(Payment).where(Payment.id == payment_id).values(
+                    status="confirmed", admin_id=str(admin_id), confirmed_at=datetime.now()
+                )
+            )
+            await session.commit()
+            return True
+
+class TicketCRUD:
+    @staticmethod
+    async def create_ticket(user_id: str, subject: str, description: str) -> Ticket:
+        async with async_session() as session:
+            ticket_id = f"TKT-{secrets.token_hex(4).upper()}"
+            ticket = Ticket(
+                ticket_id=ticket_id, user_id=str(user_id), subject=subject, description=description
+            )
+            session.add(ticket)
+            await session.commit()
+            await session.refresh(ticket)
+            return ticket
+    
+    @staticmethod
+    async def get_open_tickets() -> List[Ticket]:
+        async with async_session() as session:
+            result = await session.execute(select(Ticket).where(Ticket.status == "open"))
+            return list(result.scalars().all())
+    
+    @staticmethod
+    async def close_ticket(ticket_id: str) -> bool:
+        async with async_session() as session:
+            await session.execute(
+                update(Ticket).where(Ticket.ticket_id == ticket_id).values(status="closed", updated_at=datetime.now())
+            )
+            await session.commit()
+            return True
+
+class AuditCRUD:
+    @staticmethod
+    async def log_action(user_id: str, action: str, category: str, details: str = None, severity: str = "info") -> AuditLog:
+        async with async_session() as session:
+            log = AuditLog(
+                user_id=str(user_id), action=action, category=category, severity=severity, details=details
+            )
+            session.add(log)
+            await session.commit()
+            return log
+    
+    @staticmethod
+    async def get_logs(user_id: str = None, category: str = None, limit: int = 50) -> List[AuditLog]:
+        async with async_session() as session:
+            query = select(AuditLog)
+            if user_id:
+                query = query.where(AuditLog.user_id == str(user_id))
+            if category:
+                query = query.where(AuditLog.category == category)
+            query = query.order_by(AuditLog.created_at.desc()).limit(limit)
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+class MailingCRUD:
+    @staticmethod
+    async def create_task(project_id: int, name: str, message: str, audience_type: str) -> MailingTask:
+        async with async_session() as session:
+            task = MailingTask(project_id=project_id, name=name, message=message, audience_type=audience_type)
+            session.add(task)
+            await session.commit()
+            await session.refresh(task)
+            return task
+    
+    @staticmethod
+    async def get_active_tasks(project_id: int) -> List[MailingTask]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(MailingTask).where(
+                    and_(MailingTask.project_id == project_id, MailingTask.status.in_(["running", "paused"]))
+                )
+            )
+            return list(result.scalars().all())
+
+user_crud = UserCRUD()
+security_crud = SecurityCRUD()
+referral_crud = ReferralCRUD()
+payment_crud = PaymentCRUD()
+ticket_crud = TicketCRUD()
+audit_crud = AuditCRUD()
+key_crud = KeyCRUD()
+mailing_crud = MailingCRUD()
+application_crud = ApplicationCRUD()

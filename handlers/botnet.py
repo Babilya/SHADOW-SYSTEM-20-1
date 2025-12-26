@@ -17,62 +17,97 @@ class BotnetStates(StatesGroup):
 
 def botnet_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Додати ботів", callback_data="add_bots"),
-         InlineKeyboardButton(text="📋 Мої боти", callback_data="list_bots")],
-        [InlineKeyboardButton(text="🔄 Ротація проксі", callback_data="proxy_rotation"),
-         InlineKeyboardButton(text="🔥 Прогрій ботів", callback_data="warm_bots")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="bots_stats")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [
+            InlineKeyboardButton(text="➕ Додати ботів", callback_data="add_bots"),
+            InlineKeyboardButton(text="📋 Мої боти", callback_data="list_bots")
+        ],
+        [
+            InlineKeyboardButton(text="🔄 Ротація проксі", callback_data="proxy_rotation"),
+            InlineKeyboardButton(text="🔥 Прогрів", callback_data="warm_bots")
+        ],
+        [InlineKeyboardButton(text="📊 Детальна статистика", callback_data="bots_stats")],
+        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")]
     ])
 
-def botnet_description() -> str:
-    return """<b>🤖 УПРАВЛІННЯ BOTNET</b>
+def botnet_description(total=0, active=0, pending=0, errors=0) -> str:
+    return f"""<b>🤖 ЦЕНТР УПРАВЛІННЯ БОТАМИ</b>
+<i>Повний контроль над вашою мережею</i>
 
-<b>📊 СТАТУС БОТІВ:</b>
-├ Всього: 45
-├ 🟢 Активних: 38 (84.4%)
-├ 🟡 Очікування: 5 (11.1%)
-└ 🔴 Помилки: 2 (4.4%)
+━━━━━━━━━━━━━━━━━━━━━━━
 
-<b>🔧 ФУНКЦІОНАЛЬНІСТЬ:</b>
+<b>📊 ПОТОЧНИЙ СТАТУС:</b>
+├ 📱 Всього ботів: <code>{total}</code>
+├ 🟢 Активних: <code>{active}</code>
+├ 🟡 Очікування: <code>{pending}</code>
+└ 🔴 Помилки: <code>{errors}</code>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🛠️ ДОСТУПНІ ІНСТРУМЕНТИ:</b>
 
 <b>➕ Додати ботів</b>
-Імпорт ботів через CSV файл з номерами телефонів. Підтримується автоматична авторизація та прогрів.
+Швидкий імпорт через CSV-файл. Підтримка автоматичної валідації номерів та миттєве додавання до системи.
 
 <b>📋 Мої боти</b>
-Список всіх ботів з детальною статистикою: активність, кількість повідомлень, помилки, останній онлайн.
+Детальний огляд усіх ботів: статуси, активність, кількість надісланих повідомлень та останній час онлайн.
 
 <b>🔄 Ротація проксі</b>
-Автоматична ротація SOCKS5/HTTP проксі для захисту ботів від блокування. Підтримка геолокацій.
+Інтелектуальна ротація SOCKS5/HTTP проксі з підтримкою геолокації для максимального захисту.
 
 <b>🔥 Прогрів ботів</b>
-72-годинний прогрів нових ботів перед використанням у розсилках. Імітація активності реального користувача.
-
-<b>📊 Статистика</b>
-Детальна статистика активності ботів: успішність розсилок, помилки, блокування."""
+72-годинний цикл прогріву нових ботів. Імітація природної поведінки реального користувача."""
 
 @botnet_router.message(Command("botnet"))
 async def botnet_cmd(message: Message):
     from core.session_manager import session_manager
     stats = session_manager.get_stats()
+    by_status = stats.get("by_status", {})
     total = stats.get("total_sessions", 0)
-    active = stats.get("active_clients", 0)
-    await message.answer(f"🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: {total} | Активних: {active} | Неактивних: {total - active}", reply_markup=botnet_kb(), parse_mode="HTML")
+    active = by_status.get("active", 0) + by_status.get("validated", 0)
+    pending = by_status.get("pending_validation", 0)
+    errors = by_status.get("banned", 0) + by_status.get("deactivated", 0)
+    await message.answer(botnet_description(total, active, pending, errors), reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "botnet_main")
 async def botnet_menu(query: CallbackQuery):
     await query.answer()
     from core.session_manager import session_manager
     stats = session_manager.get_stats()
+    by_status = stats.get("by_status", {})
     total = stats.get("total_sessions", 0)
-    active = stats.get("active_clients", 0)
-    await query.message.answer(f"🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: {total} | Активних: {active} | Неактивних: {total - active}", reply_markup=botnet_kb(), parse_mode="HTML")
+    active = by_status.get("active", 0) + by_status.get("validated", 0)
+    pending = by_status.get("pending_validation", 0)
+    errors = by_status.get("banned", 0) + by_status.get("deactivated", 0)
+    await query.message.answer(botnet_description(total, active, pending, errors), reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "add_bots")
 async def add_bots(query: CallbackQuery):
     await query.answer()
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📤 Завантажити CSV", callback_data="upload_csv")], [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="bot_settings")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
-    await query.message.answer("➕ <b>ДОДАВАННЯ БОТІВ</b>\n\nФормат CSV: phone,firstName,lastName\n79991234567,Bot,Name", reply_markup=kb, parse_mode="HTML")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📤 Завантажити CSV", callback_data="upload_csv")],
+        [InlineKeyboardButton(text="⚙️ Налаштування імпорту", callback_data="bot_settings")],
+        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="botnet_main")]
+    ])
+    text = """<b>➕ ДОДАВАННЯ НОВИХ БОТІВ</b>
+<i>Швидкий імпорт через CSV-файл</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📋 Формат CSV-файлу:</b>
+<code>phone,firstName,lastName</code>
+<code>+380501234567,Олег,Петренко</code>
+<code>+380671234567,Марія,Іванова</code>
+
+<b>💡 Підказка:</b>
+Ви також можете просто надіслати список номерів телефонів, кожен з нового рядка.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>⚡ Після імпорту:</b>
+├ Автоматична валідація номерів
+├ Підготовка до авторизації
+└ Запуск циклу прогріву"""
+    await query.message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "upload_csv")
 async def upload_csv(query: CallbackQuery, state: FSMContext):
@@ -241,8 +276,29 @@ async def list_bots(query: CallbackQuery):
     pending = by_status.get("pending_validation", 0)
     error = by_status.get("banned", 0) + by_status.get("deactivated", 0)
     
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🟢 Активні", callback_data="bots_active")], [InlineKeyboardButton(text="🟡 Очікування", callback_data="bots_waiting")], [InlineKeyboardButton(text="🔴 Помилки", callback_data="bots_error")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
-    await query.message.answer(f"📋 <b>МОЇ БОТИ</b>\n\nВсього: {total}\n🟢 Активні: {active}\n🟡 Очікування: {pending}\n🔴 Помилки: {error}", reply_markup=kb, parse_mode="HTML")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🟢 Активні", callback_data="bots_active"),
+            InlineKeyboardButton(text="🟡 Очікування", callback_data="bots_waiting")
+        ],
+        [InlineKeyboardButton(text="🔴 Боти з помилками", callback_data="bots_error")],
+        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="botnet_main")]
+    ])
+    text = f"""<b>📋 ОГЛЯД УСІХ БОТІВ</b>
+<i>Детальний список та фільтрація</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📊 ЗАГАЛЬНА СТАТИСТИКА:</b>
+├ 📱 Всього у системі: <code>{total}</code>
+├ 🟢 Активних та готових: <code>{active}</code>
+├ 🟡 В очікуванні: <code>{pending}</code>
+└ 🔴 З помилками: <code>{error}</code>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🔍 Оберіть категорію для перегляду:</b>"""
+    await query.message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bots_active")
 async def bots_active(query: CallbackQuery):

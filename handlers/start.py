@@ -1,23 +1,22 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from database.crud import UserCRUD, ProjectCRUD
 from config.templates import MESSAGES
 from keyboards.guest_kb import guest_main_kb, tariffs_kb
 from keyboards.user_kb import user_main_kb
 from core.audit_logger import audit_logger, ActionCategory
 from core.alerts import alert_system, AlertType
+from core.role_constants import UserRole
+from services.user_service import user_service
+from keyboards.role_menus import get_description_by_role, get_menu_by_role
+from utils.db import async_session
 
 router = Router()
 
 @router.message(Command("start"))
 async def start_handler(message: Message):
-    from services.user_service import user_service
-    from database.crud import ProjectCRUD
-    from utils.db import async_session
-    from core.role_constants import UserRole
-    
     user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
     
     async with async_session() as session:
@@ -35,7 +34,6 @@ async def start_handler(message: Message):
         details={"has_project": project is not None, "role": user.role}
     )
     
-    from keyboards.role_menus import get_description_by_role, get_menu_by_role
     role = user.role if user else UserRole.GUEST
     
     await message.answer(
@@ -46,10 +44,6 @@ async def start_handler(message: Message):
 
 @router.callback_query(F.data == "user_menu")
 async def user_menu_callback(callback: CallbackQuery):
-    from services.user_service import user_service
-    from core.role_constants import UserRole
-    from keyboards.role_menus import get_description_by_role, get_menu_by_role
-    
     user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
     role = user.role if user else UserRole.GUEST
     

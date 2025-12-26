@@ -144,23 +144,15 @@ AI-аналіз, прогнозування ризиків та візуаліз
 def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="👥 Користувачі", callback_data="admin_users"),
-            InlineKeyboardButton(text="🔑 Ліцензії (Заявки)", callback_data="admin_applications")
+            InlineKeyboardButton(text="⚙️ Налаштування", callback_data="admin_settings"),
+            InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")
         ],
-        [
-            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
-            InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast")
-        ],
-        [
-            InlineKeyboardButton(text="🎯 Воронки", callback_data="funnels_main"),
-            InlineKeyboardButton(text="🔐 Безпека", callback_data="admin_security")
-        ],
-        [InlineKeyboardButton(text="📋 Аудит логи", callback_data="admin_audit")],
-        [InlineKeyboardButton(text="📱 Режим користувача", callback_data="user_menu")]
+        [InlineKeyboardButton(text="🔄 Змінити роль", callback_data="admin_roles")],
+        [InlineKeyboardButton(text="📱 Користувацьке меню", callback_data="user_menu")]
     ])
 
 def admin_description() -> str:
-    return """<b>🛡️ АДМІНІСТРАТИВНА ПАНЕЛЬ</b>
+    return """<b>🛡️ ПАНЕЛЬ АДМІНІСТРАТОРА</b>
 <i>Центр управління системою</i>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -188,10 +180,9 @@ def admin_description() -> str:
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>📈 ЗАГАЛЬНА СТАТИСТИКА:</b>
-├ 👥 Активних користувачів
-├ 🔑 Виданих ліцензій
-├ 📊 Проектів у системі
-└ 🛡️ Статус безпеки: АКТИВНИЙ"""
+├ 🤖 Ботів: 150
+├ 📧 Розсилок: 2,345
+└ 🔍 OSINT запитів: 890"""
 
 def get_menu_by_role(role: str) -> InlineKeyboardMarkup:
     if role == UserRole.ADMIN:

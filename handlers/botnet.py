@@ -25,8 +25,10 @@ def botnet_kb():
             InlineKeyboardButton(text="🔄 Ротація проксі", callback_data="proxy_rotation"),
             InlineKeyboardButton(text="🔥 Прогрів", callback_data="warm_bots")
         ],
-        [InlineKeyboardButton(text="📊 Детальна статистика", callback_data="bots_stats")],
-        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")]
+        [
+            InlineKeyboardButton(text="📊 Статистика", callback_data="bots_stats"),
+            InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")
+        ]
     ])
 
 def botnet_description(total=0, active=0, pending=0, errors=0) -> str:

@@ -24,22 +24,13 @@ class RootStates(StatesGroup):
 def admin_main_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="👥 Користувачі", callback_data="admin_users"),
-            InlineKeyboardButton(text="📝 Заявки", callback_data="admin_applications")
-        ],
-        [
-            InlineKeyboardButton(text="🔑 Ліцензії", callback_data="admin_keys_menu"),
-            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")
-        ],
-        [
-            InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast"),
+            InlineKeyboardButton(text="⚙️ Налаштування", callback_data="admin_system"),
             InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")
         ],
         [
-            InlineKeyboardButton(text="📋 Аудит логи", callback_data="admin_audit"),
-            InlineKeyboardButton(text="🔐 Безпека", callback_data="admin_security")
+            InlineKeyboardButton(text="🔄 Змінити роль", callback_data="admin_roles"),
+            InlineKeyboardButton(text="📱 Юзер меню", callback_data="user_menu")
         ],
-        [InlineKeyboardButton(text="⚙️ Системні налаштування", callback_data="admin_system")],
         [InlineKeyboardButton(text="🆘 ЕКСТРЕНА ТРИВОГА", callback_data="admin_emergency")]
     ])
 

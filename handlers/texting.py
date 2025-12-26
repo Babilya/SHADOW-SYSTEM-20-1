@@ -109,15 +109,18 @@ TEXT_TEMPLATES = {
     }
 }
 
+def texting_description() -> str:
+    return """<b>📝 ТЕКСТОВІ ВОРОНКИ</b>
+
+Управління текстовими кампаніями та шаблонами для масових розсилок."""
+
 @texting_router.message(Command("texting"))
+async def texting_cmd(message: Message):
+    await message.answer(texting_description(), reply_markup=texting_kb(), parse_mode="HTML")
+
 async def texting_menu(message: Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Створити текстовку", callback_data="create_text")],
-        [InlineKeyboardButton(text="📚 Шаблони", callback_data="templates_list")],
-        [InlineKeyboardButton(text="📊 Мої текстовки", callback_data="my_texts")],
-        [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="text_settings")],
-    ])
-    await message.answer("📝 <b>ТЕКСТОВІ ВОРОНКИ</b>\n\nУпраління текстовими кампаніями та шаблонами", reply_markup=kb, parse_mode="HTML")
+    """Функція для виклику з інших модулів"""
+    await message.edit_text(texting_description(), reply_markup=texting_kb(), parse_mode="HTML")
 
 @texting_router.callback_query(F.data == "create_text")
 async def create_text(query: CallbackQuery, state: FSMContext):

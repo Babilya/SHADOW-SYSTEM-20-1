@@ -270,6 +270,12 @@ async def campaigns_callback(query: CallbackQuery):
     from handlers.texting import texting_kb
     await query.message.edit_text("📝 <b>Кампанії</b>\n\nВсього кампаній: 45\nАктивних: 12\nПриклад результатів:\n• Промо: CTR 45%, конверсія 12%\n• Привітання: Engagement 78%", reply_markup=texting_kb(), parse_mode="HTML")
 
+@user_router.callback_query(F.data == "campaigns_main")
+async def campaigns_main_callback(query: CallbackQuery):
+    await query.answer()
+    from handlers.texting import texting_kb, texting_description
+    await query.message.edit_text(texting_description(), reply_markup=texting_kb(), parse_mode="HTML")
+
 @user_router.callback_query(F.data == "analytics_main")
 async def analytics_main_callback(query: CallbackQuery):
     await query.answer()

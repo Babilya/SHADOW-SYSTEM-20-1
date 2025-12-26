@@ -41,7 +41,21 @@ async def balance_payments_main_callback(query: CallbackQuery):
 @user_router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")
+    from keyboards.role_menus import get_menu_by_role, get_description_by_role
+    from services.user_service import user_service
+    from config import ADMIN_IDS
+    from database.models import UserRole
+    
+    user_id = query.from_user.id
+    if user_id in ADMIN_IDS:
+        role = UserRole.ADMIN
+    else:
+        role = user_service.get_role(user_id)
+    
+    description = get_description_by_role(role)
+    keyboard = get_menu_by_role(role)
+    
+    await query.message.edit_text(description, reply_markup=keyboard, parse_mode="HTML")
 
 
 @user_router.callback_query(F.data == "ghost_mode")

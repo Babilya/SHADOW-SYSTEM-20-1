@@ -367,7 +367,7 @@ async def process_emergency(message: Message, state: FSMContext):
 ✅ Зафіксовано в аудит-логах""", parse_mode="HTML")
     await state.clear()
 
-@admin_router.callback_query(F.data == "back_to_menu")
+@admin_router.callback_query(F.data == "admin_back_to_menu")
 async def admin_back_to_menu(query: CallbackQuery):
     await query.answer()
     from keyboards.user import main_menu, main_menu_description

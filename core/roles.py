@@ -1,34 +1,10 @@
-from enum import Enum
 from typing import List, Dict, Any
 from functools import wraps
 from aiogram.types import Message, CallbackQuery
+from core.role_constants import UserRole, ROLE_HIERARCHY, ROLE_NAMES, ROLE_DESCRIPTIONS
 
-class UserRole(str, Enum):
-    GUEST = "guest"
-    MANAGER = "manager"
-    LEADER = "leader"
-    ADMIN = "admin"
-
-ROLE_HIERARCHY = {
-    UserRole.GUEST: 0,
-    UserRole.MANAGER: 1,
-    UserRole.LEADER: 2,
-    UserRole.ADMIN: 3
-}
-
-ROLE_NAMES = {
-    UserRole.GUEST: "Гість",
-    UserRole.MANAGER: "Менеджер",
-    UserRole.LEADER: "Лідер",
-    UserRole.ADMIN: "👑 ROOT/ADMIN"
-}
-
-ROLE_DESCRIPTIONS = {
-    UserRole.GUEST: "Перегляд тарифів та подача заявок",
-    UserRole.MANAGER: "Оперативний виконавець: розсилки, OSINT, керування ботнетом",
-    UserRole.LEADER: "Керування групою менеджерів, генерація ліцензійних ключів",
-    UserRole.ADMIN: "Абсолютний контроль над системою"
-}
+__all__ = ['UserRole', 'ROLE_HIERARCHY', 'ROLE_NAMES', 'ROLE_DESCRIPTIONS', 'ROLE_PERMISSIONS', 
+           'TARIFFS', 'has_permission', 'get_role_level', 'can_manage_role', 'get_tariff', 'check_role_access']
 
 ROLE_PERMISSIONS = {
     UserRole.GUEST: [

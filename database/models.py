@@ -4,11 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-class UserRole:
-    GUEST = "guest"
-    LEADER = "leader"
-    MANAGER = "manager"
-    ADMIN = "admin"
+from core.role_constants import UserRole
 
 class User(Base):
     __tablename__ = "users"
@@ -230,4 +226,37 @@ class BotWarming(Base):
     end_time = Column(DateTime, nullable=True)
     messages_sent = Column(Integer, default=0)
     current_phase = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.now)
+
+class Funnel(Base):
+    __tablename__ = "funnels"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(String)
+    name = Column(String)
+    description = Column(Text, nullable=True)
+    funnel_type = Column(String, default="onboarding")
+    status = Column(String, default="draft")
+    steps_count = Column(Integer, default=0)
+    photo_file_id = Column(String, nullable=True)
+    tariff_info = Column(Text, nullable=True)
+    welcome_text = Column(Text, nullable=True)
+    button_text = Column(String, default="Далі")
+    is_active = Column(Boolean, default=True)
+    views_count = Column(Integer, default=0)
+    conversions = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now)
+
+class FunnelStep(Base):
+    __tablename__ = "funnel_steps"
+    id = Column(Integer, primary_key=True)
+    funnel_id = Column(Integer)
+    step_order = Column(Integer, default=1)
+    title = Column(String, nullable=True)
+    content = Column(Text)
+    photo_file_id = Column(String, nullable=True)
+    button_text = Column(String, default="Далі")
+    action_type = Column(String, default="next")
+    action_data = Column(String, nullable=True)
+    delay_seconds = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now)

@@ -90,6 +90,7 @@ def leader_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 Аналітика", callback_data="analytics_main")
         ],
         [
+            InlineKeyboardButton(text="🎯 Воронки", callback_data="funnels_main"),
             InlineKeyboardButton(text="📦 Підписки", callback_data="subscription_main")
         ],
         [
@@ -99,10 +100,6 @@ def leader_menu() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="🔥 Прогрів", callback_data="warming_main"),
             InlineKeyboardButton(text="📅 Планувальник", callback_data="scheduler_main")
-        ],
-        [
-            InlineKeyboardButton(text="🌍 Гео-скан", callback_data="geo_scan"),
-            InlineKeyboardButton(text="✍️ Текстовки", callback_data="texting_main")
         ],
         [
             InlineKeyboardButton(text="📖 Довідка", callback_data="help_main"),
@@ -155,8 +152,8 @@ def admin_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")
         ],
         [
-            InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast"),
-            InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")
+            InlineKeyboardButton(text="🎯 Воронки", callback_data="funnels_main"),
+            InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast")
         ],
         [
             InlineKeyboardButton(text="⚙️ Система", callback_data="admin_settings"),

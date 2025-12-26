@@ -30,22 +30,52 @@ async def help_main_callback(query: CallbackQuery):
 @user_router.callback_query(F.data == "profile_main")
 async def profile_main_callback(query: CallbackQuery):
     await query.answer()
-    text = """<b>👤 ПРОФІЛЬ КОРИСТУВАЧА</b>
+    from services.user_service import user_service
+    from config import ADMIN_IDS
+    from database.models import UserRole
+    from core.roles import ROLE_NAMES
+    from utils.db import SessionLocal
+    from database.models import Bot, Campaign
+    
+    user_id = query.from_user.id
+    user = user_service.get_user(user_id)
+    
+    if user_id in ADMIN_IDS:
+        role = UserRole.ADMIN
+    else:
+        role = user.role if user else UserRole.GUEST
+    
+    role_name = ROLE_NAMES.get(role, "Гість")
+    username = user.username if user else query.from_user.username or "N/A"
+    first_name = query.from_user.first_name or "N/A"
+    
+    db = SessionLocal()
+    try:
+        bots_count = db.query(Bot).count()
+        campaigns_count = db.query(Campaign).count()
+    finally:
+        db.close()
+    
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    text = f"""<b>👤 ПРОФІЛЬ КОРИСТУВАЧА</b>
 <i>Особиста інформація</i>
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>📋 ОСНОВНІ ДАНІ:</b>
-├ 🆔 ID: <code>6838247512</code>
-├ 👤 Ім'я: Admin
-├ 👑 Роль: Власник проекту
-└ 💎 Тариф: ПРЕМІУМ
+├ 🆔 ID: <code>{user_id}</code>
+├ 👤 Ім'я: {first_name}
+├ 📱 Username: @{username}
+└ 👑 Роль: {role_name}
 
-<b>📊 СТАТИСТИКА:</b>
-├ 🤖 Ботів: 150
-├ 📧 Розсилок: 2,345
-└ 🔍 OSINT запитів: 890"""
-    await query.message.edit_text(text, parse_mode="HTML")
+<b>📊 СТАТИСТИКА СИСТЕМИ:</b>
+├ 🤖 Ботів у системі: {bots_count}
+└ 📧 Кампаній: {campaigns_count}"""
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @user_router.callback_query(F.data == "license_main")
 async def license_main_callback(query: CallbackQuery):
@@ -67,8 +97,9 @@ async def license_main_callback(query: CallbackQuery):
     await query.message.edit_text(text, reply_markup=license_menu(), parse_mode="HTML")
 
 @user_router.callback_query(F.data == "back_to_menu")
-async def back_to_menu(query: CallbackQuery):
+async def back_to_menu(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    await state.clear()
     from keyboards.role_menus import get_menu_by_role, get_description_by_role
     from services.user_service import user_service
     from config import ADMIN_IDS
@@ -78,7 +109,7 @@ async def back_to_menu(query: CallbackQuery):
     if user_id in ADMIN_IDS:
         role = UserRole.ADMIN
     else:
-        role = user_service.get_role(user_id)
+        role = user_service.get_user_role(user_id)
     
     description = get_description_by_role(role)
     keyboard = get_menu_by_role(role)

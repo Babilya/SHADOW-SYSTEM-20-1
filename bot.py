@@ -40,6 +40,7 @@ try:
     from handlers.warming import warming_router
     from handlers.scheduler import scheduler_router
     from handlers.geoscanner import geo_router
+    from handlers.advanced_features import advanced_router
     from middlewares.security_middleware import SecurityMiddleware
     from utils.db import init_db
     from middlewares.role_middleware import RoleMiddleware
@@ -66,7 +67,7 @@ routers = [
     emergency_router, configurator_router, security_router, 
     tickets_router, referral_router, mailing_router, missing_router,
     proxy_router, export_router, warming_router, scheduler_router, geo_router,
-    auth_router
+    auth_router, advanced_router
 ]
 
 for r in routers:
@@ -322,6 +323,50 @@ async def command_start_help(message: Message, user_role: str = UserRole.GUEST, 
     
     await message.answer(help_text, parse_mode="HTML")
 
+async def start_services():
+    try:
+        from core.rate_limiter import rate_limiter
+        await rate_limiter.start()
+        logger.info("✅ RateLimiter started")
+    except Exception as e:
+        logger.warning(f"RateLimiter failed: {e}")
+    
+    try:
+        from core.message_queue import message_queue
+        await message_queue.start()
+        logger.info("✅ MessageQueue started")
+    except Exception as e:
+        logger.warning(f"MessageQueue failed: {e}")
+    
+    try:
+        from core.mailing_scheduler import mailing_scheduler
+        await mailing_scheduler.start()
+        logger.info("✅ MailingScheduler started")
+    except Exception as e:
+        logger.warning(f"MailingScheduler failed: {e}")
+    
+    try:
+        from core.antifraud import antifraud_service
+        await antifraud_service.start()
+        logger.info("✅ AntiFraud started")
+    except Exception as e:
+        logger.warning(f"AntiFraud failed: {e}")
+    
+    try:
+        from core.key_notifications import key_notification_service
+        key_notification_service.set_bot(bot)
+        await key_notification_service.start()
+        logger.info("✅ KeyNotifications started")
+    except Exception as e:
+        logger.warning(f"KeyNotifications failed: {e}")
+    
+    try:
+        from core.segmentation import segmentation_service
+        await segmentation_service.start()
+        logger.info("✅ Segmentation started")
+    except Exception as e:
+        logger.warning(f"Segmentation failed: {e}")
+
 async def main():
     logger.info("🤖 SHADOW SYSTEM iO v2.0 запускається...")
     try:
@@ -329,6 +374,10 @@ async def main():
         from middlewares.security_middleware import sync_from_db
         await sync_from_db()
         logger.info("✅ Security cache synced from DB")
+        
+        await start_services()
+        logger.info("✅ All services started")
+        
         await bot.delete_webhook(drop_pending_updates=True)
         logger.info("✅ Все готово!")
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())

@@ -38,8 +38,25 @@ The system is built around a modular architecture with distinct components for c
 - **Campaign Scheduler:** Schedule campaigns for future execution with time presets.
 - **Geo Scanner:** Search for Telegram chats by city/coordinates with radius selection.
 
+## Advanced Features (v2.0)
+- **Rate Limiter:** Token bucket algorithm (30 req/sec global, 25 req/sec per bot, 1 req/sec per user)
+- **Message Queue:** Async queue system with 3 workers for reliable message delivery
+- **Mailing Scheduler:** Schedule mailings for future dates/times with database persistence
+- **A/B Testing:** Support for split testing in campaigns
+- **Anti-Fraud Service:** Behavioral analysis and automatic blocking of suspicious users
+- **Login Tracker:** IP-based login tracking with geolocation
+- **IP Whitelist:** Admin IP whitelisting for enhanced security
+- **Encrypted Backups:** AES-256 Fernet encryption for backup data (falls back to basic mode if cryptography not available)
+- **Auto-Responder:** Keyword-based automatic responses (exact/contains/regex matching)
+- **Segmentation Service:** Automatic user tagging (new_user, active, inactive, power_user, paying, leader, manager)
+- **CRM Export:** Export leads to Notion, Airtable, Google Sheets
+- **PDF Export:** Generate analytics and audit log reports
+- **Key Expiration Notifications:** Automatic alerts 3/7 days before key expiry
+- **Pagination:** Utilities for handling large datasets in Telegram messages
+
 ## External Dependencies
 - **Telegram Bot API:** Interacted with via `aiogram 3.3` for all bot functionalities.
 - **PostgreSQL:** Used as the primary database for storing system data, managed through `SQLAlchemy` and `asyncpg`.
 - **Telethon/Pyrogram:** Session formats supported for importing Telegram bot sessions.
 - **Payment Gateways (Manual Confirmation):** The system supports manual confirmation of payments, implying integration with various payment methods (Telegram Stars, Liqpay, Card) without direct API automation for balance top-ups.
+- **Replit AI Integrations:** OpenAI integration for AI-powered text generation

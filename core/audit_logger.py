@@ -115,6 +115,36 @@ class AuditLogger:
                 f.write(json.dumps(entry.to_dict(), ensure_ascii=False) + '\n')
         except Exception as e:
             logger.error(f"Failed to write audit log: {e}")
+        
+        await self._save_to_db(entry)
+    
+    async def _save_to_db(self, entry: AuditEntry):
+        try:
+            from database.db import async_session
+            from sqlalchemy import text
+            async with async_session() as session:
+                await session.execute(
+                    text("""
+                        INSERT INTO audit_logs 
+                        (user_id, action, category, severity, details, ip_address, action_type, actor_id, payload, created_at)
+                        VALUES (:user_id, :action, :category, :severity, :details, :ip_address, :action_type, :actor_id, :payload, :created_at)
+                    """),
+                    {
+                        "user_id": str(entry.user_id),
+                        "action": entry.action,
+                        "category": entry.category.value,
+                        "severity": entry.severity.value,
+                        "details": json.dumps(entry.details, ensure_ascii=False) if entry.details else None,
+                        "ip_address": entry.ip_address,
+                        "action_type": entry.action,
+                        "actor_id": entry.user_id,
+                        "payload": json.dumps(entry.to_dict(), ensure_ascii=False),
+                        "created_at": entry.timestamp
+                    }
+                )
+                await session.commit()
+        except Exception as e:
+            logger.error(f"Failed to save audit log to DB: {e}")
     
     async def log_auth(self, user_id: int, action: str, success: bool = True, **kwargs):
         return await self.log(

@@ -14,17 +14,18 @@ class OSINTDataRepository(BaseRepository[OSINTData]):
     def __init__(self, session: Session):
         super().__init__(session, OSINTData)
     
-    async def get_user_osint_data(self, user_id: int, data_type: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[OSINTData]:
+    async def get_user_osint_data(self, telegram_id: int, data_type: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[OSINTData]:
         """Get OSINT data for user"""
         try:
-            statement = select(OSINTData).where(OSINTData.owner_id == user_id)
+            # Match the telegram_id stored in OSINTData.user_id
+            statement = select(OSINTData).where(OSINTData.user_id == str(telegram_id))
             if data_type:
                 statement = statement.where(OSINTData.data_type == data_type)
             statement = statement.order_by(OSINTData.created_at.desc()).offset(skip).limit(limit)
-            result = await self.session.exec(statement)
-            return result.all()
+            result = await self.session.execute(statement)
+            return list(result.scalars().all())
         except Exception as e:
-            logger.error(f"Error getting OSINT data for user {user_id}: {e}")
+            logger.error(f"Error getting OSINT data for user {telegram_id}: {e}")
             raise
     
     async def cleanup_expired_data(self, retention_days: int = 30) -> int:

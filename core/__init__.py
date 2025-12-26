@@ -39,3 +39,7 @@ from core.alerts import (
     AlertPriority,
     Alert
 )
+from core.ai_service import (
+    ai_service,
+    AIService
+)

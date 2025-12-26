@@ -6,9 +6,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-auth_router = Router()
+router = Router()
 
-@auth_router.message(F.text.startswith("SHADOW-"))
+@router.message(F.text.startswith("SHADOW-"))
 async def auth_key(message: Message, state: FSMContext):
     code = message.text.strip().upper()
     logger.info(f"Validating key: {code} for user {message.from_user.id}")
@@ -48,7 +48,7 @@ async def auth_key(message: Message, state: FSMContext):
         logger.error(f"Auth error: {e}")
         await message.answer("❌ Помилка авторизації. Спробуйте пізніше.")
 
-@auth_router.message(F.text.startswith("INV-"))
+@router.message(F.text.startswith("INV-"))
 async def invite_code(message: Message, state: FSMContext):
     code = message.text.strip().upper()
     logger.info(f"Processing invite code: {code} for user {message.from_user.id}")

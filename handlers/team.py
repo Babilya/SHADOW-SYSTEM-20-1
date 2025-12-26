@@ -9,7 +9,7 @@ import logging
 from core.key_generator import generate_invite_code, store_invite_code, invite_codes_storage
 
 logger = logging.getLogger(__name__)
-team_router = Router()
+router = Router()
 
 class TeamCRUD:
     @staticmethod
@@ -115,16 +115,16 @@ def team_description() -> str:
 ├ Повідомлень надіслано: 12,500
 └ Конверсія: 15.2%"""
 
-@team_router.message(Command("team"))
+@router.message(Command("team"))
 async def team_cmd(message: Message):
     await message.answer(team_description(), reply_markup=team_kb(), parse_mode="HTML")
 
-@team_router.callback_query(F.data == "team_main")
+@router.callback_query(F.data == "team_main")
 async def team_menu(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(team_description(), reply_markup=team_kb(), parse_mode="HTML")
 
-@team_router.callback_query(F.data == "list_managers")
+@router.callback_query(F.data == "list_managers")
 async def list_managers(query: CallbackQuery):
     await query.answer()
     
@@ -149,7 +149,7 @@ async def list_managers(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "generate_invite")
+@router.callback_query(F.data == "generate_invite")
 async def generate_invite(query: CallbackQuery):
     await query.answer()
     
@@ -181,7 +181,7 @@ async def generate_invite(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "my_invite_codes")
+@router.callback_query(F.data == "my_invite_codes")
 async def my_invite_codes(query: CallbackQuery):
     await query.answer()
     
@@ -207,7 +207,7 @@ async def my_invite_codes(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "add_manager")
+@router.callback_query(F.data == "add_manager")
 async def add_manager(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.set_state(TeamStates.waiting_manager_id)
@@ -223,7 +223,7 @@ async def add_manager(query: CallbackQuery, state: FSMContext):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.message(TeamStates.waiting_manager_id)
+@router.message(TeamStates.waiting_manager_id)
 async def process_manager_id(message: Message, state: FSMContext):
     try:
         manager_id = int(message.text.strip())
@@ -248,7 +248,7 @@ async def process_manager_id(message: Message, state: FSMContext):
     except ValueError:
         await message.answer("❌ Невірний формат ID. Введіть числовий Telegram ID:")
 
-@team_router.callback_query(F.data.startswith("role_"))
+@router.callback_query(F.data.startswith("role_"))
 async def set_manager_role(query: CallbackQuery, state: FSMContext):
     role = query.data.replace("role_", "")
     data = await state.get_data()
@@ -278,7 +278,7 @@ async def set_manager_role(query: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "manager_rating")
+@router.callback_query(F.data == "manager_rating")
 async def manager_rating(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -307,7 +307,7 @@ async def manager_rating(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "team_activity")
+@router.callback_query(F.data == "team_activity")
 async def team_activity(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -334,7 +334,7 @@ async def team_activity(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "team_permissions")
+@router.callback_query(F.data == "team_permissions")
 async def team_permissions(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -366,7 +366,7 @@ async def team_permissions(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data == "project_stats")
+@router.callback_query(F.data == "project_stats")
 async def project_stats(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -401,7 +401,7 @@ async def project_stats(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data.in_(["rating_week", "rating_month", "activity_report", "export_pdf", "export_csv"]))
+@router.callback_query(F.data.in_(["rating_week", "rating_month", "activity_report", "export_pdf", "export_csv"]))
 async def misc_team_handlers(query: CallbackQuery):
     await query.answer("🔄 Генерується звіт...")
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -413,7 +413,7 @@ async def misc_team_handlers(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@team_router.callback_query(F.data.startswith("perm_"))
+@router.callback_query(F.data.startswith("perm_"))
 async def toggle_permission(query: CallbackQuery):
     module = query.data.replace("perm_", "")
     await query.answer(f"⚙️ Налаштування {module}")

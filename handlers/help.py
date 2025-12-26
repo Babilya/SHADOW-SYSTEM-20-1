@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 
-help_router = Router()
+router = Router()
 
 HELP_SECTIONS = {
     "botnet": """<b>🤖 BOTNET - Управління ботами</b>
@@ -71,7 +71,7 @@ HELP_SECTIONS = {
 <b>🤖 AI SENTIMENT ANALYSIS:</b>
 ├ 😊 Позитивні відповіді
 ├ 😐 Нейтральні відповіді
-└ 😠 Негативні відповіді
+├ └ 😠 Негативні відповіді
 
 <b>⚠️ ПРОГНОЗ РИЗИКІВ:</b>
 ├ 🟢 Низький - безпечно
@@ -224,7 +224,7 @@ def help_kb():
 def help_description() -> str:
     return "📚 <b>ДОВІДКА SHADOW SYSTEM</b>\n\nВиберіть розділ для детальної інформації:"
 
-@help_router.message(Command("help"))
+@router.message(Command("help"))
 async def help_cmd(message: Message):
     await message.answer(help_description(), reply_markup=help_kb(), parse_mode="HTML")
 
@@ -232,7 +232,7 @@ async def help_menu(message: Message):
     """Функція для виклику з інших модулів"""
     await message.edit_text(help_description(), reply_markup=help_kb(), parse_mode="HTML")
 
-@help_router.callback_query(F.data.startswith("help_"))
+@router.callback_query(F.data.startswith("help_"))
 async def show_help(query: CallbackQuery):
     section = query.data.replace("help_", "")
     await query.answer()

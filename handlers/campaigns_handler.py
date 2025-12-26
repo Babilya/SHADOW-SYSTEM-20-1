@@ -6,10 +6,9 @@ from database.repositories.campaign_repository import CampaignRepository
 from database.db import get_session
 
 logger = logging.getLogger(__name__)
-campaigns_router = Router()
+router = Router()
 
-
-@campaigns_router.message(Command("campaigns"))
+@router.message(Command("campaigns"))
 async def cmd_campaigns(message: Message):
     """List user campaigns"""
     try:
@@ -36,8 +35,7 @@ async def cmd_campaigns(message: Message):
         logger.error(f"Error listing campaigns: {e}")
         await message.answer(f"❌ Помилка: {e}")
 
-
-@campaigns_router.message(Command("new_campaign"))
+@router.message(Command("new_campaign"))
 async def cmd_new_campaign(message: Message):
     """Create new campaign"""
     await message.answer(
@@ -46,8 +44,7 @@ async def cmd_new_campaign(message: Message):
         parse_mode="HTML"
     )
 
-
-@campaigns_router.message(Command("running"))
+@router.message(Command("running"))
 async def cmd_running_campaigns(message: Message):
     """Show running campaigns"""
     try:

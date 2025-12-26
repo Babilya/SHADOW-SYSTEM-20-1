@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from core.ai_service import ai_service
 from core.audit_logger import audit_logger, ActionCategory
 
-analytics_router = Router()
+router = Router()
 
 class AnalyticsStates(StatesGroup):
     waiting_text = State()
@@ -60,7 +60,7 @@ AI-прогнозування ймовірності блокування бот
 <b>✍️ AI Генерація</b>
 Створення унікальних текстів для кампаній за допомогою штучного інтелекту."""
 
-@analytics_router.message(Command("analytics"))
+@router.message(Command("analytics"))
 async def analytics_cmd(message: Message):
     await audit_logger.log(
         user_id=message.from_user.id,
@@ -71,12 +71,12 @@ async def analytics_cmd(message: Message):
     )
     await message.answer(analytics_description(), reply_markup=analytics_kb(), parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "analytics_main")
+@router.callback_query(F.data == "analytics_main")
 async def analytics_menu(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(analytics_description(), reply_markup=analytics_kb(), parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "reports")
+@router.callback_query(F.data == "reports")
 async def reports(query: CallbackQuery):
     await query.answer()
     
@@ -114,7 +114,7 @@ async def reports(query: CallbackQuery):
     
     await query.message.edit_text(report_text, reply_markup=back_kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "sentiment")
+@router.callback_query(F.data == "sentiment")
 async def sentiment(query: CallbackQuery, state: FSMContext):
     await query.answer()
     
@@ -144,7 +144,7 @@ async def sentiment(query: CallbackQuery, state: FSMContext):
     
     await query.message.edit_text(text, reply_markup=back_kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "analyze_text")
+@router.callback_query(F.data == "analyze_text_start")
 async def analyze_text_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.set_state(AnalyticsStates.waiting_text)
@@ -159,7 +159,7 @@ async def analyze_text_start(query: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
 
-@analytics_router.message(AnalyticsStates.waiting_text)
+@router.message(AnalyticsStates.waiting_text)
 async def analyze_text_process(message: Message, state: FSMContext):
     await state.clear()
     
@@ -198,13 +198,13 @@ async def analyze_text_process(message: Message, state: FSMContext):
 <i>Аналіз: {ai_status}</i>"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Ще аналіз", callback_data="analyze_text")],
+        [InlineKeyboardButton(text="📝 Ще аналіз", callback_data="analyze_text_start")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="analytics_main")]
     ])
     
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "risk_predict")
+@router.callback_query(F.data == "risk_predict")
 async def risk_predict(query: CallbackQuery):
     await query.answer()
     
@@ -220,7 +220,7 @@ async def risk_predict(query: CallbackQuery):
 └ "Масова #456" - 65% ризик
     └ Рекомендація: Зменшити швидкість
 
-<b>🟡 Середній ризик (5 кампаній):</b>
+<b>🟡 Середній ризик (5 кампанії):</b>
 ├ Рекомендовано збільшити інтервал
 └ Моніторинг кожні 30 хвилин
 
@@ -234,7 +234,7 @@ async def risk_predict(query: CallbackQuery):
     
     await query.message.edit_text(text, reply_markup=back_kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "dashboard")
+@router.callback_query(F.data == "dashboard")
 async def dashboard(query: CallbackQuery):
     await query.answer()
     
@@ -271,7 +271,7 @@ async def dashboard(query: CallbackQuery):
     
     await query.message.edit_text(text, reply_markup=back_kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "best_time")
+@router.callback_query(F.data == "best_time")
 async def best_time(query: CallbackQuery):
     await query.answer()
     
@@ -302,7 +302,7 @@ async def best_time(query: CallbackQuery):
     
     await query.message.edit_text(text, reply_markup=back_kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "generate_text")
+@router.callback_query(F.data == "generate_text")
 async def generate_text(query: CallbackQuery):
     await query.answer()
     
@@ -325,7 +325,7 @@ async def generate_text(query: CallbackQuery):
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data.startswith("gen_"))
+@router.callback_query(F.data.startswith("gen_"))
 async def generate_text_result(query: CallbackQuery):
     await query.answer("⏳ Генерація...")
     
@@ -358,4 +358,3 @@ async def generate_text_result(query: CallbackQuery):
 <i>Натисніть на текст для копіювання</i>"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-

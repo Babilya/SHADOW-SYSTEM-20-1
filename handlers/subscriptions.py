@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-subscriptions_router = Router()
+router = Router()
 
 class ApplicationForm(StatesGroup):
     waiting_name = State()
@@ -181,16 +181,16 @@ def compare_packages_text() -> str:
 👑 <b>ПРЕМІУМ</b> — для професійних операцій
 💎 <b>ПЕРСОНАЛЬНИЙ</b> — корпоративні клієнти та LEA"""
 
-@subscriptions_router.message(Command("subscription"))
+@router.message(Command("subscription"))
 async def subscription_cmd(message: Message):
     await message.answer(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
 
-@subscriptions_router.callback_query(F.data == "subscription_main")
+@router.callback_query(F.data == "subscription_main")
 async def subscription_menu(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
 
-@subscriptions_router.callback_query(F.data == "pkg_compare")
+@router.callback_query(F.data == "pkg_compare")
 async def pkg_compare(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -202,7 +202,7 @@ async def pkg_compare(query: CallbackQuery):
     ])
     await query.message.edit_text(compare_packages_text(), reply_markup=kb, parse_mode="HTML")
 
-@subscriptions_router.callback_query(F.data.startswith("pkg_"))
+@router.callback_query(F.data.startswith("pkg_"))
 async def package_detail(query: CallbackQuery):
     pkg_key = query.data.replace("pkg_", "")
     if pkg_key not in PACKAGES:
@@ -216,7 +216,7 @@ async def package_detail(query: CallbackQuery):
         parse_mode="HTML"
     )
 
-@subscriptions_router.callback_query(F.data == "subscription_faq")
+@router.callback_query(F.data == "subscription_faq")
 async def subscription_faq(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -239,7 +239,7 @@ A: Надішліть заявку в розділі тарифів""",
         reply_markup=kb, parse_mode="HTML"
     )
 
-@subscriptions_router.callback_query(F.data == "subscription_support")
+@router.callback_query(F.data == "subscription_support")
 async def subscription_support(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -260,7 +260,7 @@ async def subscription_support(query: CallbackQuery):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@subscriptions_router.callback_query(F.data.startswith("apply_"))
+@router.callback_query(F.data.startswith("apply_"))
 async def apply_package(query: CallbackQuery, state: FSMContext):
     parts = query.data.split("_")
     pkg_key = parts[1]
@@ -294,7 +294,7 @@ async def apply_package(query: CallbackQuery, state: FSMContext):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@subscriptions_router.message(ApplicationForm.waiting_name)
+@router.message(ApplicationForm.waiting_name)
 async def process_name(message: Message, state: FSMContext):
     name = message.text.strip()
     await state.update_data(client_name=name)
@@ -302,15 +302,15 @@ async def process_name(message: Message, state: FSMContext):
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_application")]])
     await message.answer(f"<b>📋 КРОК 2/3</b>\n\n<b>👤 Ім'я:</b> {name}\n\n<b>📝 Опишіть ваші задачі:</b>", reply_markup=kb, parse_mode="HTML")
 
-@subscriptions_router.message(ApplicationForm.waiting_purpose)
+@router.message(ApplicationForm.waiting_purpose)
 async def process_purpose(message: Message, state: FSMContext):
     purpose = message.text.strip()
     await state.update_data(purpose=purpose)
     await state.set_state(ApplicationForm.waiting_contact)
     contact_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="📱 Надіслати контакт", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-    await message.answer("<b>📋 КРОК 3/3</b>\n\n<b>📱 Надішліть ваш контакт для зв'язку:</b>", reply_markup=contact_kb, parse_mode="HTML")
+    await message.answer("<b>📋 КРОК 3/3</b>\n\n<b>📱 Надішліть ваш contact для зв'язку:</b>", reply_markup=contact_kb, parse_mode="HTML")
 
-@subscriptions_router.message(ApplicationForm.waiting_contact, F.contact)
+@router.message(ApplicationForm.waiting_contact, F.contact)
 async def process_contact(message: Message, state: FSMContext):
     contact = message.contact
     data = await state.get_data()
@@ -332,13 +332,13 @@ async def process_contact(message: Message, state: FSMContext):
         reply_markup=kb, parse_mode="HTML"
     )
 
-@subscriptions_router.callback_query(F.data == "confirm_application")
+@router.callback_query(F.data == "confirm_application")
 async def confirm_application(query: CallbackQuery, state: FSMContext):
     await query.answer("✅ Заявку надіслано!")
     await query.message.edit_text("<b>✅ ЗАЯВКУ УСПІШНО СТВОРЕНО!</b>\n\nМи зв'яжемося з вами найближчим часом.", parse_mode="HTML")
     await state.clear()
 
-@subscriptions_router.callback_query(F.data == "cancel_application")
+@router.callback_query(F.data == "cancel_application")
 async def cancel_application(query: CallbackQuery, state: FSMContext):
     await state.clear()
     await query.answer("Заявку скасовано")

@@ -22,7 +22,7 @@ class OSINTDataRepository(BaseRepository[OSINTData]):
             if data_type:
                 statement = statement.where(OSINTData.data_type == data_type)
             statement = statement.order_by(OSINTData.created_at.desc()).offset(skip).limit(limit)
-            result = await self.session.execute(statement)
+            result = self.session.execute(statement)
             return list(result.scalars().all())
         except Exception as e:
             logger.error(f"Error getting OSINT data for user {telegram_id}: {e}")
@@ -33,12 +33,12 @@ class OSINTDataRepository(BaseRepository[OSINTData]):
         try:
             cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
             statement = delete(OSINTData).where(OSINTData.expires_at <= cutoff_date)
-            result = await self.session.exec(statement)
-            await self.session.commit()
+            result = self.session.exec(statement)
+            self.session.commit()
             deleted_count = result.rowcount
             logger.info(f"Cleaned up {deleted_count} expired OSINT entries")
             return deleted_count
         except Exception as e:
-            await self.session.rollback()
+            self.session.rollback()
             logger.error(f"Error cleaning expired OSINT data: {e}")
             raise

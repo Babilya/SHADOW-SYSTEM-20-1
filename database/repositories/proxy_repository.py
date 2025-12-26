@@ -21,7 +21,7 @@ class ProxyRepository(BaseRepository[Proxy]):
             if is_active is not None:
                 statement = statement.where(Proxy.is_active == is_active)
             statement = statement.offset(skip).limit(limit)
-            result = await self.session.exec(statement)
+            result = self.session.exec(statement)
             return result.all()
         except Exception as e:
             logger.error(f"Error getting proxies for user {user_id}: {e}")
@@ -35,7 +35,7 @@ class ProxyRepository(BaseRepository[Proxy]):
                 Proxy.is_active == True,
                 Proxy.failures_count < 5
             ).order_by(Proxy.response_time, Proxy.failures_count).limit(1)
-            result = await self.session.exec(statement)
+            result = self.session.exec(statement)
             return result.first()
         except Exception as e:
             logger.error(f"Error getting available proxy for user {user_id}: {e}")
@@ -44,7 +44,7 @@ class ProxyRepository(BaseRepository[Proxy]):
     async def update_proxy_performance(self, proxy_id: int, success: bool, response_time: float) -> Optional[Proxy]:
         """Update proxy performance metrics"""
         try:
-            proxy = await self.get_by_id(proxy_id)
+            proxy = self.get_by_id(proxy_id)
             if proxy:
                 if success:
                     proxy.success_rate = (proxy.success_rate * 0.9) + (100 * 0.1)
@@ -57,7 +57,7 @@ class ProxyRepository(BaseRepository[Proxy]):
                 
                 proxy.response_time = (proxy.response_time + response_time) / 2
                 proxy.last_check = datetime.utcnow()
-                return await self.update(proxy)
+                return self.update(proxy)
             return None
         except Exception as e:
             logger.error(f"Error updating proxy performance {proxy_id}: {e}")

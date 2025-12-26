@@ -6,6 +6,17 @@ Base = declarative_base()
 
 from core.role_constants import UserRole
 
+class BotStatus:
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    BANNED = "banned"
+
+class CampaignStatus:
+    DRAFT = "draft"
+    RUNNING = "running"
+    COMPLETED = "completed"
+PAUSED = "paused"
+
 class User(Base):
     __tablename__ = "users"
     user_id = Column(Integer, primary_key=True)
@@ -93,6 +104,14 @@ class Bot(Base):
     session_hash = Column(String)
     phone = Column(String)
     status = Column(String, default="active")
+    created_at = Column(DateTime, default=datetime.now)
+
+class BotSession(Base):
+    __tablename__ = "bot_sessions"
+    id = Column(Integer, primary_key=True)
+    bot_id = Column(Integer)
+    session_data = Column(Text)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
 
 class Ticket(Base):

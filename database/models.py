@@ -16,6 +16,7 @@ class User(Base):
     username = Column(String)
     role = Column(String, default=UserRole.GUEST)
     project_id = Column(String, nullable=True)
+    permissions = Column(String, nullable=True)
     status = Column(String, nullable=True)
     is_blocked = Column(Boolean, default=False)
     is_kicked = Column(Boolean, default=False)

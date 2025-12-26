@@ -11,8 +11,78 @@ from core.key_generator import generate_invite_code, store_invite_code, invite_c
 logger = logging.getLogger(__name__)
 team_router = Router()
 
-managers_storage = {}
-projects_storage = {}
+class TeamCRUD:
+    @staticmethod
+    async def get_team_managers(leader_id: int):
+        from utils.db import async_session
+        from database.models import User
+        from sqlalchemy import select
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(
+                    User.project_id == str(leader_id), 
+                    User.role == "manager"
+                )
+            )
+            return result.scalars().all()
+    
+    @staticmethod
+    async def add_manager(manager_id: int, leader_id: int, role: str):
+        from utils.db import async_session
+        from database.models import User
+        from sqlalchemy import update
+        async with async_session() as session:
+            await session.execute(
+                update(User).where(User.user_id == manager_id).values(
+                    role="manager",
+                    project_id=str(leader_id),
+                    permissions=role
+                )
+            )
+            await session.commit()
+    
+    @staticmethod
+    async def remove_manager(manager_id: int, leader_id: int):
+        from utils.db import async_session
+        from database.models import User
+        from sqlalchemy import update
+        async with async_session() as session:
+            await session.execute(
+                update(User).where(
+                    User.user_id == manager_id,
+                    User.project_id == str(leader_id)
+                ).values(role="guest", project_id=None, permissions=None)
+            )
+            await session.commit()
+    
+    @staticmethod
+    async def get_team_stats(leader_id: int):
+        from utils.db import async_session
+        from database.models import User, Campaign, Project
+        from sqlalchemy import select, func
+        async with async_session() as session:
+            managers = await session.execute(
+                select(func.count(User.user_id)).where(
+                    User.project_id == str(leader_id), 
+                    User.role == "manager"
+                )
+            )
+            project_result = await session.execute(
+                select(Project.id).where(Project.leader_id == str(leader_id))
+            )
+            project = project_result.scalar()
+            
+            campaign_count = 0
+            if project:
+                campaigns = await session.execute(
+                    select(func.count(Campaign.id)).where(Campaign.project_id == project)
+                )
+                campaign_count = campaigns.scalar() or 0
+            
+            return {
+                "managers": managers.scalar() or 0,
+                "campaigns": campaign_count
+            }
 
 class TeamStates(StatesGroup):
     waiting_manager_id = State()
@@ -59,13 +129,14 @@ async def list_managers(query: CallbackQuery):
     await query.answer()
     
     leader_id = query.from_user.id
-    team_managers = [m for m in managers_storage.values() if m.get("leader_id") == leader_id]
+    team_managers = await TeamCRUD.get_team_managers(leader_id)
     
     if team_managers:
         manager_list = ""
         for i, m in enumerate(team_managers, 1):
-            status = "🟢" if m.get("online", False) else "🔴"
-            manager_list += f"{i}. @{m.get('username', 'unknown')} — {status} {m.get('campaigns', 0)} кампаній\n"
+            status = "🟢" if not m.is_blocked else "🔴"
+            username = f"@{m.username}" if m.username else f"ID: {m.user_id}"
+            manager_list += f"{i}. {username} — {status}\n"
     else:
         manager_list = "<i>Менеджерів ще немає</i>\n\nЗгенеруйте INVITE-код для запрошення!"
     
@@ -184,15 +255,7 @@ async def set_manager_role(query: CallbackQuery, state: FSMContext):
     manager_id = data.get("manager_id")
     
     if manager_id:
-        managers_storage[manager_id] = {
-            "id": manager_id,
-            "leader_id": query.from_user.id,
-            "role": role,
-            "added_at": datetime.now().isoformat(),
-            "username": "new_manager",
-            "online": False,
-            "campaigns": 0
-        }
+        await TeamCRUD.add_manager(manager_id, query.from_user.id, role)
     
     role_names = {
         "mailing": "📧 Розсилки",

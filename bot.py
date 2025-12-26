@@ -36,6 +36,9 @@ try:
     from handlers.missing_handlers import missing_router
     from handlers.proxy import proxy_router
     from handlers.export import export_router
+    from handlers.warming import warming_router
+    from handlers.scheduler import scheduler_router
+    from handlers.geoscanner import geo_router
     from middlewares.security_middleware import SecurityMiddleware
     from utils.db import init_db
     from middlewares.role_middleware import RoleMiddleware
@@ -61,7 +64,7 @@ routers = [
     funnels_router, help_router, texting_router, applications_router,
     emergency_router, configurator_router, security_router, 
     tickets_router, referral_router, mailing_router, missing_router,
-    proxy_router, export_router
+    proxy_router, export_router, warming_router, scheduler_router, geo_router
 ]
 
 for r in routers:

@@ -23,13 +23,19 @@ def main_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="👥 Команда", callback_data="team_main"),
             InlineKeyboardButton(text="⚙️ Налаштування", callback_data="settings_main")
         ],
-        # Рядок 5: Текстовки & Довідка (2 кнопки)
+        # Рядок 5: Прогрів & Планувальник (2 кнопки)
         [
-            InlineKeyboardButton(text="📝 Текстовки", callback_data="texting_main"),
-            InlineKeyboardButton(text="📚 Довідка", callback_data="help_main")
+            InlineKeyboardButton(text="🔥 Прогрів", callback_data="warming_menu"),
+            InlineKeyboardButton(text="📅 Планувальник", callback_data="scheduler_menu")
         ],
-        # Рядок 6: Профіль (1 кнопка - можна розширити)
+        # Рядок 6: Гео & Текстовки (2 кнопки)
         [
+            InlineKeyboardButton(text="🌍 Гео-скан", callback_data="geo_menu"),
+            InlineKeyboardButton(text="📝 Текстовки", callback_data="texting_main")
+        ],
+        # Рядок 7: Довідка & Профіль (2 кнопки)
+        [
+            InlineKeyboardButton(text="📚 Довідка", callback_data="help_main"),
             InlineKeyboardButton(text="👤 Профіль", callback_data="profile_main")
         ],
     ])

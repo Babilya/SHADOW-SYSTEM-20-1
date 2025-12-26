@@ -15,11 +15,17 @@ class AIService:
             from openai import OpenAI
             import os
             
-            api_key = os.getenv("OPENAI_API_KEY") or os.getenv("AI_INTEGRATIONS_OPENAI_API_KEY")
+            api_key = os.getenv("AI_INTEGRATIONS_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+            base_url = os.getenv("AI_INTEGRATIONS_OPENAI_BASE_URL")
+            
             if api_key:
-                self.client = OpenAI(api_key=api_key)
+                if base_url:
+                    self.client = OpenAI(api_key=api_key, base_url=base_url)
+                    logger.info("AI Service initialized with Replit AI Integrations")
+                else:
+                    self.client = OpenAI(api_key=api_key)
+                    logger.info("AI Service initialized with OpenAI API key")
                 self._available = True
-                logger.info("AI Service initialized successfully")
             else:
                 logger.warning("OpenAI API key not found. AI features disabled.")
         except ImportError:

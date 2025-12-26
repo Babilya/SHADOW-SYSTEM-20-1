@@ -3,11 +3,10 @@ from core.roles import UserRole
 
 def guest_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📦 Тарифи", callback_data="view_tariffs")],
-        [InlineKeyboardButton(text="📝 Подати заявку", callback_data="submit_application")],
-        [InlineKeyboardButton(text="🔑 Ввести ключ", callback_data="enter_key")],
-        [InlineKeyboardButton(text="📚 Довідка", callback_data="help_main")],
-        [InlineKeyboardButton(text="💬 Підтримка", callback_data="support")]
+        [InlineKeyboardButton(text="📦 Тарифи", callback_data="subscription_main")],
+        [InlineKeyboardButton(text="🔑 Ввести ключ", callback_data="enter_key"),
+         InlineKeyboardButton(text="💬 Підтримка", callback_data="support")],
+        [InlineKeyboardButton(text="📚 Довідка", callback_data="help_main")]
     ])
 
 def guest_description() -> str:
@@ -15,17 +14,17 @@ def guest_description() -> str:
 
 <b>Ви ще не авторизовані в системі.</b>
 
-Щоб отримати повний доступ:
-1️⃣ Оберіть тариф
-2️⃣ Подайте заявку
+<b>Як отримати повний доступ:</b>
+1️⃣ Оберіть тариф → 📦 Тарифи
+2️⃣ Подайте заявку в обраному тарифі
 3️⃣ Отримайте ключ від адміністратора
-4️⃣ Введіть ключ для активації
+4️⃣ Введіть ключ → 🔑 Ввести ключ
 
 <b>📦 Доступні тарифи:</b>
-├ 🆓 Free - 5 ботів, базові функції
-├ ⭐ Standard - 50 ботів, OSINT
-├ 👑 Premium - 100 ботів, AI аналітика
-└ 💎 Elite - Безліміт, VIP підтримка"""
+├ 📦 БАЗОВИЙ — від 4,200 ₴
+├ ⭐ СТАНДАРТ — від 12,500 ₴
+├ 👑 ПРЕМІУМ — від 62,500 ₴
+└ 💎 ПЕРСОНАЛЬНИЙ — від 100,000 ₴"""
 
 def manager_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[

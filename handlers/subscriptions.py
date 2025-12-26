@@ -93,9 +93,9 @@ def subscriptions_kb():
          InlineKeyboardButton(text="⭐ СТАНДАРТ", callback_data="pkg_standard")],
         [InlineKeyboardButton(text="👑 ПРЕМІУМ", callback_data="pkg_premium"),
          InlineKeyboardButton(text="💎 ПЕРСОНАЛЬНИЙ", callback_data="pkg_personal")],
-        [InlineKeyboardButton(text="📊 Порівняння тарифів", callback_data="pkg_compare")],
-        [InlineKeyboardButton(text="❓ FAQ", callback_data="subscription_faq"),
-         InlineKeyboardButton(text="💬 Підтримка", callback_data="subscription_support")],
+        [InlineKeyboardButton(text="📊 Порівняти", callback_data="pkg_compare"),
+         InlineKeyboardButton(text="❓ FAQ", callback_data="subscription_faq"),
+         InlineKeyboardButton(text="💬 Допомога", callback_data="subscription_support")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
     ])
 
@@ -130,11 +130,12 @@ def subscriptions_description() -> str:
 def package_detail_kb(pkg_key: str):
     pkg = PACKAGES[pkg_key]
     buttons = [
-        [InlineKeyboardButton(text=f"📅 3 дні — {pkg['prices'][3]:,} ₴", callback_data=f"buy_{pkg_key}_3")],
-        [InlineKeyboardButton(text=f"📅 14 днів — {pkg['prices'][14]:,} ₴", callback_data=f"buy_{pkg_key}_14")],
-        [InlineKeyboardButton(text=f"📅 30 днів — {pkg['prices'][30]:,} ₴ 🔥 ВИГІДНО", callback_data=f"buy_{pkg_key}_30")],
-        [InlineKeyboardButton(text="📊 Порівняти з іншими", callback_data="pkg_compare")],
-        [InlineKeyboardButton(text="◀️ До тарифів", callback_data="subscription_main")]
+        [InlineKeyboardButton(text=f"3 дні — {pkg['prices'][3]:,} ₴", callback_data=f"buy_{pkg_key}_3"),
+         InlineKeyboardButton(text=f"14 днів — {pkg['prices'][14]:,} ₴", callback_data=f"buy_{pkg_key}_14")],
+        [InlineKeyboardButton(text=f"🔥 30 днів — {pkg['prices'][30]:,} ₴ ВИГІДНО", callback_data=f"buy_{pkg_key}_30")],
+        [InlineKeyboardButton(text="📝 Подати заявку", callback_data=f"apply_{pkg_key}")],
+        [InlineKeyboardButton(text="📊 Порівняти", callback_data="pkg_compare"),
+         InlineKeyboardButton(text="◀️ Тарифи", callback_data="subscription_main")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -253,9 +254,9 @@ async def buy_package(query: CallbackQuery):
     price = pkg['prices'][days]
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Оплата карткою", callback_data=f"pay_card_{pkg_key}_{days}")],
-        [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data=f"pay_stars_{pkg_key}_{days}")],
-        [InlineKeyboardButton(text="🏦 LiqPay", callback_data=f"pay_liqpay_{pkg_key}_{days}")],
+        [InlineKeyboardButton(text="💳 Картка", callback_data=f"pay_card_{pkg_key}_{days}"),
+         InlineKeyboardButton(text="⭐ Stars", callback_data=f"pay_stars_{pkg_key}_{days}"),
+         InlineKeyboardButton(text="🏦 LiqPay", callback_data=f"pay_liqpay_{pkg_key}_{days}")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data=f"pkg_{pkg_key}")]
     ])
     
@@ -389,8 +390,8 @@ A: 10% від першого платежу реферала""",
 async def subscription_support(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💬 Написати", url="https://t.me/shadow_support")],
-        [InlineKeyboardButton(text="🎫 Створити тікет", callback_data="create_ticket")],
+        [InlineKeyboardButton(text="💬 Написати", url="https://t.me/shadow_support"),
+         InlineKeyboardButton(text="🎫 Тікет", callback_data="create_ticket")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]
     ])
     await query.message.edit_text(
@@ -430,3 +431,155 @@ async def screenshot_upload(query: CallbackQuery):
 async def view_tariffs_handler(query: CallbackQuery):
     await query.answer()
     await query.message.edit_text(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
+
+@subscriptions_router.callback_query(F.data.startswith("apply_"))
+async def apply_package(query: CallbackQuery):
+    pkg_key = query.data.replace("apply_", "")
+    if pkg_key not in PACKAGES:
+        await query.answer("Тариф не знайдено")
+        return
+    
+    pkg = PACKAGES[pkg_key]
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Заповнити форму", callback_data=f"application_start_{pkg_key}")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"pkg_{pkg_key}")]
+    ])
+    
+    await query.answer()
+    await query.message.edit_text(
+        f"""<b>📝 ЗАЯВКА НА ТАРИФ {pkg['emoji']} {pkg['name']}</b>
+
+<b>💰 Ціни:</b>
+├ 3 дні: {pkg['prices'][3]:,} ₴
+├ 14 днів: {pkg['prices'][14]:,} ₴
+└ 30 днів: {pkg['prices'][30]:,} ₴
+
+<b>ℹ️ Як це працює:</b>
+1️⃣ Заповніть коротку форму
+2️⃣ Адмін перевірить вашу заявку
+3️⃣ Отримаєте реквізити для оплати
+4️⃣ Після оплати отримаєте ключ SHADOW-XXXX-XXXX
+
+<b>⏱️ Час обробки:</b> до 30 хвилин
+
+Натисніть "Заповнити форму" щоб продовжити 👇""",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@subscriptions_router.callback_query(F.data.startswith("application_start_"))
+async def application_start(query: CallbackQuery, state: FSMContext):
+    pkg_key = query.data.replace("application_start_", "")
+    pkg = PACKAGES.get(pkg_key, {})
+    
+    await state.update_data(selected_package=pkg_key, package_name=pkg.get('name', ''))
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="3 дні", callback_data=f"app_days_3_{pkg_key}"),
+         InlineKeyboardButton(text="14 днів", callback_data=f"app_days_14_{pkg_key}"),
+         InlineKeyboardButton(text="30 днів", callback_data=f"app_days_30_{pkg_key}")],
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data=f"pkg_{pkg_key}")]
+    ])
+    
+    await query.answer()
+    await query.message.edit_text(
+        f"""<b>📝 КРОК 1/3: Термін підписки</b>
+
+<b>Обраний тариф:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+
+Оберіть бажаний термін підписки:""",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@subscriptions_router.callback_query(F.data.startswith("app_days_"))
+async def app_days_select(query: CallbackQuery, state: FSMContext):
+    parts = query.data.split("_")
+    days = int(parts[2])
+    pkg_key = parts[3]
+    pkg = PACKAGES.get(pkg_key, {})
+    price = pkg.get('prices', {}).get(days, 0)
+    
+    await state.update_data(days=days, price=price)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Підтвердити заявку", callback_data=f"app_confirm_{pkg_key}_{days}")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"application_start_{pkg_key}")]
+    ])
+    
+    await query.answer()
+    await query.message.edit_text(
+        f"""<b>📝 КРОК 2/3: Підтвердження</b>
+
+<b>📦 Тариф:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+<b>📅 Термін:</b> {days} днів
+<b>💰 Вартість:</b> {price:,} ₴
+
+<b>ℹ️ Що далі:</b>
+• Ваша заявка буде надіслана адміністратору
+• Ви отримаєте реквізити для оплати
+• Після підтвердження оплати отримаєте ключ
+
+Натисніть "Підтвердити заявку" для надсилання 👇""",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@subscriptions_router.callback_query(F.data.startswith("app_confirm_"))
+async def app_confirm(query: CallbackQuery, state: FSMContext):
+    parts = query.data.split("_")
+    pkg_key = parts[2]
+    days = int(parts[3])
+    pkg = PACKAGES.get(pkg_key, {})
+    price = pkg.get('prices', {}).get(days, 0)
+    
+    from config import ADMIN_IDS
+    from aiogram import Bot
+    
+    user = query.from_user
+    
+    admin_text = f"""<b>📝 НОВА ЗАЯВКА!</b>
+
+<b>👤 Користувач:</b>
+├ ID: <code>{user.id}</code>
+├ Ім'я: {user.first_name} {user.last_name or ''}
+└ Username: @{user.username or 'немає'}
+
+<b>📦 Тариф:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+<b>📅 Термін:</b> {days} днів
+<b>💰 Сума:</b> {price:,} ₴"""
+
+    admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Надіслати реквізити", callback_data=f"send_requisites_{user.id}_{pkg_key}_{days}"),
+         InlineKeyboardButton(text="❌ Відхилити", callback_data=f"reject_app_{user.id}")]
+    ])
+    
+    try:
+        bot = Bot.get_current()
+        for admin_id in ADMIN_IDS:
+            try:
+                await bot.send_message(admin_id, admin_text, reply_markup=admin_kb, parse_mode="HTML")
+            except:
+                pass
+    except:
+        pass
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ До тарифів", callback_data="subscription_main")]
+    ])
+    
+    await query.answer("✅ Заявка надіслана!")
+    await query.message.edit_text(
+        f"""<b>✅ ЗАЯВКА НАДІСЛАНА!</b>
+
+<b>📦 Тариф:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+<b>📅 Термін:</b> {days} днів
+<b>💰 Сума:</b> {price:,} ₴
+
+<b>⏳ Що далі:</b>
+Адміністратор перевірить вашу заявку та надішле реквізити для оплати.
+
+<b>⏱️ Час очікування:</b> до 30 хвилин
+
+Ми повідомимо вас, коли все буде готово! 🔔""",
+        reply_markup=kb, parse_mode="HTML"
+    )
+    await state.clear()

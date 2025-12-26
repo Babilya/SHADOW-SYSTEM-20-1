@@ -148,20 +148,6 @@ async def process_key(message: Message, state: FSMContext):
     
     await state.clear()
 
-@missing_router.callback_query(F.data == "balance_view")
-async def balance_view(query: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔑 Активувати ключ", callback_data="activate_key")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
-    ])
-    await query.message.edit_text(
-        "🔐 <b>ЛІЦЕНЗІЯ</b>\n\n"
-        "SHADOW SYSTEM використовує ліцензійні ключі.\n"
-        "Зверніться до адміністратора для отримання ключа.",
-        reply_markup=kb, parse_mode="HTML"
-    )
-    await query.answer()
-
 @missing_router.callback_query(F.data == "admin_analytics")
 async def admin_analytics(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[

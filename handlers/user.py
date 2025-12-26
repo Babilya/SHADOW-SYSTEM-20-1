@@ -224,10 +224,6 @@ async def cmd_stats(message: Message):
 async def cmd_settings(message: Message):
     await message.answer("⚙️ <b>Налаштування</b>", reply_markup=settings_menu(), parse_mode="HTML")
 
-@user_router.message(Command("balance"))
-async def cmd_balance(message: Message):
-    await message.answer("💰 <b>Баланс: ₴5,240</b>", parse_mode="HTML")
-
 # Обробники кнопок з головного меню
 @user_router.callback_query(F.data == "mailing")
 async def button_mailing(query: CallbackQuery, state: FSMContext):
@@ -238,18 +234,13 @@ async def button_mailing(query: CallbackQuery, state: FSMContext):
 @user_router.callback_query(F.data == "stats")
 async def button_stats(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text("📊 <b>Ваша статистика</b>\n\nРозсилок: 245\nПаршено: 12,450\nOSINT: 89\nБаланс: ₴5,240", parse_mode="HTML")
+    await query.message.edit_text("📊 <b>Ваша статистика</b>\n\nРозсилок: 245\nПаршено: 12,450\nOSINT: 89", parse_mode="HTML")
 
 @user_router.callback_query(F.data == "autoreply")
 async def button_autoreply(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await query.message.edit_text("🤖 Напишіть текст для тригера:")
     await state.set_state(UserStates.waiting_for_auto_reply_trigger)
-
-@user_router.callback_query(F.data == "balance")
-async def button_balance(query: CallbackQuery):
-    await query.answer()
-    await query.message.edit_text("💰 <b>Баланс: ₴5,240</b>\n\nСпособи поповнення: 💳 Карта, 🔗 Liqpay, 🪙 Крипто", parse_mode="HTML")
 
 @user_router.callback_query(F.data == "settings")
 async def button_settings(query: CallbackQuery):

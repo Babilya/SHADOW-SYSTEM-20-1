@@ -34,6 +34,9 @@ The system is built around a modular architecture with distinct components for c
 - **Security Center:** A dedicated module for user blocking, FSM state resets, and security monitoring.
 - **Referral System:** Mechanism for generating unique referral links, tracking referrals, and awarding bonuses.
 - **Ticket System:** Allows unregistered users to create support tickets and communicate with administrators.
+- **Bot Warming System:** 72-hour warming cycles with 3 phases for new bots.
+- **Campaign Scheduler:** Schedule campaigns for future execution with time presets.
+- **Geo Scanner:** Search for Telegram chats by city/coordinates with radius selection.
 
 ## External Dependencies
 - **Telegram Bot API:** Interacted with via `aiogram 3.3` for all bot functionalities.

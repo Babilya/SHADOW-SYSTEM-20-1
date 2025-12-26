@@ -193,8 +193,16 @@ class ProjectCRUD:
         return project
     
     @staticmethod
+    async def get_by_leader_async(leader_id: str) -> Optional[Project]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Project).where(Project.leader_id == str(leader_id))
+            )
+            return result.scalar_one_or_none()
+
+    @staticmethod
     def get_by_leader(db: Session, leader_id: str):
-        return db.query(Project).filter(Project.leader_id == leader_id).first()
+        return db.query(Project).filter(Project.leader_id == str(leader_id)).first()
     
     @staticmethod
     async def create_async(leader_id: str, leader_username: str, key_id: int, name: str, tariff: str, bots_limit: int = 50, managers_limit: int = 5) -> bool:

@@ -12,9 +12,16 @@ from core.alerts import alert_system, AlertType
 router = Router()
 
 @router.message(Command("start"))
-async def start_handler(message: Message, db: Session):
-    user = UserCRUD.get_or_create(db, str(message.from_user.id), message.from_user.username, message.from_user.first_name)
-    project = ProjectCRUD.get_by_leader(db, str(message.from_user.id))
+async def start_handler(message: Message):
+    from services.user_service import user_service
+    from database.crud import ProjectCRUD
+    from utils.db import async_session
+    
+    # Use async user service to avoid sync DB calls in async handler
+    user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    
+    async with async_session() as session:
+        project = await ProjectCRUD.get_by_leader_async(str(message.from_user.id))
     
     await audit_logger.log_auth(
         user_id=message.from_user.id,

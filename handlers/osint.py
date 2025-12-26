@@ -403,8 +403,3 @@ async def osint_stats(query: CallbackQuery):
 ✓ Ви в межах ліміту
 ✓ Подумайте про Premium для більшої квоти""", reply_markup=kb, parse_mode="HTML")
 
-@osint_router.callback_query(F.data == "back_to_menu")
-async def osint_back_to_menu(query: CallbackQuery):
-    await query.answer()
-    from keyboards.user import main_menu, main_menu_description
-    await query.message.answer(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

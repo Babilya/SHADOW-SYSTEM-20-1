@@ -110,9 +110,10 @@ async def admin_users(query: CallbackQuery):
     await query.answer()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👑 Адміни", callback_data="users_admins")],
-        [InlineKeyboardButton(text="🎯 Лідери", callback_data="users_leaders")],
-        [InlineKeyboardButton(text="👷 Менеджери", callback_data="users_managers")],
+        [InlineKeyboardButton(text="🎯 Leaders", callback_data="users_leaders")],
+        [InlineKeyboardButton(text="👷 Managers", callback_data="users_managers")],
+        [InlineKeyboardButton(text="👤 Guests", callback_data="users_guests")],
+        [InlineKeyboardButton(text="🔍 Пошук по ID", callback_data="users_search")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
     
@@ -125,10 +126,9 @@ async def admin_users(query: CallbackQuery):
 └ Заблокованих: 8
 
 <b>🔑 По ролях:</b>
-├ 👑 Адміни: 3
-├ 🎯 Лідери: 45
-├ 👷 Менеджери: 156
-└ 👤 Гості: 1,041"""
+├ 🎯 Leaders: 45
+├ 👷 Managers: 156
+└ 👤 Guests: 1,044"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 

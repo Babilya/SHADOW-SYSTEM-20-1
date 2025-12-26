@@ -350,8 +350,3 @@ async def generate_text_result(query: CallbackQuery):
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
-@analytics_router.callback_query(F.data == "back_to_menu")
-async def analytics_back_to_menu(query: CallbackQuery):
-    await query.answer()
-    from keyboards.user import main_menu, main_menu_description
-    await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

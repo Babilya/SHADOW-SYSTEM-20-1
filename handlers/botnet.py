@@ -181,8 +181,3 @@ async def stat_errors(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_stats")]])
     await query.message.answer("⚠️ <b>АНАЛІЗ ПОМИЛОК</b>\n\nБлокування: 1 (33%)\nАвторизація: 1 (33%)\nНомер: 1 (33%)", reply_markup=kb, parse_mode="HTML")
 
-@botnet_router.callback_query(F.data == "back_to_menu")
-async def botnet_back_to_menu(query: CallbackQuery):
-    await query.answer()
-    from keyboards.user import main_menu, main_menu_description
-    await query.message.answer(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")

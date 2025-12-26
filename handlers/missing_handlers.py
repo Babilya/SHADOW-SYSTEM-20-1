@@ -643,21 +643,39 @@ async def user_menu(query: CallbackQuery):
     await query.message.edit_text("👤 <b>МЕНЮ КОРИСТУВАЧА</b>", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
-@missing_router.callback_query(F.data.in_(["users_admins", "users_leaders", "users_managers"]))
+@missing_router.callback_query(F.data.in_(["users_leaders", "users_managers", "users_guests"]))
 async def users_filter(query: CallbackQuery):
-    role = query.data.replace("users_", "").upper()
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]])
-    await query.message.edit_text(f"👥 <b>{role}</b>\n\nСписок користувачів...", reply_markup=kb, parse_mode="HTML")
+    role_map = {
+        "users_leaders": ("🎯 LEADERS", "Лідери проектів з ліцензіями"),
+        "users_managers": ("👷 MANAGERS", "Менеджери в командах лідерів"),
+        "users_guests": ("👤 GUESTS", "Незареєстровані відвідувачі")
+    }
+    role_name, role_desc = role_map.get(query.data, ("USERS", ""))
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔍 Знайти по ID", callback_data=f"find_user_{query.data.split('_')[1]}")],
+        [InlineKeyboardButton(text="📊 Статистика", callback_data=f"stats_{query.data.split('_')[1]}")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]
+    ])
+    
+    await query.message.edit_text(f"""<b>{role_name}</b>
+
+<i>{role_desc}</i>
+
+<b>📋 Список:</b>
+├ Активних: 0
+├ Неактивних: 0
+└ Заблокованих: 0
+
+<i>Натисніть "Знайти по ID" для пошуку</i>""", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
-@missing_router.callback_query(F.data == "view_tariffs")
-async def view_tariffs(query: CallbackQuery):
+@missing_router.callback_query(F.data == "users_search")
+async def users_search(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📦 БАЗОВИЙ", callback_data="tariff_baseus")],
-        [InlineKeyboardButton(text="⭐ СТАНДАРТ", callback_data="tariff_standard")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]
     ])
-    await query.message.edit_text("💰 <b>ТАРИФИ</b>\n\n📦 БАЗОВИЙ - 4,200 ₴\n⭐ СТАНДАРТ - 12,500 ₴\n💎 ПРЕМІУМ - 62,500 ₴", reply_markup=kb, parse_mode="HTML")
+    await query.message.edit_text("🔍 <b>ПОШУК КОРИСТУВАЧА</b>\n\nВведіть Telegram ID:", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
 @missing_router.callback_query(F.data == "input_name")
@@ -674,4 +692,32 @@ async def gen_urgent(query: CallbackQuery):
 async def cfg_btn_add(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="cfg_buttons")]])
     await query.message.edit_text("➕ <b>ДОДАТИ КНОПКУ</b>\n\nВведіть назву кнопки:", reply_markup=kb, parse_mode="HTML")
+    await query.answer()
+
+@missing_router.callback_query(F.data.startswith("find_user_"))
+async def find_user_role(query: CallbackQuery):
+    role = query.data.replace("find_user_", "")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"users_{role}")]
+    ])
+    await query.message.edit_text(f"🔍 <b>ПОШУК {role.upper()}</b>\n\nВведіть Telegram ID користувача:", reply_markup=kb, parse_mode="HTML")
+    await query.answer()
+
+@missing_router.callback_query(F.data.startswith("stats_"))
+async def stats_role(query: CallbackQuery):
+    role = query.data.replace("stats_", "")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"users_{role}")]
+    ])
+    await query.message.edit_text(f"""📊 <b>СТАТИСТИКА: {role.upper()}</b>
+
+<b>За останні 7 днів:</b>
+├ Нових: 0
+├ Активних: 0
+└ Неактивних: 0
+
+<b>За місяць:</b>
+├ Нових: 0
+├ Активних: 0
+└ Заблокованих: 0""", reply_markup=kb, parse_mode="HTML")
     await query.answer()

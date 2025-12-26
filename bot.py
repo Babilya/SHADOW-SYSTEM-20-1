@@ -26,6 +26,8 @@ try:
     from handlers.funnels import funnels_router
     from handlers.help import help_router
     from handlers.texting import texting_router
+    from handlers.applications import applications_router
+    from handlers.emergency import emergency_router
     from utils.db import init_db
     from middlewares.role_middleware import RoleMiddleware
     from keyboards.role_menus import get_menu_by_role, get_description_by_role
@@ -45,7 +47,8 @@ dp.callback_query.middleware(RoleMiddleware())
 routers = [
     user_router, admin_router, payments_router, botnet_router,
     osint_router, analytics_router, team_router, subscriptions_router,
-    funnels_router, help_router, texting_router
+    funnels_router, help_router, texting_router, applications_router,
+    emergency_router
 ]
 
 for r in routers:

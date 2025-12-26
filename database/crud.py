@@ -405,6 +405,81 @@ class StatsCRUD:
                 "completed": completed.scalar() or 0
             }
 
+class ProxyCRUD:
+    @staticmethod
+    async def add_proxy(owner_id: int, url: str, ip: str = None, response_time: float = 0) -> "Proxy":
+        from database.models import Proxy
+        async with async_session() as session:
+            proxy = Proxy(
+                owner_id=owner_id,
+                url=url,
+                ip=ip,
+                is_active=True,
+                response_time=response_time
+            )
+            session.add(proxy)
+            await session.commit()
+            await session.refresh(proxy)
+            return proxy
+    
+    @staticmethod
+    async def get_user_proxies(owner_id: int) -> List:
+        from database.models import Proxy
+        async with async_session() as session:
+            result = await session.execute(
+                select(Proxy).where(Proxy.owner_id == owner_id)
+            )
+            return list(result.scalars().all())
+    
+    @staticmethod
+    async def delete_proxy(proxy_id: int) -> bool:
+        from database.models import Proxy
+        async with async_session() as session:
+            result = await session.execute(
+                select(Proxy).where(Proxy.id == proxy_id)
+            )
+            proxy = result.scalar_one_or_none()
+            if proxy:
+                await session.delete(proxy)
+                await session.commit()
+                return True
+            return False
+    
+    @staticmethod
+    async def update_proxy_status(proxy_id: int, is_active: bool, response_time: float = None) -> bool:
+        from database.models import Proxy
+        async with async_session() as session:
+            values = {"is_active": is_active}
+            if response_time is not None:
+                values["response_time"] = response_time
+            await session.execute(
+                update(Proxy).where(Proxy.id == proxy_id).values(**values)
+            )
+            await session.commit()
+            return True
+
+class BotWarmingCRUD:
+    @staticmethod
+    async def start_warming(bot_id: int, project_id: int) -> "BotWarming":
+        from database.models import BotWarming
+        async with async_session() as session:
+            warming = BotWarming(bot_id=bot_id, project_id=project_id, status="active")
+            session.add(warming)
+            await session.commit()
+            await session.refresh(warming)
+            return warming
+    
+    @staticmethod
+    async def get_active_warmings(project_id: int) -> List:
+        from database.models import BotWarming
+        async with async_session() as session:
+            result = await session.execute(
+                select(BotWarming).where(
+                    and_(BotWarming.project_id == project_id, BotWarming.status == "active")
+                )
+            )
+            return list(result.scalars().all())
+
 user_crud = UserCRUD()
 security_crud = SecurityCRUD()
 referral_crud = ReferralCRUD()
@@ -415,3 +490,5 @@ key_crud = KeyCRUD()
 mailing_crud = MailingCRUD()
 application_crud = ApplicationCRUD()
 stats_crud = StatsCRUD()
+proxy_crud = ProxyCRUD()
+bot_warming_crud = BotWarmingCRUD()

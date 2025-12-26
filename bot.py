@@ -34,6 +34,8 @@ try:
     from handlers.referral import referral_router
     from handlers.mailing import mailing_router
     from handlers.missing_handlers import missing_router
+    from handlers.proxy import proxy_router
+    from handlers.export import export_router
     from middlewares.security_middleware import SecurityMiddleware
     from utils.db import init_db
     from middlewares.role_middleware import RoleMiddleware
@@ -58,7 +60,8 @@ routers = [
     osint_router, analytics_router, team_router, subscriptions_router,
     funnels_router, help_router, texting_router, applications_router,
     emergency_router, configurator_router, security_router, 
-    tickets_router, referral_router, mailing_router, missing_router
+    tickets_router, referral_router, mailing_router, missing_router,
+    proxy_router, export_router
 ]
 
 for r in routers:

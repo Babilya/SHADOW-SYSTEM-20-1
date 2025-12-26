@@ -200,3 +200,33 @@ class CMSConfig(Base):
     config_key = Column(String, unique=True)
     config_value = Column(Text)
     updated_at = Column(DateTime, default=datetime.now)
+
+class Proxy(Base):
+    __tablename__ = "proxies"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer)
+    url = Column(String)
+    ip = Column(String, nullable=True)
+    port = Column(Integer, nullable=True)
+    username = Column(String, nullable=True)
+    password = Column(String, nullable=True)
+    proxy_type = Column(String, default="http")
+    is_active = Column(Boolean, default=True)
+    response_time = Column(Float, default=0)
+    success_rate = Column(Float, default=100)
+    failures_count = Column(Integer, default=0)
+    usage_count = Column(Integer, default=0)
+    last_check = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class BotWarming(Base):
+    __tablename__ = "bot_warmings"
+    id = Column(Integer, primary_key=True)
+    bot_id = Column(Integer)
+    project_id = Column(Integer)
+    status = Column(String, default="active")
+    start_time = Column(DateTime, default=datetime.now)
+    end_time = Column(DateTime, nullable=True)
+    messages_sent = Column(Integer, default=0)
+    current_phase = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.now)

@@ -185,31 +185,91 @@ async def admin_stats(query: CallbackQuery):
 async def admin_payments(query: CallbackQuery):
     await query.answer()
     
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Підтвердити", callback_data="confirm_payment")],
-        [InlineKeyboardButton(text="❌ Відхилити", callback_data="reject_payment")],
+    from utils.db import async_session
+    from database.models import Payment, Application
+    from sqlalchemy import select, func
+    
+    async with async_session() as session:
+        pending_result = await session.execute(
+            select(Payment).where(Payment.status == "pending").limit(10)
+        )
+        pending_payments = pending_result.scalars().all()
+        
+        confirmed_result = await session.execute(
+            select(func.count(Payment.id)).where(Payment.status == "confirmed")
+        )
+        confirmed_count = confirmed_result.scalar() or 0
+        
+        total_result = await session.execute(
+            select(func.sum(Payment.amount)).where(Payment.status == "confirmed")
+        )
+        total_amount = total_result.scalar() or 0
+    
+    buttons = []
+    for p in pending_payments[:5]:
+        buttons.append([InlineKeyboardButton(
+            text=f"✅ #{p.id} - {p.amount}₴",
+            callback_data=f"confirm_pay_{p.id}"
+        )])
+    
+    buttons.extend([
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
     
-    text = """💰 <b>ПЛАТЕЖІ ТА ЗАЯВКИ</b>
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    text = f"""💰 <b>ПЛАТЕЖІ ТА ЗАЯВКИ</b>
 
-<b>🎫 Очікують підтвердження (3):</b>
+<b>🎫 Очікують підтвердження ({len(pending_payments)}):</b>
 
-1️⃣ <b>@user123</b> - СТАНДАРТ
-   └ 12,500 ₴ | 2 год тому
-
-2️⃣ <b>@company_lead</b> - ПРЕМІУМ
-   └ 62,500 ₴ | 5 год тому
-
-3️⃣ <b>@newbie</b> - БАЗОВИЙ
-   └ 4,200 ₴ | 1 день тому
-
-<b>📊 Статистика (місяць):</b>
-├ Оплачено: 45 заявок
-├ Сума: ₴234,500
-└ Відхилено: 3"""
+"""
+    
+    for i, p in enumerate(pending_payments[:5], 1):
+        text += f"{i}. ID: {p.user_id} - {p.amount}₴ ({p.method})\n"
+    
+    if not pending_payments:
+        text += "Немає очікуючих платежів\n"
+    
+    text += f"""
+<b>📊 Статистика:</b>
+├ Підтверджено: {confirmed_count}
+└ Сума: ₴{total_amount:,.0f}"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@admin_router.callback_query(F.data.startswith("confirm_pay_"))
+async def confirm_payment_handler(query: CallbackQuery):
+    await query.answer()
+    
+    from utils.db import async_session
+    from database.models import Payment
+    from sqlalchemy import update
+    from datetime import datetime
+    
+    payment_id = int(query.data.replace("confirm_pay_", ""))
+    
+    async with async_session() as session:
+        await session.execute(
+            update(Payment).where(Payment.id == payment_id).values(
+                status="confirmed",
+                admin_id=str(query.from_user.id),
+                confirmed_at=datetime.now()
+            )
+        )
+        await session.commit()
+    
+    await audit_logger.log(
+        user_id=query.from_user.id,
+        action="payment_confirmed",
+        category=ActionCategory.FINANCIAL,
+        username=query.from_user.username,
+        details={"payment_id": payment_id}
+    )
+    
+    await query.message.edit_text(
+        f"✅ Платіж #{payment_id} підтверджено!",
+        reply_markup=admin_main_kb()
+    )
 
 @admin_router.callback_query(F.data == "admin_audit")
 async def admin_audit(query: CallbackQuery):
@@ -388,89 +448,103 @@ async def admin_back_to_menu(query: CallbackQuery):
 @admin_router.callback_query(F.data == "users_leaders")
 async def users_leaders(query: CallbackQuery):
     await query.answer()
+    
+    from utils.db import async_session
+    from database.models import User
+    from sqlalchemy import select
+    
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.role == "leader").limit(10)
+        )
+        leaders = result.scalars().all()
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]
     ])
-    await query.message.edit_text(
-        """<b>🎯 ЛІДЕРИ ПРОЕКТІВ</b>
-
-<b>📊 Статистика:</b>
-├ Всього: 45
-├ Активних (24г): 23
-└ З командами: 38
-
-<b>👑 ТОП-5 ЗА АКТИВНІСТЮ:</b>
-
-1️⃣ <b>@leader_alpha</b>
-├ Тариф: 👑 ПРЕМІУМ | Команда: 12
-└ Кампаній: 156 | ROI: +345%
-
-2️⃣ <b>@mega_project</b>
-├ Тариф: ⭐ СТАНДАРТ | Команда: 5
-└ Кампаній: 89 | ROI: +234%
-
-3️⃣ <b>@pro_leader</b>
-├ Тариф: 💎 ПЕРСОНАЛЬНИЙ | Команда: 23
-└ Кампаній: 312 | ROI: +567%""",
-        reply_markup=kb, parse_mode="HTML"
-    )
+    
+    text = f"<b>🎯 ЛІДЕРИ ПРОЕКТІВ</b>\n\n<b>Всього:</b> {len(leaders)}\n\n"
+    
+    if leaders:
+        for i, leader in enumerate(leaders[:5], 1):
+            username = f"@{leader.username}" if leader.username else f"ID: {leader.user_id}"
+            status = "🟢" if not leader.is_blocked else "🔴"
+            text += f"{i}. {status} {username}\n"
+    else:
+        text += "Лідерів ще немає"
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "users_managers")
 async def users_managers(query: CallbackQuery):
     await query.answer()
+    
+    from utils.db import async_session
+    from database.models import User
+    from sqlalchemy import select
+    
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.role == "manager").limit(10)
+        )
+        managers = result.scalars().all()
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]
     ])
-    await query.message.edit_text(
-        """<b>👷 МЕНЕДЖЕРИ</b>
-
-<b>📊 Статистика:</b>
-├ Всього: 156
-├ Активних (24г): 78
-└ Без проекту: 12
-
-<b>⭐ ТОП-5 ЗА ЕФЕКТИВНІСТЮ:</b>
-
-1️⃣ <b>@manager_ivan</b>
-├ Проект: @leader_alpha
-├ Рейтинг: 4.9/5 | Кампаній: 45
-└ Конверсія: 18.5%
-
-2️⃣ <b>@manager_maria</b>
-├ Проект: @mega_project
-├ Рейтинг: 4.7/5 | Кампаній: 38
-└ Конверсія: 15.2%""",
-        reply_markup=kb, parse_mode="HTML"
-    )
+    
+    text = f"<b>👷 МЕНЕДЖЕРИ</b>\n\n<b>Всього:</b> {len(managers)}\n\n"
+    
+    if managers:
+        for i, mgr in enumerate(managers[:5], 1):
+            username = f"@{mgr.username}" if mgr.username else f"ID: {mgr.user_id}"
+            status = "🟢" if not mgr.is_blocked else "🔴"
+            text += f"{i}. {status} {username}\n"
+    else:
+        text += "Менеджерів ще немає"
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "users_guests")
 async def users_guests(query: CallbackQuery):
     await query.answer()
+    
+    from utils.db import async_session
+    from database.models import User, Application
+    from sqlalchemy import select, func
+    
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.role == "guest").limit(100)
+        )
+        guests = result.scalars().all()
+        
+        app_result = await session.execute(
+            select(func.count(Application.id)).where(Application.status == "new")
+        )
+        new_apps = app_result.scalar() or 0
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_users")]
     ])
-    await query.message.edit_text(
-        """<b>👤 ГОСТІ (Незареєстровані)</b>
+    
+    text = f"""<b>👤 ГОСТІ</b>
 
 <b>📊 Статистика:</b>
-├ Всього: 1,044
-├ Нових (24г): 56
-├ Подали заявку: 234
-└ Очікують ключа: 12
+├ Всього: {len(guests)}
+└ Нових заявок: {new_apps}
 
-<b>📈 Воронка конверсії:</b>
-├ Зайшли: 1,044 (100%)
-├ Переглянули тарифи: 678 (65%)
-├ Почали заявку: 345 (33%)
-├ Завершили: 234 (22%)
-└ Оплатили: 45 (4.3%)
-
-<b>🔥 Останні заявки:</b>
-• @new_user1 — СТАНДАРТ (5 хв тому)
-• @new_user2 — БАЗОВИЙ (15 хв тому)
-• @new_user3 — ПРЕМІУМ (1 год тому)""",
-        reply_markup=kb, parse_mode="HTML"
-    )
+<b>🔥 Останні гості:</b>
+"""
+    
+    for guest in guests[:5]:
+        username = f"@{guest.username}" if guest.username else f"ID: {guest.user_id}"
+        text += f"• {username}\n"
+    
+    if not guests:
+        text += "Гостей ще немає"
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "users_search")
 async def users_search(query: CallbackQuery, state: FSMContext):

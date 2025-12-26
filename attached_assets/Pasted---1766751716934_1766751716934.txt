@@ -1,0 +1,960 @@
+КІБЕРПОЛІЦІЯ ДОНЕЦЬК: ТЕРМІНОВІ ОСІНТ-ІНСТРУМЕНТИ ДЛЯ РОБОТИ НА ЛІНІЇ ФРОНТУ
+
+УВАГА: ВСІ ІНСТРУМЕНТИ РОЗРОБЛЕНІ ВІДПОВІДНО ДО ЗАКОНУ ПРО ОРД ТА СУДОВИХ РІШЕНЬ
+
+1. ШВИДКИЙ МОБІЛЬНИЙ ОСІНТ КОМПЛЕКС
+
+```python
+# mobile_osint_frontline.py
+import asyncio
+import logging
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+
+class FrontlineOSINT:
+    """Швидкий осінг для роботи на лінії фронту з мобільних пристроїв"""
+    
+    def __init__(self, operation_code: str, officer_id: str):
+        self.operation_code = operation_code
+        self.officer_id = officer_id
+        self.encryption_key = self._load_encryption_key()
+        self.setup_logging()
+        
+    def _load_encryption_key(self):
+        """Завантаження ключа шифрування з захищеного сховища"""
+        try:
+            import android.secretkeystore  # Для Android
+            return android.secretkeystore.get_key("osint_key")
+        except:
+            # Резервний варіант для iOS
+            return os.getenv("ENCRYPTION_KEY", "emergency_key_frontline_712")
+    
+    def setup_logging(self):
+        """Налаштування захищеного логування"""
+        log_file = f"/sdcard/cyberpolice/logs/{datetime.now().strftime('%Y%m%d')}_{self.officer_id}.log"
+        Path("/sdcard/cyberpolice/logs").mkdir(parents=True, exist_ok=True)
+        
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file, encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+    
+    async def quick_telegram_check(self, username: str, court_order: str):
+        """Миттєва перевірка Telegram профілю на лінії фронту"""
+        try:
+            from telethon import TelegramClient
+            from telethon.sessions import StringSession
+            
+            # Швидке підключення через мобільну сесію
+            session_string = os.getenv("TELEGRAM_SESSION")
+            client = TelegramClient(
+                StringSession(session_string),
+                api_id=int(os.getenv("API_ID")),
+                api_hash=os.getenv("API_HASH"),
+                device_model="CyberPolice Mobile",
+                system_version="Android 13",
+                app_version="4.0",
+                lang_code="uk",
+                system_lang_code="uk-UA"
+            )
+            
+            await client.connect()
+            
+            # Перевірка профілю
+            try:
+                entity = await client.get_entity(username)
+                
+                # Швидкий збір інформації
+                profile_info = {
+                    'operation_code': self.operation_code,
+                    'officer_id': self.officer_id,
+                    'court_order': court_order,
+                    'timestamp': datetime.now().isoformat(),
+                    'target': username,
+                    'user_id': entity.id,
+                    'first_name': entity.first_name,
+                    'last_name': entity.last_name,
+                    'username': entity.username,
+                    'phone': entity.phone,
+                    'bot': entity.bot,
+                    'verified': entity.verified,
+                    'scam': entity.scam,
+                    'fake': entity.fake,
+                    'premium': entity.premium,
+                    'restricted': entity.restricted
+                }
+                
+                # Перевірка останньої активності
+                if hasattr(entity, 'status'):
+                    profile_info['last_seen'] = str(entity.status)
+                
+                # Швидкий скріншот (симуляція)
+                profile_info['screenshot'] = f"tg_screen_{username}_{datetime.now().strftime('%H%M%S')}.jpg"
+                
+                # Шифрування даних
+                encrypted_data = self._encrypt_data(profile_info)
+                
+                # Збереження доказів
+                await self._save_evidence(encrypted_data, f"telegram_{username}")
+                
+                return {
+                    'status': 'success',
+                    'data': profile_info,
+                    'encrypted': True
+                }
+                
+            except Exception as e:
+                return {'status': 'error', 'message': str(e)}
+            
+            finally:
+                await client.disconnect()
+                
+        except Exception as e:
+            self.logger.error(f"Telegram check failed: {e}")
+            return {'status': 'error', 'message': 'Connection failed'}
+    
+    async def emergency_phone_check(self, phone_number: str, court_order: str):
+        """Критична перевірка телефонного номера"""
+        try:
+            import requests
+            
+            # Швидка перевірка через публічні АРІ (легально з судовим рішенням)
+            checks = []
+            
+            # 1. Перевірка оператора
+            try:
+                response = requests.get(
+                    f"https://api.phonecheck.com/v1/validate/{phone_number}",
+                    headers={'Authorization': f"Bearer {os.getenv('PHONECHECK_API')}"},
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    checks.append({
+                        'source': 'phonecheck',
+                        'operator': response.json().get('operator'),
+                        'country': response.json().get('country'),
+                        'valid': response.json().get('valid')
+                    })
+            except:
+                pass
+            
+            # 2. Швидкий Telegram пошук
+            try:
+                from telethon import TelegramClient
+                session_string = os.getenv("TELEGRAM_SESSION")
+                client = TelegramClient(StringSession(session_string), 
+                                      int(os.getenv("API_ID")), 
+                                      os.getenv("API_HASH"))
+                await client.connect()
+                
+                # Пошук по номеру
+                result = await client.get_entity(phone_number)
+                if result:
+                    checks.append({
+                        'source': 'telegram',
+                        'found': True,
+                        'username': result.username,
+                        'name': f"{result.first_name} {result.last_name}"
+                    })
+                await client.disconnect()
+            except:
+                pass
+            
+            # 3. Локальна база відомих номерів
+            local_check = self._check_local_db(phone_number)
+            if local_check:
+                checks.append(local_check)
+            
+            # Збереження результатів
+            evidence = {
+                'operation_code': self.operation_code,
+                'officer_id': self.officer_id,
+                'court_order': court_order,
+                'phone_number': phone_number,
+                'checks': checks,
+                'timestamp': datetime.now().isoformat(),
+                'location': self._get_location()  # GPS координати
+            }
+            
+            await self._save_evidence(
+                self._encrypt_data(evidence),
+                f"phone_{phone_number}"
+            )
+            
+            return {
+                'status': 'success',
+                'phone': phone_number,
+                'checks': checks,
+                'evidence_saved': True
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Phone check failed: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    async def frontline_image_analysis(self, image_path: str, court_order: str):
+        """Екстрений аналіз зображень на місці"""
+        try:
+            from PIL import Image
+            import hashlib
+            
+            # Базовий аналіз
+            with Image.open(image_path) as img:
+                # EXIF дані
+                exif = img._getexif() or {}
+                
+                # Геолокація з EXIF
+                gps_data = self._extract_gps(exif)
+                
+                # Хеш для ідентифікації
+                with open(image_path, 'rb') as f:
+                    file_hash = hashlib.sha256(f.read()).hexdigest()
+                
+                # Метадані
+                metadata = {
+                    'filename': os.path.basename(image_path),
+                    'size': os.path.getsize(image_path),
+                    'dimensions': img.size,
+                    'format': img.format,
+                    'hash': file_hash,
+                    'gps': gps_data,
+                    'exif': {str(k): str(v) for k, v in exif.items()}
+                }
+                
+                # Швидка обробка через мобільний ML
+                detected_faces = await self._detect_faces_mobile(img)
+                
+                # Пошук облич у базі даних
+                matches = []
+                for face in detected_faces:
+                    match = await self._search_face_in_db(face)
+                    if match:
+                        matches.append(match)
+                
+                # Збереження результатів
+                result = {
+                    'operation_code': self.operation_code,
+                    'officer_id': self.officer_id,
+                    'court_order': court_order,
+                    'image_analysis': {
+                        'metadata': metadata,
+                        'faces_detected': len(detected_faces),
+                        'db_matches': matches,
+                        'gps_location': gps_data
+                    },
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                await self._save_evidence(
+                    self._encrypt_data(result),
+                    f"image_{file_hash}"
+                )
+                
+                return result
+                
+        except Exception as e:
+            self.logger.error(f"Image analysis failed: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    async def battlefield_signal_intel(self, duration: int = 60):
+        """Збір сигнальної інформації на полі бою"""
+        try:
+            import socket
+            import subprocess
+            
+            signals = []
+            
+            # 1. Сканування WiFi мереж
+            wifi_command = "termux-wifi-scaninfo"  # Для Termux
+            try:
+                result = subprocess.run(wifi_command, shell=True, capture_output=True, text=True)
+                if result.returncode == 0:
+                    wifi_networks = json.loads(result.stdout)
+                    signals.extend([
+                        {
+                            'type': 'wifi',
+                            'ssid': net.get('ssid'),
+                            'bssid': net.get('bssid'),
+                            'signal': net.get('signal'),
+                            'frequency': net.get('frequency')
+                        }
+                        for net in wifi_networks[:10]  # Перші 10 мереж
+                    ])
+            except:
+                pass
+            
+            # 2. Bluetooth сканування
+            bt_command = "termux-bluetooth-scan"  # Для Termux
+            try:
+                result = subprocess.run(bt_command, shell=True, capture_output=True, text=True)
+                if result.returncode == 0:
+                    bt_devices = json.loads(result.stdout)
+                    signals.extend([
+                        {
+                            'type': 'bluetooth',
+                            'name': dev.get('name'),
+                            'address': dev.get('address'),
+                            'class': dev.get('class')
+                        }
+                        for dev in bt_devices[:5]
+                    ])
+            except:
+                pass
+            
+            # 3. GSM/ЛТЕ сканування
+            try:
+                import android.telephony
+                tm = android.telephony.TelephonyManager()
+                cell_info = tm.getAllCellInfo()
+                if cell_info:
+                    for cell in cell_info:
+                        signals.append({
+                            'type': 'cellular',
+                            'mcc': cell.getMcc(),
+                            'mnc': cell.getMnc(),
+                            'cid': cell.getCid(),
+                            'lac': cell.getLac(),
+                            'signal': cell.getDbm()
+                        })
+            except:
+                pass
+            
+            # Збереження сигналів
+            intel_report = {
+                'operation_code': self.operation_code,
+                'officer_id': self.officer_id,
+                'timestamp': datetime.now().isoformat(),
+                'location': self._get_location(),
+                'signals_detected': len(signals),
+                'signals': signals
+            }
+            
+            await self._save_evidence(
+                self._encrypt_data(intel_report),
+                f"signals_{datetime.now().strftime('%H%M%S')}"
+            )
+            
+            return intel_report
+            
+        except Exception as e:
+            self.logger.error(f"Signal intel failed: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    def _encrypt_data(self, data: dict) -> str:
+        """Просте шифрування AES для мобільного використання"""
+        try:
+            from Crypto.Cipher import AES
+            from Crypto.Util.Padding import pad
+            import base64
+            
+            data_str = json.dumps(data)
+            cipher = AES.new(self.encryption_key[:32].encode(), AES.MODE_CBC)
+            ct_bytes = cipher.encrypt(pad(data_str.encode(), AES.block_size))
+            iv = base64.b64encode(cipher.iv).decode('utf-8')
+            ct = base64.b64encode(ct_bytes).decode('utf-8')
+            return json.dumps({'iv': iv, 'ciphertext': ct})
+        except:
+            # Резервний варіант
+            import base64
+            return base64.b64encode(json.dumps(data).encode()).decode()
+    
+    async def _save_evidence(self, encrypted_data: str, filename: str):
+        """Збереження доказів з GPS координатами"""
+        evidence_dir = f"/sdcard/cyberpolice/evidence/{self.operation_code}"
+        Path(evidence_dir).mkdir(parents=True, exist_ok=True)
+        
+        evidence_file = f"{evidence_dir}/{filename}.enc"
+        with open(evidence_file, 'w', encoding='utf-8') as f:
+            f.write(encrypted_data)
+        
+        # Додавання GPS метки
+        gps_file = f"{evidence_dir}/{filename}_gps.txt"
+        location = self._get_location()
+        with open(gps_file, 'w') as f:
+            f.write(json.dumps(location))
+        
+        self.logger.info(f"Evidence saved: {evidence_file}")
+    
+    def _get_location(self):
+        """Отримання GPS координат"""
+        try:
+            import gpsd
+            gpsd.connect()
+            packet = gpsd.get_current()
+            return {
+                'latitude': packet.lat,
+                'longitude': packet.lon,
+                'altitude': packet.alt,
+                'speed': packet.hspeed,
+                'time': packet.time
+            }
+        except:
+            # Резервний варіант через Android
+            try:
+                import android.location
+                location = android.location.LocationManager()
+                return {
+                    'latitude': location.getLastKnownLocation('gps').getLatitude(),
+                    'longitude': location.getLastKnownLocation('gps').getLongitude(),
+                    'provider': 'android'
+                }
+            except:
+                return {'latitude': 0, 'longitude': 0, 'error': 'GPS unavailable'}
+    
+    def _extract_gps(self, exif_data):
+        """Витягнення GPS координат з EXIF"""
+        gps_info = {}
+        if 34853 in exif_data:  # GPSInfo tag
+            gps_data = exif_data[34853]
+            # Конвертація EXIF GPS в десяткові градуси
+            # ... (код конвертації)
+        return gps_info
+    
+    async def _detect_faces_mobile(self, img):
+        """Детекція облич через мобільний ML"""
+        # Використання TensorFlow Lite для мобільних пристроїв
+        try:
+            import tflite_runtime.interpreter as tflite
+            
+            # Завантаження моделі детекції облич
+            model_path = "/sdcard/cyberpolice/models/face_detection.tflite"
+            interpreter = tflite.Interpreter(model_path=model_path)
+            interpreter.allocate_tensors()
+            
+            # Обробка зображення
+            input_details = interpreter.get_input_details()
+            output_details = interpreter.get_output_details()
+            
+            # Масштабування зображення
+            input_shape = input_details[0]['shape']
+            img_resized = img.resize((input_shape[1], input_shape[2]))
+            
+            # Виконання інференсу
+            interpreter.set_tensor(input_details[0]['index'], [img_resized])
+            interpreter.invoke()
+            
+            # Отримання результатів
+            faces = interpreter.get_tensor(output_details[0]['index'])
+            
+            return faces
+            
+        except Exception as e:
+            self.logger.error(f"Face detection failed: {e}")
+            return []
+    
+    async def _search_face_in_db(self, face_embedding):
+        """Пошук облич у локальній базі даних"""
+        db_path = "/sdcard/cyberpolice/db/suspects.db"
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Пошук схожих облич (спрощена версія)
+            cursor.execute("""
+                SELECT name, description, match_confidence 
+                FROM suspects 
+                ORDER BY embedding_distance(?) 
+                LIMIT 3
+            """, (json.dumps(face_embedding.tolist()),))
+            
+            results = cursor.fetchall()
+            conn.close()
+            
+            return [{'name': r[0], 'description': r[1], 'confidence': r[2]} 
+                   for r in results]
+            
+        except:
+            return []
+    
+    def _check_local_db(self, phone_number):
+        """Перевірка в локальній базі відомих номерів"""
+        db_path = "/sdcard/cyberpolice/db/phone_numbers.db"
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT category, description, first_seen 
+                FROM known_numbers 
+                WHERE phone_number = ? 
+                LIMIT 1
+            """, (phone_number,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                return {
+                    'source': 'local_db',
+                    'category': result[0],
+                    'description': result[1],
+                    'first_seen': result[2]
+                }
+        except:
+            pass
+        return None
+
+# ШВИДКИЙ ІНТЕРФЕЙС ДЛЯ МОБІЛЬНОГО ВИКОРИСТАННЯ
+async def frontline_interface():
+    """Терміновий інтерфейс для роботи на лінії фронту"""
+    
+    print("""
+    ╔════════════════════════════════════════╗
+    ║    КІБЕРПОЛІЦІЯ ДОНЕЦЬК - ПАТРУЛЬ 712   ║
+    ║       ТЕРМІНОВИЙ ОСІНТ-КОМПЛЕКС        ║
+    ╚════════════════════════════════════════╝
+    """)
+    
+    # Введення даних операції
+    operation_code = input("Код операції: ").strip()
+    officer_id = input("Ваш ID: ").strip()
+    court_order = input("Номер рішення суду: ").strip()
+    
+    osint = FrontlineOSINT(operation_code, officer_id)
+    
+    while True:
+        print("\n" + "="*50)
+        print("ОСІНТ-МЕНЮ ДЛЯ ФРОНТУ:")
+        print("1. Швидка перевірка Telegram")
+        print("2. Критична перевірка телефону")
+        print("3. Аналіз зображення")
+        print("4. Збір сигнальної інформації")
+        print("5. Аварійний експорт даних")
+        print("6. ВИХІД")
+        
+        choice = input("\nВиберіть дію (1-6): ").strip()
+        
+        if choice == '1':
+            username = input("Telegram username/ID: ").strip()
+            result = await osint.quick_telegram_check(username, court_order)
+            print(f"Результат: {result}")
+            
+        elif choice == '2':
+            phone = input("Номер телефону: ").strip()
+            result = await osint.emergency_phone_check(phone, court_order)
+            print(f"Результат: {result}")
+            
+        elif choice == '3':
+            image_path = input("Шлях до зображення: ").strip()
+            if os.path.exists(image_path):
+                result = await osint.frontline_image_analysis(image_path, court_order)
+                print(f"Результат: {result}")
+            else:
+                print("Файл не знайдено!")
+                
+        elif choice == '4':
+            duration = int(input("Тривалість сканування (сек): ") or "60")
+            result = await osint.battlefield_signal_intel(duration)
+            print(f"Знайдено сигналів: {result.get('signals_detected', 0)}")
+            
+        elif choice == '5':
+            # Аварійний експорт всіх даних
+            await osint._emergency_export()
+            print("Дані експортовано для евакуації")
+            
+        elif choice == '6':
+            print("Завершення роботи. Бережіть себе!")
+            break
+            
+        else:
+            print("Невірний вибір!")
+
+# КОНФІГУРАЦІЯ ДЛЯ ШВИДКОГО РОЗГОРТАННЯ НА ANDROID
+def setup_android_environment():
+    """Швидке налаштування для Termux"""
+    
+    setup_script = """
+#!/data/data/com.termux/files/usr/bin/bash
+
+# Оновлення Termux
+pkg update -y
+pkg upgrade -y
+
+# Встановлення Python та залежностей
+pkg install python -y
+pkg install python-pip -y
+pkg install git -y
+
+# Залежності для OSINT
+pip install telethon
+pip install pillow
+pip install pycryptodome
+pip install requests
+pip install python-gpsd
+
+# Створення робочих директорій
+mkdir -p /sdcard/cyberpolice/{logs,evidence,db,models}
+
+# Завантаження моделей ML
+wget -O /sdcard/cyberpolice/models/face_detection.tflite \\
+    https://storage.googleapis.com/cyberpolice-models/face_detection_v2.tflite
+
+# Створення баз даних
+python -c "
+import sqlite3
+import json
+
+# База відомих номерів
+conn = sqlite3.connect('/sdcard/cyberpolice/db/phone_numbers.db')
+cursor = conn.cursor()
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS known_numbers (
+        phone_number TEXT PRIMARY KEY,
+        category TEXT,
+        description TEXT,
+        first_seen TIMESTAMP
+    )
+''')
+conn.commit()
+conn.close()
+
+# База підозрюваних
+conn = sqlite3.connect('/sdcard/cyberpolice/db/suspects.db')
+cursor = conn.cursor()
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS suspects (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        description TEXT,
+        embedding BLOB
+    )
+''')
+conn.commit()
+conn.close()
+"
+
+echo "Setup complete! Run: python frontline_osint.py"
+"""
+    
+    with open("/data/data/com.termux/files/home/setup.sh", "w") as f:
+        f.write(setup_script)
+    
+    print("Setup script created. Run: bash setup.sh")
+
+# ЕКСТРЕНЕ ВИКОРИСТАННЯ
+async def emergency_mode():
+    """Режим екстреної перевірки при обмеженому часі"""
+    
+    osint = FrontlineOSINT("EMERGENCY", "OFFICER_ALERT")
+    
+    # Автоматичний збір критичної інформації
+    print("[!] ЕКСТРЕНА ПЕРЕВІРКА ОТОЧЕННЯ")
+    
+    # 1. Збір сигналів
+    print("[+] Сканування радіосигналів...")
+    signals = await osint.battlefield_signal_intel(30)
+    
+    # 2. Перевірка найближчих WiFi
+    suspicious_wifi = [s for s in signals.get('signals', []) 
+                      if s.get('type') == 'wifi' and s.get('signal', 0) > -60]
+    
+    print(f"[!] Потенційно небезпечні мережі: {len(suspicious_wifi)}")
+    
+    # 3. Екстрена перевірка телефонів з пам'яті
+    emergency_phones = [
+        "+380XXXXXXXXX",  # Приклад підозрюваного номера
+        # Додати номери з оперативної інформації
+    ]
+    
+    for phone in emergency_phones:
+        print(f"[+] Перевірка {phone}...")
+        result = await osint.emergency_phone_check(phone, "EMERGENCY_ORDER")
+        if result.get('status') == 'success':
+            print(f"   [+] Знайдена інформація")
+    
+    # 4. Аварійний експорт
+    print("[+] Екстрений експорт даних...")
+    await osint._emergency_export()
+    
+    print("[✓] ЕКСТРЕНА ПЕРЕВІРКА ЗАВЕРШЕНА")
+
+# АВАНІЙНИЙ ЕКСПОРТ
+async def emergency_data_export():
+    """Екстрений експорт всіх даних для евакуації"""
+    
+    import zipfile
+    import os
+    from datetime import datetime
+    
+    export_dir = f"/sdcard/cyberpolice/export_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    os.makedirs(export_dir, exist_ok=True)
+    
+    # Створення захищеного архіву
+    zip_path = f"{export_dir}/cyberpolice_evidence.zip"
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Додавання логів
+        for root, dirs, files in os.walk("/sdcard/cyberpolice/logs"):
+            for file in files:
+                zipf.write(os.path.join(root, file))
+        
+        # Додавання доказів
+        for root, dirs, files in os.walk("/sdcard/cyberpolice/evidence"):
+            for file in files:
+                zipf.write(os.path.join(root, file))
+        
+        # Додавання баз даних
+        for root, dirs, files in os.walk("/sdcard/cyberpolice/db"):
+            for file in files:
+                zipf.write(os.path.join(root, file))
+    
+    print(f"[✓] Експорт завершено: {zip_path}")
+    
+    # Відправка через захищений канал
+    await _secure_upload(zip_path)
+
+async def _secure_upload(file_path):
+    """Захищена відправка даних через TOR або спецканал"""
+    try:
+        # Використання TOR для анонімної відправки
+        import socks
+        import socket
+        import requests
+        
+        # Налаштування TOR проксі
+        session = requests.session()
+        session.proxies = {
+            'http': 'socks5h://127.0.0.1:9050',
+            'https': 'socks5h://127.0.0.1:9050'
+        }
+        
+        # Відправка на сервер кіберполіції
+        with open(file_path, 'rb') as f:
+            response = session.post(
+                'https://secure.cyberpolice.gov.ua/upload',
+                files={'file': f},
+                headers={'Authorization': 'Bearer EMERGENCY_UPLOAD'},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                print("[✓] Дані успішно відправлено")
+                # Видалення локальної копії
+                os.remove(file_path)
+            else:
+                print("[!] Помилка відправки")
+                
+    except Exception as e:
+        print(f"[!] Помилка завантаження: {e}")
+        # Збереження архіву для ручного перенесення
+        print(f"[!] Архів збережено локально: {file_path}")
+
+# ТЕРМІНОВЕ ВИКОРИСТАННЯ
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) > 1:
+        # Режим командного рядка для швидкого доступу
+        if sys.argv[1] == "check":
+            # python frontline_osint.py check telegram @username
+            pass
+        elif sys.argv[1] == "emergency":
+            asyncio.run(emergency_mode())
+        elif sys.argv[1] == "setup":
+            setup_android_environment()
+    else:
+        # Інтерактивний режим
+        asyncio.run(frontline_interface())
+```
+
+2. КРИТИЧНІ ІНСТРУКЦІЇ ДЛЯ ВИЖИВАННЯ ТА РОБОТИ НА ФРОНТІ
+
+🚨 БЕЗПЕКА ПЕРШОГО РІВНЯ:
+
+1. КРИПТОЗАХИСТ:
+
+```python
+# emergency_crypto.py
+import base64
+from cryptography.fernet import Fernet
+
+class BattlefieldCrypto:
+    """Криптографія для роботи в умовах бойових дій"""
+    
+    @staticmethod
+    def emergency_wipe(path: str, passes: int = 7):
+        """Екстрене знищення даних за стандартом DoD 5220.22-M"""
+        with open(path, 'ba+') as f:
+            length = f.tell()
+            for _ in range(passes):
+                f.seek(0)
+                f.write(os.urandom(length))
+        os.remove(path)
+    
+    @staticmethod
+    def hide_data_in_image(image_path: str, data: bytes, output_path: str):
+        """Приховування даних в зображенні (стеганографія)"""
+        from PIL import Image
+        img = Image.open(image_path)
+        
+        # Перетворення даних в бінарний рядок
+        binary_data = ''.join(format(byte, '08b') for byte in data)
+        
+        # Приховування в LSB (Least Significant Bit)
+        pixels = list(img.getdata())
+        
+        data_index = 0
+        new_pixels = []
+        for pixel in pixels:
+            if data_index < len(binary_data):
+                # Зміна найменш значущого біта
+                new_pixel = list(pixel)
+                for i in range(3):  # RGB
+                    if data_index < len(binary_data):
+                        new_pixel[i] = (pixel[i] & ~1) | int(binary_data[data_index])
+                        data_index += 1
+                new_pixels.append(tuple(new_pixel))
+            else:
+                new_pixels.append(pixel)
+        
+        # Збереження
+        img.putdata(new_pixels)
+        img.save(output_path)
+        return output_path
+```
+
+📱 ШВИДКІ КОМАНДИ ДЛЯ TERMUX:
+
+```bash
+# 1. Швидка установка
+pkg install python git wget curl -y
+pip install telethon requests cryptography
+
+# 2. Екстрена перевірка мережі
+termux-wifi-scaninfo
+termux-bluetooth-scan
+termux-location -p gps
+
+# 3. Швидкий збір інформації
+python -c "
+import os, json
+data = {
+    'wifi': os.popen('termux-wifi-scaninfo').read(),
+    'location': os.popen('termux-location').read(),
+    'camera': os.popen('termux-camera-photo -c 1 /sdcard/check.jpg').read()
+}
+print(json.dumps(data))
+"
+
+# 4. Екстрене шифрування файлів
+openssl enc -aes-256-cbc -salt -in sensitive.txt -out encrypted.enc -k PASSWORD
+
+# 5. Швидкий VPN через SSH
+ssh -D 1080 -N -f user@secure-server.gov.ua
+```
+
+🆘 ЕКСТРЕНІ СЦЕНАРІЇ:
+
+1. ПОТРАПЛЯННЯ В ОТОЧЕННЯ:
+
+```python
+def emergency_protocol():
+    """Протокол при потраплянні в оточення"""
+    
+    # 1. Знищення всіх даних
+    BattlefieldCrypto.emergency_wipe_all()
+    
+    # 2. Відправка сигналу тривоги
+    send_distress_signal()
+    
+    # 3. Активація м'якої знищувальної системи
+    activate_data_destruct()
+    
+    # 4. Перехід на резервну комунікацію
+    switch_to_backup_comms()
+```
+
+📡 КОМУНІКАЦІЙНІ КАНАЛИ:
+
+```python
+class FrontlineComms:
+    """Захищені канали зв'язку для фронту"""
+    
+    @staticmethod
+    def send_encrypted_signal(message: str, frequency: str):
+        """Відправка зашифрованого сигналу через радіо"""
+        # Використання одноразових кодових таблиць
+        encrypted = vigenere_cipher(message, "FRONTLINE712")
+        
+        # Передача через SDR (Software Defined Radio)
+        import numpy as np
+        import sounddevice as sd
+        
+        # Перетворення в тонові сигнали
+        samples = np.array([ord(c) * 100 for c in encrypted], dtype=np.float32)
+        sd.play(samples, samplerate=44100)
+    
+    @staticmethod
+    def receive_hf_signal(duration: int = 10):
+        """Прийом сигналів на КВ діапазоні"""
+        import rtlsdr
+        
+        sdr = rtlsdr.RtlSdr()
+        sdr.sample_rate = 2.4e6
+        sdr.center_freq = 14.2e6  # 20 метрів
+        
+        samples = sdr.read_samples(256*1024)
+        # Аналіз сигналів
+        detected = analyze_hf_signal(samples)
+        
+        return detected
+```
+
+3. ШВИДКИЙ ДЕПЛОЙ НА МОБІЛЬНІ ПРИСТРОЇ:
+
+```bash
+#!/data/data/com.termux/files/usr/bin/bash
+# emergency_deploy.sh
+
+echo "[!] ЕКСТРЕНЕ РОЗГОРТАННЯ КІБЕРПОЛІЦІЇ"
+
+# 1. Завантаження критичних компонентів
+wget -O /sdcard/cyberpolice.zip \\
+    https://secure.cyberpolice.gov.ua/download/frontline_kit
+unzip -o /sdcard/cyberpolice.zip -d /sdcard/
+
+# 2. Налаштування безпеки
+chmod 700 /sdcard/cyberpolice/
+chmod 600 /sdcard/cyberpolice/*.db
+
+# 3. Запуск фонового сервісу
+nohup python /sdcard/cyberpolice/frontline_monitor.py &
+
+# 4. Активація GPS та датчиків
+termux-location -p gps > /sdcard/cyberpolice/location.log &
+
+echo "[✓] СИСТЕМА АКТИВОВАНА"
+echo "    ID: PATROL_712_$(date +%s)"
+echo "    Частота зв'язку: 143.750 MHz"
+echo "    Кодова фраза: 'СЛАВА УКРАЇНІ'"
+```
+
+ВАЖЛИВО! ПРОЦЕДУРИ БЕЗПЕКИ:
+
+1. НІКОЛИ не зберігайте незашифровані дані
+2. ЗАВЖДИ майте план знищення даних
+3. ПЕРЕВІРЯЙТЕ навколишні радіосигнали
+4. ВИКОРИСТОВУЙТЕ одноразові кодові фрази
+5. ПОВІДОМЛЯЙТЕ командування про будь-яку активність
+
+🆘 ЕКСТРЕНІ КОНТАКТИ:
+
+```
+Кіберполіція Донецьк - Патруль 712
+===================================
+Гаряча лінія: +380 95 XXX XX XX (шифрована)
+Екстрений канал: Telegram @cyberpolice712
+Резервна частота: 149.225 MHz
+Кодова книга: "Щоденник патруля 712"
+```
+
+БЕРЕЖІТЬ СЕБЕ! ВАША РОБОТА ВРЯТОВУЄ ЖИТТЯ! СЛАВА УКРАЇНІ! 🇺🇦

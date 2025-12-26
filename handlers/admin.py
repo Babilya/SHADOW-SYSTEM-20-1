@@ -115,6 +115,9 @@ async def process_broadcast(message: Message, state: FSMContext):
 async def admin_users(query: CallbackQuery):
     await query.answer()
     
+    from database.crud import StatsCRUD
+    stats = await StatsCRUD.get_user_stats()
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎯 Leaders", callback_data="users_leaders")],
         [InlineKeyboardButton(text="👷 Managers", callback_data="users_managers")],
@@ -123,18 +126,16 @@ async def admin_users(query: CallbackQuery):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
     
-    text = """👥 <b>УПРАВЛІННЯ КОРИСТУВАЧАМИ</b>
+    text = f"""👥 <b>УПРАВЛІННЯ КОРИСТУВАЧАМИ</b>
 
-<b>📊 Статистика:</b>
-├ Всього: 1,245
-├ Активних (24г): 456
-├ Преміум: 234
-└ Заблокованих: 8
+<b>📊 Статистика з БД:</b>
+├ Всього: {stats['total']}
+├ Заблокованих: {stats['blocked']}
 
 <b>🔑 По ролях:</b>
-├ 🎯 Leaders: 45
-├ 👷 Managers: 156
-└ 👤 Guests: 1,044"""
+├ 🎯 Leaders: {stats['leaders']}
+├ 👷 Managers: {stats['managers']}
+└ 👤 Guests: {stats['guests']}"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
@@ -142,36 +143,41 @@ async def admin_users(query: CallbackQuery):
 async def admin_stats(query: CallbackQuery):
     await query.answer()
     
-    campaign_stats = len(campaign_manager.campaigns)
-    scheduler_stats = scheduler.get_stats()
+    from database.crud import StatsCRUD
+    user_stats = await StatsCRUD.get_user_stats()
+    app_stats = await StatsCRUD.get_app_stats()
+    key_stats = await StatsCRUD.get_key_stats()
+    campaign_stats_db = await StatsCRUD.get_campaign_stats()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📈 Детальніше", callback_data="stats_detailed")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
     
-    text = f"""📊 <b>СТАТИСТИКА СИСТЕМИ</b>
+    text = f"""📊 <b>СТАТИСТИКА СИСТЕМИ (LIVE)</b>
 
-<b>💰 Фінанси (місяць):</b>
-├ Дохід: ₴145,230
-├ Витрати: ₴12,450
-└ Прибуток: ₴132,780
+<b>👥 Користувачі:</b>
+├ Всього: {user_stats['total']}
+├ Лідерів: {user_stats['leaders']}
+├ Менеджерів: {user_stats['managers']}
+└ Гостей: {user_stats['guests']}
+
+<b>📝 Заявки:</b>
+├ Всього: {app_stats['total']}
+├ Нових: {app_stats['new']}
+├ Підтверджених: {app_stats['confirmed']}
+└ Відхилених: {app_stats['rejected']}
+
+<b>🔑 Ключі:</b>
+├ Всього: {key_stats['total']}
+├ Активних: {key_stats['active']}
+└ Використаних: {key_stats['used']}
 
 <b>📧 Кампанії:</b>
-├ Активних: {campaign_stats}
-├ В черзі: {scheduler_stats.get('pending', 0)}
-├ Завершених: {scheduler_stats.get('completed', 0)}
-└ Помилок: {scheduler_stats.get('failed', 0)}
-
-<b>🤖 Ботнет:</b>
-├ Всього ботів: 1,234
-├ Активних: 1,089 (88.3%)
-└ Блокованих: 45 (3.6%)
-
-<b>📈 Трафік (сьогодні):</b>
-├ Повідомлень: 45,678
-├ Доставлено: 44,123 (96.6%)
-└ CTR: 12.4%"""
+├ Всього: {campaign_stats_db['total']}
+├ Активних: {campaign_stats_db['active']}
+├ Чернеток: {campaign_stats_db['draft']}
+└ Завершених: {campaign_stats_db['completed']}"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 

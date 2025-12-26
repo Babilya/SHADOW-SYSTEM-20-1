@@ -40,7 +40,7 @@ invite_codes_storage = {}
 license_keys_storage = {}
 
 def store_invite_code(code: str, leader_id: int, project_id: int = None):
-    """Зберігає invite-код"""
+    """Зберігає invite-код (in-memory + DB fallback)"""
     invite_codes_storage[code] = {
         "leader_id": leader_id,
         "project_id": project_id or leader_id,
@@ -67,7 +67,7 @@ def use_invite_code(code: str, manager_id: int) -> bool:
     return False
 
 def store_license_key(key: str, user_id: int, tariff: str, days: int):
-    """Зберігає ліцензійний ключ"""
+    """Зберігає ліцензійний ключ (in-memory)"""
     license_keys_storage[key] = {
         "user_id": user_id,
         "tariff": tariff,
@@ -92,5 +92,50 @@ def activate_license_key(key: str, user_id: int) -> bool:
         license_keys_storage[key]["activated"] = True
         license_keys_storage[key]["activated_by"] = user_id
         license_keys_storage[key]["activated_at"] = datetime.now().isoformat()
+        return True
+    return False
+
+async def create_key_in_db(tariff: str, days: int) -> str:
+    """Створює ключ в базі даних"""
+    from database.crud import KeyCRUD
+    expires = datetime.now() + timedelta(days=days)
+    key = await KeyCRUD.create_async(tariff=tariff, expires_at=expires)
+    license_keys_storage[key.code] = {
+        "user_id": None,
+        "tariff": tariff,
+        "days": days,
+        "expires_at": expires.isoformat(),
+        "activated": False
+    }
+    return key.code
+
+async def validate_key_from_db(code: str) -> dict:
+    """Валідує ключ з бази даних"""
+    from database.crud import KeyCRUD
+    key = await KeyCRUD.validate_key(code)
+    if key:
+        return {
+            "tariff": key.tariff,
+            "expires_at": key.expires_at.isoformat() if key.expires_at else None,
+            "user_id": key.user_id
+        }
+    if code in license_keys_storage:
+        data = license_keys_storage[code]
+        if not data.get("activated"):
+            return data
+    return None
+
+async def activate_key_in_db(code: str, user_id: int) -> bool:
+    """Активує ключ в базі даних"""
+    from database.crud import KeyCRUD
+    success = await KeyCRUD.use_key(code, str(user_id))
+    if success:
+        if code in license_keys_storage:
+            license_keys_storage[code]["activated"] = True
+            license_keys_storage[code]["activated_by"] = user_id
+        return True
+    if code in license_keys_storage:
+        license_keys_storage[code]["activated"] = True
+        license_keys_storage[code]["activated_by"] = user_id
         return True
     return False

@@ -4,12 +4,15 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from datetime import datetime
 from typing import Optional
+import logging
 
 from config import ADMIN_IDS
 from core.audit_logger import audit_logger, ActionCategory
 from core.alerts import alert_system, AlertType
 from core.encryption import encryption_manager
+from database.crud import ApplicationCRUD, KeyCRUD, UserCRUD
 
+logger = logging.getLogger(__name__)
 applications_router = Router()
 
 class ApplicationFSM(StatesGroup):
@@ -24,8 +27,7 @@ class AdminReplyFSM(StatesGroup):
     waiting_requisites = State()
     waiting_key_type = State()
 
-applications_storage = {}
-messages_storage = {}
+applications_cache = {}
 
 def duration_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -144,21 +146,35 @@ async def process_contact(message: Message, state: FSMContext):
 async def confirm_application(query: CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
     
-    app_id = len(applications_storage) + 1
-    app_data = {
-        "id": app_id,
-        "user_id": query.from_user.id,
-        "username": query.from_user.username,
-        "tariff": data['tariff'],
-        "duration": data['duration'],
-        "name": data['name'],
-        "purpose": data['purpose'],
-        "contact": data['contact'],
-        "status": "pending",
-        "created_at": datetime.now().isoformat(),
-        "messages": []
+    tariff_prices = {
+        "basic": 4200, "standard": 12500, "premium": 62500, "personal": 100000
     }
-    applications_storage[app_id] = app_data
+    amount = tariff_prices.get(data['tariff'], 0)
+    
+    try:
+        app = await ApplicationCRUD.create_async(
+            user_id=str(query.from_user.id),
+            telegram_id=str(query.from_user.id),
+            tariff=data['tariff'],
+            duration=data['duration'],
+            name=data['name'],
+            purpose=data['purpose'],
+            contact=data['contact'],
+            amount=amount
+        )
+        app_id = app.id
+        
+        applications_cache[app_id] = {
+            "user_id": query.from_user.id,
+            "username": query.from_user.username,
+            "tariff": data['tariff'],
+            "duration": data['duration']
+        }
+    except Exception as e:
+        logger.error(f"Failed to create application in DB: {e}")
+        await query.answer("❌ Помилка створення заявки", show_alert=True)
+        await state.clear()
+        return
     
     await audit_logger.log(
         user_id=query.from_user.id,
@@ -187,6 +203,7 @@ async def confirm_application(query: CallbackQuery, state: FSMContext, bot: Bot)
 ├ Ім'я: {data['name']}
 ├ Мета: {data['purpose']}
 └ Контакт: {data['contact']}
+└ Сума: {amount:,} ₴
 
 <b>🕐 Час:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}"""
             
@@ -240,22 +257,22 @@ async def admin_reply_start(query: CallbackQuery, state: FSMContext):
 async def admin_reply_send(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     app_id = data.get('app_id')
-    app = applications_storage.get(app_id)
     
+    app = await ApplicationCRUD.get_by_id_async(app_id)
     if not app:
-        await message.answer("❌ Заявка не знайдена")
-        await state.clear()
-        return
-    
-    app['messages'].append({
-        "from": "admin",
-        "text": message.text,
-        "time": datetime.now().isoformat()
-    })
+        app_cache = applications_cache.get(app_id)
+        if app_cache:
+            user_id = app_cache.get('user_id')
+        else:
+            await message.answer("❌ Заявка не знайдена")
+            await state.clear()
+            return
+    else:
+        user_id = int(app.user_id)
     
     try:
         await bot.send_message(
-            app['user_id'],
+            user_id,
             f"""📩 <b>ПОВІДОМЛЕННЯ ВІД АДМІНІСТРАТОРА</b>
 
 Щодо заявки #{app_id}:
@@ -266,7 +283,7 @@ async def admin_reply_send(message: Message, state: FSMContext, bot: Bot):
             parse_mode="HTML"
         )
         
-        await message.answer(f"✅ Повідомлення надіслано користувачу #{app['user_id']}")
+        await message.answer(f"✅ Повідомлення надіслано користувачу #{user_id}")
     except Exception as e:
         await message.answer(f"❌ Помилка: {e}")
     
@@ -282,9 +299,9 @@ async def admin_requisites_start(query: CallbackQuery, state: FSMContext):
     await state.update_data(app_id=app_id)
     await state.set_state(AdminReplyFSM.waiting_requisites)
     
-    app = applications_storage.get(app_id)
+    app = await ApplicationCRUD.get_by_id_async(app_id)
     tariff_prices = {"basic": 4200, "standard": 12500, "premium": 62500, "personal": 100000}
-    price = tariff_prices.get(app['tariff'], 0) if app else 0
+    price = tariff_prices.get(app.tariff, 0) if app else 0
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 Шаблон реквізитів", callback_data=f"template_req_{app_id}")],
@@ -304,19 +321,19 @@ async def admin_requisites_start(query: CallbackQuery, state: FSMContext):
 @applications_router.callback_query(F.data.startswith("template_req_"))
 async def template_requisites(query: CallbackQuery, state: FSMContext, bot: Bot):
     app_id = int(query.data.split("_")[2])
-    app = applications_storage.get(app_id)
+    app = await ApplicationCRUD.get_by_id_async(app_id)
     
     if not app:
         await query.answer("❌ Заявка не знайдена", show_alert=True)
         return
     
     tariff_prices = {"basic": 4200, "standard": 12500, "premium": 62500, "personal": 100000}
-    price = tariff_prices.get(app['tariff'], 0)
+    price = tariff_prices.get(app.tariff, 0)
     
     requisites_text = f"""💳 <b>РЕКВІЗИТИ ДЛЯ ОПЛАТИ</b>
 
 <b>Заявка:</b> #{app_id}
-<b>Тариф:</b> {app['tariff'].upper()}
+<b>Тариф:</b> {app.tariff.upper()}
 <b>Сума:</b> {price:,} ₴
 
 <b>Реквізити:</b>
@@ -326,13 +343,13 @@ async def template_requisites(query: CallbackQuery, state: FSMContext, bot: Bot)
 <b>Призначення:</b>
 <code>Заявка #{app_id}</code>
 
-⚠️ Після оплати надішліть скріншот квитанції адміністратору.
+Після оплати надішліть скріншот квитанції адміністратору.
 
 <i>Ключ буде активовано протягом 24 годин після підтвердження оплати.</i>"""
     
     try:
-        await bot.send_message(app['user_id'], requisites_text, parse_mode="HTML")
-        app['status'] = 'awaiting_payment'
+        await bot.send_message(int(app.user_id), requisites_text, parse_mode="HTML")
+        await ApplicationCRUD.update_status(app_id, 'awaiting_payment')
         await query.message.edit_text(f"✅ Реквізити надіслано користувачу для заявки #{app_id}")
     except Exception as e:
         await query.message.edit_text(f"❌ Помилка: {e}")
@@ -347,41 +364,44 @@ async def admin_generate_key(query: CallbackQuery, bot: Bot):
         return
     
     app_id = int(query.data.split("_")[2])
-    app = applications_storage.get(app_id)
+    app = await ApplicationCRUD.get_by_id_async(app_id)
     
     if not app:
         await query.answer("❌ Заявка не знайдена", show_alert=True)
         return
     
-    key = encryption_manager.generate_secure_key("SHADOW")
+    from core.key_generator import create_key_in_db, store_license_key
+    try:
+        key = await create_key_in_db(app.tariff, app.duration)
+    except:
+        key = encryption_manager.generate_secure_key("SHADOW")
+        store_license_key(key, int(app.user_id), app.tariff, app.duration)
     
-    app['status'] = 'approved'
-    app['license_key'] = key
+    await ApplicationCRUD.update_status(app_id, 'approved')
     
     await audit_logger.log(
         user_id=query.from_user.id,
         action="license_key_generated",
         category=ActionCategory.AUTH,
         username=query.from_user.username,
-        details={"app_id": app_id, "tariff": app['tariff']}
+        details={"app_id": app_id, "tariff": app.tariff}
     )
     
     try:
         await bot.send_message(
-            app['user_id'],
+            int(app.user_id),
             f"""🔑 <b>ВАШ ЛІЦЕНЗІЙНИЙ КЛЮЧ</b>
 
 <b>Заявка:</b> #{app_id}
-<b>Тариф:</b> {app['tariff'].upper()}
-<b>Термін:</b> {app['duration']} днів
+<b>Тариф:</b> {app.tariff.upper()}
+<b>Термін:</b> {app.duration} днів
 
 <b>Ключ активації:</b>
 <code>{key}</code>
 
-Для активації введіть команду:
-<code>/activate {key}</code>
+Для активації перейдіть в меню "Маю ключ" і введіть ключ.
 
-⚠️ Збережіть ключ у безпечному місці!""",
+Збережіть ключ у безпечному місці!""",
             parse_mode="HTML"
         )
         
@@ -404,17 +424,17 @@ async def admin_reject_app(query: CallbackQuery, bot: Bot):
         return
     
     app_id = int(query.data.split("_")[2])
-    app = applications_storage.get(app_id)
+    app = await ApplicationCRUD.get_by_id_async(app_id)
     
     if not app:
         await query.answer("❌ Заявка не знайдена", show_alert=True)
         return
     
-    app['status'] = 'rejected'
+    await ApplicationCRUD.update_status(app_id, 'rejected')
     
     try:
         await bot.send_message(
-            app['user_id'],
+            int(app.user_id),
             f"""❌ <b>ЗАЯВКА ВІДХИЛЕНА</b>
 
 Заявка #{app_id} була відхилена.

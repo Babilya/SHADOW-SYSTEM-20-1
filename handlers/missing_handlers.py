@@ -39,19 +39,25 @@ async def process_key(message: Message, state: FSMContext):
     from core.key_generator import (
         validate_license_key, activate_license_key,
         validate_invite_code, use_invite_code,
-        license_keys_storage
+        license_keys_storage, validate_key_from_db, activate_key_in_db
     )
     from services.user_service import user_service
     from database.models import UserRole
+    from database.crud import UserCRUD
     
     key = message.text.strip().upper()
     user_id = message.from_user.id
     
     if key.startswith("SHADOW-"):
-        license_data = validate_license_key(key)
+        license_data = await validate_key_from_db(key)
+        if not license_data:
+            license_data = validate_license_key(key)
+        
         if license_data:
+            await activate_key_in_db(key, user_id)
             activate_license_key(key, user_id)
             user_service.set_user_role(user_id, UserRole.LEADER)
+            await UserCRUD.update_role(user_id, UserRole.LEADER)
             
             tariff = license_data.get("tariff", "standard").upper()
             days = license_data.get("days", 30)
@@ -76,21 +82,23 @@ async def process_key(message: Message, state: FSMContext):
 ├ 👥 Управління командою
 └ 📊 Повна аналітика
 
-<b>Ласкаво просимо до Shadow System!</b> 🖤""",
+<b>Ласкаво просимо до Shadow System!</b>""",
                 reply_markup=kb, parse_mode="HTML"
             )
+            logger.info(f"License key {key} activated by user {user_id}")
         else:
-            valid_keys = [k for k, v in license_keys_storage.items() if not v.get("activated")]
-            if valid_keys:
-                await message.answer(f"❌ Ключ вже використаний або недійсний.\n\nДоступні ключі: {len(valid_keys)}")
-            else:
-                await message.answer("❌ Ключ не знайдено або вже використаний.\n\nЗверніться до адміністратора для отримання нового ключа.")
+            await message.answer(
+                "❌ <b>Ключ не знайдено або вже використаний</b>\n\n"
+                "Зверніться до адміністратора для отримання нового ключа.",
+                parse_mode="HTML"
+            )
     
     elif key.startswith("INV-"):
         invite_data = validate_invite_code(key)
         if invite_data:
             use_invite_code(key, user_id)
             user_service.set_user_role(user_id, UserRole.MANAGER)
+            await UserCRUD.update_role(user_id, UserRole.MANAGER)
             
             leader_id = invite_data.get("leader_id")
             
@@ -113,6 +121,7 @@ async def process_key(message: Message, state: FSMContext):
 Очікуйте подальших інструкцій від керівника.""",
                 reply_markup=kb, parse_mode="HTML"
             )
+            logger.info(f"Invite code {key} activated by user {user_id}")
             
             try:
                 await message.bot.send_message(

@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards.user import main_menu, subscription_menu, settings_menu, main_menu_description, payment_methods
+from keyboards.user import main_menu, subscription_menu, settings_menu, main_menu_description, license_menu
 import json
 from datetime import datetime
 
@@ -30,13 +30,41 @@ async def help_main_callback(query: CallbackQuery):
 @user_router.callback_query(F.data == "profile_main")
 async def profile_main_callback(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text("👤 <b>Профіль</b>\n\nID: 6838247512\nІм'я: Admin\nРоль: Власник\nПлан: VIP Elite\n\nСтатистика:\n• Боти: 150\n• Розсилок: 2,345\n• OSINT запитів: 890\n• Баланс: ₴25,480", parse_mode="HTML")
+    text = """<b>👤 ПРОФІЛЬ КОРИСТУВАЧА</b>
+<i>Особиста інформація</i>
 
-@user_router.callback_query(F.data == "balance_payments_main")
-async def balance_payments_main_callback(query: CallbackQuery):
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📋 ОСНОВНІ ДАНІ:</b>
+├ 🆔 ID: <code>6838247512</code>
+├ 👤 Ім'я: Admin
+├ 👑 Роль: Власник проекту
+└ 💎 Тариф: ПРЕМІУМ
+
+<b>📊 СТАТИСТИКА:</b>
+├ 🤖 Ботів: 150
+├ 📧 Розсилок: 2,345
+└ 🔍 OSINT запитів: 890"""
+    await query.message.edit_text(text, parse_mode="HTML")
+
+@user_router.callback_query(F.data == "license_main")
+async def license_main_callback(query: CallbackQuery):
     await query.answer()
-    from handlers.payments import balance_payments_kb
-    await query.message.edit_text("⭐ <b>БАЛАНС & ПЛАТЕЖІ</b>\n\nВаш баланс: <b>5,240 ⭐</b>\n\nВиберіть опцію:", reply_markup=balance_payments_kb(), parse_mode="HTML")
+    text = """<b>🔑 ЛІЦЕНЗІЯ SHADOW</b>
+<i>Статус вашої активації</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📊 ПОТОЧНИЙ СТАТУС:</b>
+├ 🟢 Ліцензія: Активна
+├ 💎 Тариф: ПРЕМІУМ
+├ 📅 Дійсна до: 26.01.2026
+└ 🔑 Ключ: SHADOW-XXXX-XXXX
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>⚙️ Доступні дії:</b>"""
+    await query.message.edit_text(text, reply_markup=license_menu(), parse_mode="HTML")
 
 @user_router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(query: CallbackQuery):

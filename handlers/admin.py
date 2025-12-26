@@ -23,16 +23,23 @@ class RootStates(StatesGroup):
 
 def admin_main_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast"),
-         InlineKeyboardButton(text="👥 Користувачі", callback_data="admin_users")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
-         InlineKeyboardButton(text="💰 Платежі", callback_data="admin_payments")],
-        [InlineKeyboardButton(text="📋 Аудит логи", callback_data="admin_audit"),
-         InlineKeyboardButton(text="🚨 Сповіщення", callback_data="admin_alerts")],
-        [InlineKeyboardButton(text="🔑 Ключі", callback_data="admin_keys_menu"),
-         InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")],
-        [InlineKeyboardButton(text="⚙️ Система", callback_data="admin_system"),
-         InlineKeyboardButton(text="🔐 Безпека", callback_data="admin_security")],
+        [
+            InlineKeyboardButton(text="👥 Користувачі", callback_data="admin_users"),
+            InlineKeyboardButton(text="📝 Заявки", callback_data="admin_applications")
+        ],
+        [
+            InlineKeyboardButton(text="🔑 Ліцензії", callback_data="admin_keys_menu"),
+            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")
+        ],
+        [
+            InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast"),
+            InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")
+        ],
+        [
+            InlineKeyboardButton(text="📋 Аудит логи", callback_data="admin_audit"),
+            InlineKeyboardButton(text="🔐 Безпека", callback_data="admin_security")
+        ],
+        [InlineKeyboardButton(text="⚙️ Системні налаштування", callback_data="admin_system")],
         [InlineKeyboardButton(text="🆘 ЕКСТРЕНА ТРИВОГА", callback_data="admin_emergency")]
     ])
 
@@ -55,26 +62,36 @@ async def admin_panel(message: Message):
         username=message.from_user.username
     )
     
-    text = """🛡️ <b>АДМІНІСТРАТИВНА ПАНЕЛЬ</b>
+    text = """<b>🛡️ ПАНЕЛЬ АДМІНІСТРАТОРА</b>
+<i>Центр управління системою</i>
 
-<b>👑 ROOT/ADMIN</b>
-Повний контроль над системою
+━━━━━━━━━━━━━━━━━━━━━━━
 
-<b>📊 Швидка статистика:</b>
-├ Користувачів: 1,245
-├ Активних проектів: 45
-├ Кампаній: 12
-└ Непрочитаних сповіщень: 3"""
+<b>👑 Рівень доступу:</b> ROOT/ADMIN
+
+<b>📊 СИСТЕМНА СТАТИСТИКА:</b>
+├ 👥 Активних користувачів
+├ 📁 Запущених проектів
+├ 🚀 Активних кампаній
+└ 🔔 Нових сповіщень
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🛠️ Оберіть розділ для управління:</b>"""
     
     await message.answer(text, reply_markup=admin_main_kb(), parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "admin_menu")
 async def admin_menu_callback(query: CallbackQuery):
     await query.answer()
-    text = """🛡️ <b>АДМІНІСТРАТИВНА ПАНЕЛЬ</b>
+    text = """<b>🛡️ ПАНЕЛЬ АДМІНІСТРАТОРА</b>
+<i>Центр управління системою</i>
 
-<b>👑 ROOT/ADMIN</b>
-Повний контроль над системою"""
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>👑 Рівень доступу:</b> ROOT/ADMIN
+
+<b>🛠️ Оберіть розділ для управління:</b>"""
     await query.message.edit_text(text, reply_markup=admin_main_kb(), parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "admin_broadcast")

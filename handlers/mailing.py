@@ -25,42 +25,51 @@ class MailingStates(StatesGroup):
 def mailing_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📧 Нова розсилка", callback_data="mailing_new")],
-        [InlineKeyboardButton(text="📋 Активні розсилки", callback_data="mailing_active")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="mailing_stats")],
-        [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="mailing_settings")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [
+            InlineKeyboardButton(text="📋 Активні", callback_data="mailing_active"),
+            InlineKeyboardButton(text="📊 Статистика", callback_data="mailing_stats")
+        ],
+        [InlineKeyboardButton(text="⚙️ Налаштування розсилки", callback_data="mailing_settings")],
+        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")]
     ])
 
 def monitoring_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔍 Запустити моніторинг", callback_data="monitor_start")],
-        [InlineKeyboardButton(text="⏹ Зупинити", callback_data="monitor_stop")],
-        [InlineKeyboardButton(text="🔑 Ключові слова", callback_data="monitor_keywords")],
-        [InlineKeyboardButton(text="📡 Групи", callback_data="monitor_chats")],
-        [InlineKeyboardButton(text="🚨 Сповіщення", callback_data="monitor_alerts")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [
+            InlineKeyboardButton(text="🔑 Ключові слова", callback_data="monitor_keywords"),
+            InlineKeyboardButton(text="📡 Групи", callback_data="monitor_chats")
+        ],
+        [
+            InlineKeyboardButton(text="⏹ Зупинити", callback_data="monitor_stop"),
+            InlineKeyboardButton(text="🚨 Сповіщення", callback_data="monitor_alerts")
+        ],
+        [InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")]
     ])
 
 @mailing_router.message(Command("mailing"))
 async def mailing_command(message: Message):
     stats = mailing_engine.get_stats()
     
-    text = f"""📧 <b>МОДУЛЬ РОЗСИЛКИ</b>
+    text = f"""<b>📧 ЦЕНТР МАСОВОЇ РОЗСИЛКИ</b>
+<i>Автоматизована система доставки повідомлень</i>
 
-<b>📊 Статистика:</b>
-├ Активних завдань: {stats['active_tasks']}
-├ Всього завдань: {stats['total_tasks']}
-├ Відправлено: {stats['total_sent']}
-├ Помилок: {stats['total_failed']}
-└ Сесій: {stats['sessions_available']}
+━━━━━━━━━━━━━━━━━━━━━━━
 
-<b>⚙️ Можливості:</b>
-• Масова розсилка по користувачам
-• Розсилка по чатам/групам
-• Налаштування інтервалів
-• Використання кількох ботів
+<b>📊 ПОТОЧНА СТАТИСТИКА:</b>
+├ 🔄 Активних завдань: <code>{stats['active_tasks']}</code>
+├ 📋 Всього завдань: <code>{stats['total_tasks']}</code>
+├ ✅ Успішно відправлено: <code>{stats['total_sent']}</code>
+├ ❌ Помилок доставки: <code>{stats['total_failed']}</code>
+└ 🤖 Доступних сесій: <code>{stats['sessions_available']}</code>
 
-Виберіть дію:"""
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>⚙️ МОЖЛИВОСТІ МОДУЛЯ:</b>
+├ Масова розсилка по користувачам
+├ Розсилка по чатам та групам
+├ Гнучке налаштування інтервалів
+└ Використання кількох ботів"""
     
     await message.answer(text, reply_markup=mailing_kb(), parse_mode="HTML")
 

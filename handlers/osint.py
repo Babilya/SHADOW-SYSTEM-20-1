@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 osint_router = Router()
+router = osint_router
 
 class OSINTStates(StatesGroup):
     waiting_keyword = State()

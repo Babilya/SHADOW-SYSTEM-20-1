@@ -8,6 +8,7 @@ from core.audit_logger import audit_logger, ActionCategory, ActionSeverity
 from core.alerts import alert_system
 
 admin_router = Router()
+router = admin_router
 
 class AdminStates(StatesGroup):
     waiting_broadcast = State()

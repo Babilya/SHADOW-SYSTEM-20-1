@@ -12,6 +12,7 @@ from core.audit_logger import audit_logger, ActionCategory
 
 logger = logging.getLogger(__name__)
 configurator_router = Router()
+router = configurator_router
 
 class ConfigStates(StatesGroup):
     editing_button = State()

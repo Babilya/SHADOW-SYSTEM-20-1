@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 botnet_router = Router()
+router = botnet_router
 
 class BotnetStates(StatesGroup):
     waiting_csv = State()

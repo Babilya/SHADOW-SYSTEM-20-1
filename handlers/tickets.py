@@ -12,6 +12,7 @@ from core.alerts import alert_system, AlertType
 
 logger = logging.getLogger(__name__)
 tickets_router = Router()
+router = tickets_router
 
 class TicketStates(StatesGroup):
     subject = State()

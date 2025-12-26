@@ -238,5 +238,11 @@ async def show_help(query: CallbackQuery):
     await query.answer()
     
     if section in HELP_SECTIONS:
+        new_text = HELP_SECTIONS[section]
         back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]])
-        await query.message.edit_text(HELP_SECTIONS[section], reply_markup=back_kb, parse_mode="HTML")
+        
+        if query.message.text != new_text or query.message.reply_markup != back_kb:
+            try:
+                await query.message.edit_text(new_text, reply_markup=back_kb, parse_mode="HTML")
+            except Exception:
+                pass

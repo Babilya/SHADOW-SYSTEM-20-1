@@ -46,6 +46,9 @@ async def main():
     dp.include_router(config_router)
     dp.include_router(help_router)
 
+    from utils.db import init_db
+    await init_db()
+
     logger.info("🚀 Бот запущено")
     await dp.start_polling(bot)
 

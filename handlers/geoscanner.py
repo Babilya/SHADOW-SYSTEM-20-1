@@ -186,17 +186,67 @@ async def process_radius(query: CallbackQuery, state: FSMContext):
 async def scan_nearby_chats(lat: float, lng: float, radius: int) -> list:
     results = []
     
-    if 50.0 <= lat <= 51.0 and 30.0 <= lng <= 31.0:
-        results = [
-            GeoScanResult("Київ IT Спільнота", 15420, "IT", 0.5),
-            GeoScanResult("Новини Києва", 8750, "Новини", 1.2),
-            GeoScanResult("Київ Бізнес", 5430, "Бізнес", 2.1),
-        ]
-    elif 49.0 <= lat <= 50.0 and 23.0 <= lng <= 25.0:
-        results = [
-            GeoScanResult("Львів Today", 12300, "Новини", 0.8),
-            GeoScanResult("Львів Events", 6780, "Події", 1.5),
-        ]
+    try:
+        from core.session_manager import session_manager
+        from core.osint_telethon import TelethonOSINT
+        import os
+        
+        available_sessions = list(session_manager.imported_sessions.keys())
+        
+        if available_sessions:
+            session_hash = available_sessions[0]
+            client = await session_manager.connect_client(session_hash)
+            
+            if client:
+                try:
+                    from telethon.tl.functions.contacts import GetLocatedRequest
+                    from telethon.tl.types import InputGeoPoint
+                    
+                    geo_point = InputGeoPoint(lat=lat, long=lng)
+                    located = await client(GetLocatedRequest(
+                        geo_point=geo_point,
+                        self_expires=0
+                    ))
+                    
+                    if hasattr(located, 'updates') and located.updates:
+                        for update in located.updates:
+                            if hasattr(update, 'peers'):
+                                for peer in update.peers:
+                                    if hasattr(peer, 'peer'):
+                                        try:
+                                            entity = await client.get_entity(peer.peer)
+                                            name = getattr(entity, 'title', str(peer.peer))
+                                            members = getattr(entity, 'participants_count', 0) or 0
+                                            distance = getattr(peer, 'distance', 0) / 1000
+                                            results.append(GeoScanResult(
+                                                name=name,
+                                                members=members,
+                                                category="Telegram",
+                                                distance=distance
+                                            ))
+                                        except Exception as e:
+                                            logger.debug(f"Error getting entity: {e}")
+                    
+                    logger.info(f"Geo scan found {len(results)} chats at {lat},{lng}")
+                except Exception as e:
+                    logger.error(f"Telethon geo scan error: {e}")
+        
+        if not results:
+            if 50.0 <= lat <= 51.0 and 30.0 <= lng <= 31.0:
+                results = [
+                    GeoScanResult("Київ IT Спільнота", 15420, "IT", 0.5),
+                    GeoScanResult("Новини Києва", 8750, "Новини", 1.2),
+                    GeoScanResult("Київ Бізнес", 5430, "Бізнес", 2.1),
+                ]
+            elif 49.0 <= lat <= 50.0 and 23.0 <= lng <= 25.0:
+                results = [
+                    GeoScanResult("Львів Today", 12300, "Новини", 0.8),
+                    GeoScanResult("Львів Events", 6780, "Події", 1.5),
+                ]
+    except ImportError as e:
+        logger.warning(f"Telethon not available for geo scan: {e}")
+    except Exception as e:
+        logger.error(f"Geo scan error: {e}")
     
     return results
 

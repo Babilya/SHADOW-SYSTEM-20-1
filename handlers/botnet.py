@@ -1,8 +1,19 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+import csv
+import io
+import logging
 
+logger = logging.getLogger(__name__)
 botnet_router = Router()
+
+class BotnetStates(StatesGroup):
+    waiting_csv = State()
+    waiting_phone = State()
+    waiting_proxy = State()
 
 def botnet_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -64,10 +75,138 @@ async def add_bots(query: CallbackQuery):
     await query.message.answer("➕ <b>ДОДАВАННЯ БОТІВ</b>\n\nФормат CSV: phone,firstName,lastName\n79991234567,Bot,Name", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "upload_csv")
-async def upload_csv(query: CallbackQuery):
+async def upload_csv(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    await state.set_state(BotnetStates.waiting_csv)
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="add_bots")]])
-    await query.message.answer("📤 <b>ЗАВАНТАЖЕННЯ CSV</b>\n\nНадішліть файл з номерами телефонів", reply_markup=kb, parse_mode="HTML")
+    await query.message.answer("""📤 <b>ЗАВАНТАЖЕННЯ CSV</b>
+
+Надішліть CSV файл з номерами телефонів.
+
+<b>Формат файлу:</b>
+<code>phone,firstName,lastName</code>
+<code>+380501234567,John,Doe</code>
+<code>+380671234567,Jane,Smith</code>
+
+Або просто список номерів по рядках.""", reply_markup=kb, parse_mode="HTML")
+
+@botnet_router.message(BotnetStates.waiting_csv, F.document)
+async def process_csv_file(message: Message, state: FSMContext):
+    await state.clear()
+    
+    try:
+        file = await message.bot.get_file(message.document.file_id)
+        file_content = await message.bot.download_file(file.file_path)
+        
+        content = file_content.read().decode('utf-8')
+        lines = content.strip().split('\n')
+        
+        imported = []
+        errors = []
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line or line.startswith('phone'):
+                continue
+            
+            parts = line.split(',')
+            phone = parts[0].strip().replace('"', '').replace("'", "")
+            first_name = parts[1].strip() if len(parts) > 1 else ""
+            last_name = parts[2].strip() if len(parts) > 2 else ""
+            
+            if phone.startswith('+') or phone.isdigit():
+                imported.append({
+                    'phone': phone,
+                    'first_name': first_name,
+                    'last_name': last_name
+                })
+            else:
+                errors.append(f"Рядок {i+1}: невірний формат")
+        
+        if imported:
+            from utils.db import async_session
+            from database.models import TelegramSession
+            
+            async with async_session() as session:
+                for bot_data in imported:
+                    new_session = TelegramSession(
+                        phone=bot_data['phone'],
+                        owner_id=message.from_user.id,
+                        is_active=False,
+                        status="pending_validation"
+                    )
+                    session.add(new_session)
+                await session.commit()
+            
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📋 Переглянути", callback_data="list_bots")],
+                [InlineKeyboardButton(text="🔥 Запустити прогрів", callback_data="warm_bots")],
+                [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+            ])
+            
+            await message.answer(
+                f"""✅ <b>CSV ІМПОРТОВАНО!</b>
+
+<b>Успішно:</b> {len(imported)}
+<b>Помилок:</b> {len(errors)}
+
+<b>Статус:</b> Боти додані, потребують авторизації
+
+<b>Наступний крок:</b>
+Запустіть прогрів або перегляньте список ботів.""",
+                reply_markup=kb, parse_mode="HTML"
+            )
+        else:
+            await message.answer("❌ Не знайдено жодного валідного номера телефону")
+    
+    except Exception as e:
+        logger.error(f"CSV import error: {e}")
+        await message.answer(f"❌ Помилка імпорту: {e}")
+
+@botnet_router.message(BotnetStates.waiting_csv)
+async def process_csv_text(message: Message, state: FSMContext):
+    await state.clear()
+    
+    lines = message.text.strip().split('\n')
+    imported = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        parts = line.split(',')
+        phone = parts[0].strip()
+        
+        if phone.startswith('+') or phone.isdigit():
+            imported.append(phone)
+    
+    if imported:
+        from utils.db import async_session
+        from database.models import TelegramSession
+        
+        async with async_session() as session:
+            for phone in imported:
+                new_session = TelegramSession(
+                    phone=phone,
+                    owner_id=message.from_user.id,
+                    is_active=False,
+                    status="pending_validation"
+                )
+                session.add(new_session)
+            await session.commit()
+        
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📋 Переглянути", callback_data="list_bots")],
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+        ])
+        
+        await message.answer(
+            f"✅ Імпортовано {len(imported)} номерів",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    else:
+        await message.answer("❌ Не знайдено валідних номерів")
 
 @botnet_router.callback_query(F.data == "bot_settings")
 async def bot_settings(query: CallbackQuery):

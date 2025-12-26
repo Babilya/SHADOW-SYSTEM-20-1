@@ -26,10 +26,10 @@ class UserCRUD:
         return user
     
     @staticmethod
-    async def get_user(user_id: int) -> Optional[User]:
+    async def get_user(telegram_id: int) -> Optional[User]:
         async with async_session() as session:
             result = await session.execute(
-                select(User).where(User.user_id == int(user_id))
+                select(User).where(User.telegram_id == str(telegram_id))
             )
             return result.scalar_one_or_none()
     
@@ -37,7 +37,7 @@ class UserCRUD:
     async def create_user(user_id: int, username: str = None) -> User:
         async with async_session() as session:
             user = User(
-                user_id=int(user_id),
+                telegram_id=str(user_id),
                 username=username,
                 referral_code=f"REF-{secrets.token_hex(4).upper()}"
             )
@@ -54,40 +54,40 @@ class UserCRUD:
         return user
     
     @staticmethod
-    async def update_role(user_id: int, role: str) -> bool:
+    async def update_role(telegram_id: int, role: str) -> bool:
         async with async_session() as session:
             result = await session.execute(
-                update(User).where(User.user_id == int(user_id)).values(role=role)
+                update(User).where(User.telegram_id == str(telegram_id)).values(role=role)
             )
             await session.commit()
             return result.rowcount > 0
-    
+
     @staticmethod
-    async def block_user(user_id: int, blocked: bool = True) -> bool:
+    async def block_user(telegram_id: int, blocked: bool = True) -> bool:
         async with async_session() as session:
             await session.execute(
-                update(User).where(User.user_id == int(user_id)).values(is_blocked=blocked)
+                update(User).where(User.telegram_id == str(telegram_id)).values(is_blocked=blocked)
             )
             await session.commit()
             return True
-    
+
     @staticmethod
-    async def kick_user(user_id: int, kicked: bool = True) -> bool:
+    async def kick_user(telegram_id: int, kicked: bool = True) -> bool:
         async with async_session() as session:
             await session.execute(
-                update(User).where(User.user_id == int(user_id)).values(is_kicked=kicked)
+                update(User).where(User.telegram_id == str(telegram_id)).values(is_kicked=kicked)
             )
             await session.commit()
             return True
-    
+
     @staticmethod
-    async def is_blocked(user_id: int) -> bool:
-        user = await UserCRUD.get_user(user_id)
+    async def is_blocked(telegram_id: int) -> bool:
+        user = await UserCRUD.get_user(telegram_id)
         return user.is_blocked if user else False
-    
+
     @staticmethod
-    async def is_kicked(user_id: int) -> bool:
-        user = await UserCRUD.get_user(user_id)
+    async def is_kicked(telegram_id: int) -> bool:
+        user = await UserCRUD.get_user(telegram_id)
         return user.is_kicked if user else False
 
 class ApplicationCRUD:

@@ -9,11 +9,15 @@ from core.role_constants import UserRole
 class User(Base):
     __tablename__ = "users"
     user_id = Column(Integer, primary_key=True)
+    telegram_id = Column(String, unique=True, nullable=True)
     username = Column(String)
+    first_name = Column(String, nullable=True)
     role = Column(String, default=UserRole.GUEST)
     project_id = Column(String, nullable=True)
     permissions = Column(String, nullable=True)
     status = Column(String, nullable=True)
+    subscription_type = Column(String, nullable=True)
+    subscription_expires = Column(DateTime, nullable=True)
     is_blocked = Column(Boolean, default=False)
     is_kicked = Column(Boolean, default=False)
     parent_leader_id = Column(String, nullable=True)
@@ -216,16 +220,12 @@ class Proxy(Base):
     last_check = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
-class BotWarming(Base):
-    __tablename__ = "bot_warmings"
+class OSINTData(Base):
+    __tablename__ = "osint_data"
     id = Column(Integer, primary_key=True)
-    bot_id = Column(Integer)
-    project_id = Column(Integer)
-    status = Column(String, default="active")
-    start_time = Column(DateTime, default=datetime.now)
-    end_time = Column(DateTime, nullable=True)
-    messages_sent = Column(Integer, default=0)
-    current_phase = Column(Integer, default=1)
+    user_id = Column(String)  # This will store telegram_id
+    data_type = Column(String)
+    filename = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
 class Funnel(Base):

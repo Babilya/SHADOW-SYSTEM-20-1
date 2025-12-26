@@ -523,3 +523,124 @@ async def cancel_application(query: CallbackQuery, state: FSMContext):
     await state.clear()
     await query.answer("Заявку скасовано")
     await query.message.edit_text(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
+
+# ========== ADMIN HANDLERS ==========
+
+@subscriptions_router.callback_query(F.data.startswith("send_requisites_"))
+async def admin_send_requisites(query: CallbackQuery):
+    from config import ADMIN_IDS
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
+    
+    parts = query.data.split("_")
+    user_id = int(parts[2])
+    pkg_key = parts[3]
+    days = int(parts[4])
+    pkg = PACKAGES.get(pkg_key, {})
+    price = pkg.get('prices', {}).get(days, 0)
+    
+    requisites_text = f"""💳 <b>РЕКВІЗИТИ ДЛЯ ОПЛАТИ</b>
+
+<b>💎 Пакет:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+<b>📅 Термін:</b> {days} днів
+<b>💵 До сплати:</b> {price:,} ₴
+
+<b>📋 Реквізити:</b>
+<b>Картка:</b> <code>4441 1144 5555 7777</code>
+<b>Одержувач:</b> ФОП "Shadow System"
+
+<b>⚠️ ВАЖЛИВО:</b>
+1. У призначенні платежу вкажіть ваш Telegram ID
+2. Після оплати надішліть скріншот квитанції адміністратору
+3. Ключ буде активовано протягом 15 хвилин після підтвердження
+
+<i>Дякуємо за довіру!</i>"""
+
+    try:
+        await query.bot.send_message(user_id, requisites_text, parse_mode="HTML")
+        await query.message.edit_text(
+            query.message.text + f"\n\n✅ <b>Реквізити надіслано користувачу!</b>",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Оплату отримано", callback_data=f"payment_received_{user_id}_{pkg_key}_{days}"),
+                 InlineKeyboardButton(text="❌ Відхилити", callback_data=f"reject_app_{user_id}")]
+            ])
+        )
+        await query.answer("✅ Реквізити надіслано!")
+    except Exception as e:
+        await query.answer(f"❌ Помилка: {str(e)}", show_alert=True)
+
+@subscriptions_router.callback_query(F.data.startswith("payment_received_"))
+async def admin_payment_received(query: CallbackQuery):
+    from config import ADMIN_IDS
+    from core.encryption import encryption_manager
+    
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
+    
+    parts = query.data.split("_")
+    user_id = int(parts[2])
+    pkg_key = parts[3]
+    days = int(parts[4])
+    pkg = PACKAGES.get(pkg_key, {})
+    
+    license_key = encryption_manager.generate_secure_key("SHADOW")
+    
+    key_text = f"""✅ <b>ОПЛАТА ПІДТВЕРДЖЕНА!</b>
+
+<b>💎 Пакет:</b> {pkg.get('emoji', '')} {pkg.get('name', '')}
+<b>📅 Термін:</b> {days} днів
+
+<b>🔑 Ваш ліцензійний ключ:</b>
+<code>{license_key}</code>
+
+<b>Для активації введіть ключ:</b>
+Натисніть /start → 🔑 Ввести ключ
+
+<b>⚠️ ВАЖЛИВО:</b>
+Збережіть ключ у безпечному місці!
+
+<b>Дякуємо за покупку!</b> 🖤"""
+
+    try:
+        await query.bot.send_message(user_id, key_text, parse_mode="HTML")
+        await query.message.edit_text(
+            query.message.text + f"\n\n✅ <b>ОПЛАТА ПІДТВЕРДЖЕНА</b>\n🔑 Ключ: <code>{license_key}</code>\n👤 Підтвердив: @{query.from_user.username}",
+            parse_mode="HTML"
+        )
+        await query.answer("✅ Ключ згенеровано та надіслано!")
+    except Exception as e:
+        await query.answer(f"❌ Помилка: {str(e)}", show_alert=True)
+
+@subscriptions_router.callback_query(F.data.startswith("reject_app_"))
+async def admin_reject_application(query: CallbackQuery):
+    from config import ADMIN_IDS
+    
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
+    
+    user_id = int(query.data.split("_")[2])
+    
+    reject_text = """❌ <b>ЗАЯВКА ВІДХИЛЕНА</b>
+
+На жаль, вашу заявку було відхилено.
+
+<b>Можливі причини:</b>
+• Неповні або некоректні дані
+• Підозріла активність
+• Інші причини
+
+Для уточнення зверніться до підтримки: @shadow_support"""
+
+    try:
+        await query.bot.send_message(user_id, reject_text, parse_mode="HTML")
+        await query.message.edit_text(
+            query.message.text + f"\n\n❌ <b>ЗАЯВКА ВІДХИЛЕНА</b>\n👤 Відхилив: @{query.from_user.username}",
+            parse_mode="HTML"
+        )
+        await query.answer("❌ Заявку відхилено!")
+    except Exception as e:
+        await query.answer(f"❌ Помилка: {str(e)}", show_alert=True)

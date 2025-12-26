@@ -40,7 +40,6 @@ def clear_kick(user_id: int):
 
 async def sync_from_db():
     try:
-        from database.crud import UserCRUD
         from utils.db import async_session
         from sqlalchemy import select
         from database.models import User
@@ -48,11 +47,12 @@ async def sync_from_db():
         async with async_session() as session:
             result = await session.execute(select(User).where(User.is_blocked == True))
             for user in result.scalars().all():
-                blocked_users[int(user.telegram_id)] = {"is_blocked": True, "reason": "From DB"}
+                blocked_users[int(user.user_id)] = {"is_blocked": True, "reason": "From DB"}
             
             result = await session.execute(select(User).where(User.is_kicked == True))
             for user in result.scalars().all():
-                kicked_users[int(user.telegram_id)] = {"requires_new_key": True}
+                kicked_users[int(user.user_id)] = {"requires_new_key": True}
+        logger.info(f"Synced {len(blocked_users)} blocked, {len(kicked_users)} kicked users from DB")
     except Exception as e:
         logger.error(f"Failed to sync from DB: {e}")
 

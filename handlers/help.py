@@ -231,9 +231,8 @@ HELP_SECTIONS = {
 ✅ Analytics tracking"""
 }
 
-@help_router.message(Command("help"))
-async def help_menu(message: Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
+def help_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🤖 BOTNET", callback_data="help_botnet")],
         [InlineKeyboardButton(text="🔍 OSINT", callback_data="help_osint")],
         [InlineKeyboardButton(text="📊 ANALYTICS", callback_data="help_analytics")],
@@ -241,8 +240,19 @@ async def help_menu(message: Message):
         [InlineKeyboardButton(text="📦 SUBSCRIPTIONS", callback_data="help_subscriptions")],
         [InlineKeyboardButton(text="💳 PAYMENTS", callback_data="help_payments")],
         [InlineKeyboardButton(text="⚙️ SETTINGS", callback_data="help_settings")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
     ])
-    await message.answer("📚 <b>ДОВІДКА SHADOW SYSTEM</b>\n\nВиберіть розділ для детальної інформації:", reply_markup=kb, parse_mode="HTML")
+
+def help_description() -> str:
+    return "📚 <b>ДОВІДКА SHADOW SYSTEM</b>\n\nВиберіть розділ для детальної інформації:"
+
+@help_router.message(Command("help"))
+async def help_cmd(message: Message):
+    await message.answer(help_description(), reply_markup=help_kb(), parse_mode="HTML")
+
+async def help_menu(message: Message):
+    """Функція для виклику з інших модулів"""
+    await message.edit_text(help_description(), reply_markup=help_kb(), parse_mode="HTML")
 
 @help_router.callback_query(F.data.startswith("help_"))
 async def show_help(query: CallbackQuery):

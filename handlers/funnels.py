@@ -54,7 +54,7 @@ def funnel_view_kb(funnel_id: int, is_active: bool) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="🖼 Фото", callback_data=f"funnel_edit_photo_{funnel_id}"),
-            InlineKeyboardButton(text="💰 Тарифи", callback_data=f"funnel_edit_tariff_{funnel_id}")
+            InlineKeyboardButton(text="⚙️ Конфіг", callback_data=f"funnel_edit_config_{funnel_id}")
         ],
         [InlineKeyboardButton(text="📋 Кроки воронки", callback_data=f"funnel_steps_{funnel_id}")],
         [
@@ -179,7 +179,7 @@ async def funnel_view(query: CallbackQuery, state: FSMContext):
 ├ 📊 Статус: {status}
 ├ 📝 Кроків: <b>{funnel.steps_count}</b>
 ├ 🖼 Фото: {'Так' if funnel.photo_file_id else 'Ні'}
-└ 💰 Тарифи: {'Налаштовано' if funnel.tariff_info else 'Не вказано'}
+└ ⚙️ Конфіг: {'Налаштовано' if funnel.tariff_info else 'Не вказано'}
 
 <b>📈 СТАТИСТИКА:</b>
 ├ 👁 Переглядів: <b>{funnel.views_count or 0}</b>
@@ -290,8 +290,8 @@ async def funnel_remove_photo(query: CallbackQuery, state: FSMContext):
                                  reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
                                  parse_mode="HTML")
 
-@funnels_router.callback_query(F.data.startswith("funnel_edit_tariff_"))
-async def funnel_edit_tariff_start(query: CallbackQuery, state: FSMContext):
+@funnels_router.callback_query(F.data.startswith("funnel_edit_config_"))
+async def funnel_edit_config_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
@@ -300,24 +300,20 @@ async def funnel_edit_tariff_start(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="❌ Скасувати", callback_data=f"funnel_view_{funnel_id}")]
     ])
     await query.message.edit_text(
-        "<b>💰 НАЛАШТУВАННЯ ТАРИФІВ</b>\n\n"
-        "Введіть інформацію про тарифи для цієї воронки:\n"
-        "<i>Наприклад:\n"
-        "🆓 Free - безкоштовно\n"
-        "⭐ Standard - 300 грн/міс\n"
-        "👑 Premium - 600 грн/міс</i>",
+        "<b>⚙️ НАЛАШТУВАННЯ КОНФІГУРАЦІЇ</b>\n\n"
+        "Введіть додаткову інформацію для цієї воронки:",
         reply_markup=kb, parse_mode="HTML"
     )
 
 @funnels_router.message(FunnelStates.editing_tariff)
-async def funnel_edit_tariff_save(message: Message, state: FSMContext):
+async def funnel_edit_config_save(message: Message, state: FSMContext):
     data = await state.get_data()
     funnel_id = data.get("editing_funnel_id")
     
     if funnel_service.update_funnel(funnel_id, tariff_info=message.text):
         await state.clear()
         funnel = funnel_service.get_funnel(funnel_id)
-        await message.answer("✅ Тарифи збережено!", 
+        await message.answer("✅ Конфігурацію збережено!", 
                            reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
                            parse_mode="HTML")
     else:

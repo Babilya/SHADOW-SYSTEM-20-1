@@ -145,18 +145,14 @@ def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="👥 Користувачі", callback_data="admin_users"),
-            InlineKeyboardButton(text="📝 Заявки", callback_data="admin_applications")
+            InlineKeyboardButton(text="🔑 Ліцензії (Заявки)", callback_data="admin_applications")
         ],
         [
-            InlineKeyboardButton(text="🔑 Ліцензії", callback_data="admin_keys"),
-            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")
-        ],
-        [
-            InlineKeyboardButton(text="🎯 Воронки", callback_data="funnels_main"),
+            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
             InlineKeyboardButton(text="📢 Розсилка", callback_data="admin_broadcast")
         ],
         [
-            InlineKeyboardButton(text="⚙️ Система", callback_data="admin_settings"),
+            InlineKeyboardButton(text="🎯 Воронки", callback_data="funnels_main"),
             InlineKeyboardButton(text="🔐 Безпека", callback_data="admin_security")
         ],
         [InlineKeyboardButton(text="📋 Аудит логи", callback_data="admin_audit")],

@@ -2,6 +2,7 @@ import os
 import io
 import zipfile
 import logging
+import asyncio
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -10,11 +11,23 @@ from core.encryption import encryption_manager
 
 logger = logging.getLogger(__name__)
 
+try:
+    from telethon import TelegramClient
+    from telethon.errors import FloodWaitError, UserDeactivatedBanError, SessionPasswordNeededError
+    TELETHON_AVAILABLE = True
+except ImportError:
+    TELETHON_AVAILABLE = False
+    logger.warning("Telethon not available - bot operations will be limited")
+
 class SessionManager:
     def __init__(self):
         self.sessions_dir = Path("sessions")
         self.sessions_dir.mkdir(exist_ok=True)
         self.imported_sessions = {}
+        self.active_clients: Dict[str, Any] = {}
+        self.session_stats: Dict[str, dict] = {}
+        self.api_id = int(os.getenv("TELEGRAM_API_ID", "0"))
+        self.api_hash = os.getenv("TELEGRAM_API_HASH", "")
     
     def import_from_zip(self, zip_data: bytes, project_id: int) -> Dict[str, Any]:
         result = {
@@ -185,7 +198,122 @@ class SessionManager:
         return {
             "total_sessions": total,
             "by_type": by_type,
-            "by_status": by_status
+            "by_status": by_status,
+            "active_clients": len(self.active_clients),
+            "session_stats": self.session_stats
         }
+    
+    async def connect_client(self, session_hash: str) -> Optional[Any]:
+        if not TELETHON_AVAILABLE:
+            logger.error("Telethon not available")
+            return None
+        
+        if session_hash in self.active_clients:
+            return self.active_clients[session_hash]
+        
+        if not self.api_id or not self.api_hash:
+            logger.error("TELEGRAM_API_ID or TELEGRAM_API_HASH not set")
+            return None
+        
+        session = self.imported_sessions.get(session_hash)
+        if not session:
+            logger.error(f"Session {session_hash} not found")
+            return None
+        
+        try:
+            session_path = self.sessions_dir / f"{session_hash}.session"
+            
+            decrypted = encryption_manager.decrypt_session(session['encrypted_data'])
+            if decrypted:
+                with open(session_path, 'w') as f:
+                    f.write(decrypted)
+            
+            client = TelegramClient(str(session_path), self.api_id, self.api_hash)
+            await client.connect()
+            
+            if not await client.is_user_authorized():
+                logger.warning(f"Session {session_hash} not authorized")
+                return None
+            
+            self.active_clients[session_hash] = client
+            self.session_stats[session_hash] = {
+                "connected_at": datetime.now().isoformat(),
+                "messages_sent": 0,
+                "errors": 0
+            }
+            self.imported_sessions[session_hash]['status'] = 'active'
+            
+            logger.info(f"Client {session_hash} connected")
+            return client
+        except Exception as e:
+            logger.error(f"Connection error: {e}")
+            return None
+    
+    async def disconnect_client(self, session_hash: str) -> bool:
+        if session_hash in self.active_clients:
+            try:
+                await self.active_clients[session_hash].disconnect()
+                del self.active_clients[session_hash]
+                self.imported_sessions[session_hash]['status'] = 'validated'
+                logger.info(f"Client {session_hash} disconnected")
+                return True
+            except Exception as e:
+                logger.error(f"Disconnect error: {e}")
+        return False
+    
+    async def send_message(self, session_hash: str, target: str, message: str) -> Dict[str, Any]:
+        if not TELETHON_AVAILABLE:
+            return {"status": "error", "message": "Telethon not available"}
+        
+        client = await self.connect_client(session_hash)
+        if not client:
+            return {"status": "error", "message": "Session not available"}
+        
+        try:
+            entity = await client.get_entity(target)
+            result = await client.send_message(entity, message)
+            
+            self.session_stats[session_hash]["messages_sent"] += 1
+            logger.info(f"Message sent via {session_hash} to {target}")
+            return {"status": "success", "message_id": result.id}
+        except FloodWaitError as e:
+            wait_time = e.seconds
+            logger.warning(f"Flood wait: {wait_time}s")
+            return {"status": "flood", "wait_seconds": wait_time}
+        except UserDeactivatedBanError:
+            self.session_stats[session_hash]["errors"] += 1
+            self.imported_sessions[session_hash]['status'] = 'banned'
+            return {"status": "banned", "message": "Account banned"}
+        except Exception as e:
+            self.session_stats[session_hash]["errors"] += 1
+            logger.error(f"Send error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    async def get_user_info(self, session_hash: str, username: str) -> Dict[str, Any]:
+        if not TELETHON_AVAILABLE:
+            return {"status": "error", "message": "Telethon not available"}
+        
+        client = await self.connect_client(session_hash)
+        if not client:
+            return {"status": "error", "message": "Session not available"}
+        
+        try:
+            user = await client.get_entity(username)
+            return {
+                "status": "success",
+                "user_id": user.id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "is_bot": user.bot,
+                "is_verified": getattr(user, "verified", False)
+            }
+        except Exception as e:
+            logger.error(f"Get user error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    async def disconnect_all(self):
+        for session_hash in list(self.active_clients.keys()):
+            await self.disconnect_client(session_hash)
 
 session_manager = SessionManager()

@@ -3,29 +3,37 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+import logging
 
+logger = logging.getLogger(__name__)
 osint_router = Router()
 
 class OSINTStates(StatesGroup):
     waiting_keyword = State()
     waiting_chat = State()
+    waiting_dns_domain = State()
+    waiting_whois_domain = State()
+    waiting_ip = State()
+    waiting_email = State()
 
 def osint_kb():
     """Комбіновано OSINT меню - 1/2/3 кнопки на рядок"""
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📍 Геосканування", callback_data="geo_scan"),
-            InlineKeyboardButton(text="👤 Аналіз користувачів", callback_data="user_analysis")
+            InlineKeyboardButton(text="🌐 DNS Lookup", callback_data="osint_dns"),
+            InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois")
         ],
         [
-            InlineKeyboardButton(text="💬 Аналіз чатів", callback_data="chat_analysis"),
-            InlineKeyboardButton(text="📥 Експорт контактів", callback_data="export_contacts")
+            InlineKeyboardButton(text="🌍 IP Геолокація", callback_data="osint_geoip"),
+            InlineKeyboardButton(text="📧 Email Verify", callback_data="osint_email")
         ],
         [
-            InlineKeyboardButton(text="📊 Лог видалень", callback_data="deletion_log")
+            InlineKeyboardButton(text="👤 Telegram User", callback_data="user_analysis"),
+            InlineKeyboardButton(text="💬 Chat Parsing", callback_data="chat_analysis")
         ],
         [
-            InlineKeyboardButton(text="📈 Статистика OSINT", callback_data="osint_stats")
+            InlineKeyboardButton(text="📥 Експорт", callback_data="export_contacts"),
+            InlineKeyboardButton(text="📈 Статистика", callback_data="osint_stats")
         ],
         [
             InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")
@@ -382,24 +390,206 @@ async def osint_stats(query: CallbackQuery):
     ])
     await query.message.answer("""📈 <b>СТАТИСТИКА OSINT</b>
 
+<b>ДОСТУПНІ ФУНКЦІЇ:</b>
+DNS Lookup - Пошук DNS записів
+WHOIS - Інформація про домен
+IP Геолокація - Місцезнаходження IP
+Email Verify - Перевірка email
+
 <b>ПОТОЧНОГО МІСЯЦЯ:</b>
-Запитів: 1,245 / 5,000 (25%)
-Контактів: 45,230
-Чатів: 156
-Користувачів: 5,234
+Запитів: активно
+Ліміт: необмежено""", reply_markup=kb, parse_mode="HTML")
 
-<b>ГРАФІК ВИКОРИСТАННЯ:</b>
-▬▬░░░░░░░░ 25% від квоти
+@osint_router.callback_query(F.data == "osint_dns")
+async def osint_dns_start(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_dns_domain)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "🌐 <b>DNS LOOKUP</b>\n\nВведіть домен для пошуку (наприклад: example.com):",
+        reply_markup=kb, parse_mode="HTML"
+    )
 
-<b>ВИТРАТИ:</b>
-Геосканування: 340 запитів - 8 кредитів
-Аналіз користувачів: 245 запитів - 12 кредитів
-Аналіз чатів: 156 запитів - 6 кредитів
-Експорт: 34 експорти - 3 кредити
-────────────────────────
-Всього: 30 кредитів / 200 кредитів (15%)
+@osint_router.message(OSINTStates.waiting_dns_domain)
+async def osint_dns_process(message: Message, state: FSMContext):
+    domain = message.text.strip().lower()
+    await state.clear()
+    
+    await message.answer("🔍 Виконую DNS lookup...")
+    
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.dns_lookup(domain)
+        
+        if result.get("status") == "success":
+            records = result.get("records", {})
+            text = f"🌐 <b>DNS ЗАПИСИ: {domain}</b>\n\n"
+            
+            for rtype, values in records.items():
+                if values:
+                    text += f"<b>{rtype}:</b>\n"
+                    for v in values[:5]:
+                        text += f"  • <code>{v}</code>\n"
+            
+            if not any(records.values()):
+                text += "Записів не знайдено"
+        else:
+            text = f"❌ Помилка: {result.get('message', 'Unknown error')}"
+    except Exception as e:
+        logger.error(f"DNS lookup error: {e}")
+        text = f"❌ Помилка: {e}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Ще один запит", callback_data="osint_dns")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
-<b>РЕКОМЕНДАЦІЯ:</b>
-✓ Ви в межах ліміту
-✓ Подумайте про Premium для більшої квоти""", reply_markup=kb, parse_mode="HTML")
+@osint_router.callback_query(F.data == "osint_whois")
+async def osint_whois_start(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_whois_domain)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "📋 <b>WHOIS LOOKUP</b>\n\nВведіть домен для пошуку:",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@osint_router.message(OSINTStates.waiting_whois_domain)
+async def osint_whois_process(message: Message, state: FSMContext):
+    domain = message.text.strip().lower()
+    await state.clear()
+    
+    await message.answer("🔍 Виконую WHOIS lookup...")
+    
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.whois_lookup(domain)
+        
+        if result.get("status") == "success":
+            data = result.get("data", {})
+            registrant = data.get("registrant", {})
+            text = f"📋 <b>WHOIS: {domain}</b>\n\n"
+            
+            if data.get("domainName"):
+                text += f"<b>Домен:</b> {data.get('domainName')}\n"
+            if data.get("createdDate"):
+                text += f"<b>Створено:</b> {data.get('createdDate')[:10]}\n"
+            if data.get("updatedDate"):
+                text += f"<b>Оновлено:</b> {data.get('updatedDate')[:10]}\n"
+            if data.get("expiresDate"):
+                text += f"<b>Закінчується:</b> {data.get('expiresDate')[:10]}\n"
+            if data.get("registrarName"):
+                text += f"<b>Реєстратор:</b> {data.get('registrarName')}\n"
+            if registrant.get("organization"):
+                text += f"<b>Організація:</b> {registrant.get('organization')}\n"
+            if registrant.get("country"):
+                text += f"<b>Країна:</b> {registrant.get('country')}\n"
+        else:
+            text = f"❌ Помилка: {result.get('message', 'Unknown error')}"
+    except Exception as e:
+        logger.error(f"WHOIS lookup error: {e}")
+        text = f"❌ Помилка: {e}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Ще один запит", callback_data="osint_whois")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
+
+@osint_router.callback_query(F.data == "osint_geoip")
+async def osint_geoip_start(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_ip)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "🌍 <b>IP ГЕОЛОКАЦІЯ</b>\n\nВведіть IP адресу (наприклад: 8.8.8.8):",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@osint_router.message(OSINTStates.waiting_ip)
+async def osint_geoip_process(message: Message, state: FSMContext):
+    ip = message.text.strip()
+    await state.clear()
+    
+    await message.answer("🔍 Виконую геолокацію...")
+    
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.ip_geolocation(ip)
+        
+        if result.get("status") == "success":
+            text = f"""🌍 <b>ГЕОЛОКАЦІЯ IP: {ip}</b>
+
+<b>Країна:</b> {result.get('country', 'N/A')} ({result.get('country_code', '')})
+<b>Регіон:</b> {result.get('region', 'N/A')}
+<b>Місто:</b> {result.get('city', 'N/A')}
+<b>Індекс:</b> {result.get('zip', 'N/A')}
+<b>Координати:</b> {result.get('lat', 'N/A')}, {result.get('lon', 'N/A')}
+<b>ISP:</b> {result.get('isp', 'N/A')}
+<b>Організація:</b> {result.get('org', 'N/A')}
+<b>AS:</b> {result.get('as', 'N/A')}"""
+        else:
+            text = f"❌ Помилка: {result.get('message', 'Unknown error')}"
+    except Exception as e:
+        logger.error(f"GeoIP error: {e}")
+        text = f"❌ Помилка: {e}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Ще один запит", callback_data="osint_geoip")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
+
+@osint_router.callback_query(F.data == "osint_email")
+async def osint_email_start(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_email)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "📧 <b>EMAIL VERIFY</b>\n\nВведіть email для перевірки:",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@osint_router.message(OSINTStates.waiting_email)
+async def osint_email_process(message: Message, state: FSMContext):
+    email = message.text.strip()
+    await state.clear()
+    
+    await message.answer("🔍 Перевіряю email...")
+    
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.email_verify(email)
+        
+        if result.get("status") == "success":
+            has_mx = "✅" if result.get('has_mx') else "❌"
+            format_valid = "✅" if result.get('format_valid') else "❌"
+            mx_records = "\n".join([f"  • {r}" for r in result.get('mx_records', [])[:3]]) or "  Не знайдено"
+            
+            text = f"""📧 <b>ПЕРЕВІРКА EMAIL: {email}</b>
+
+<b>Формат:</b> {format_valid}
+<b>Домен:</b> {result.get('domain', 'N/A')}
+<b>MX записи:</b> {has_mx}
+{mx_records}"""
+        else:
+            text = f"❌ Помилка: {result.get('message', 'Unknown error')}"
+    except Exception as e:
+        logger.error(f"Email verify error: {e}")
+        text = f"❌ Помилка: {e}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Ще один запит", callback_data="osint_email")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 

@@ -205,8 +205,27 @@ class MailingEngine:
             logger.error(f"Mailing failed: {task_id}, error: {e}")
     
     async def _send_message(self, target: int, message: str, session: str = None) -> bool:
-        await asyncio.sleep(0.1)
-        return random.random() > 0.05
+        from core.session_manager import session_manager
+        
+        if not session:
+            available_sessions = list(session_manager.imported_sessions.keys())
+            if not available_sessions:
+                logger.warning("No sessions available for mailing")
+                return False
+            session = random.choice(available_sessions)
+        
+        result = await session_manager.send_message(session, str(target), message)
+        
+        if result.get("status") == "success":
+            return True
+        elif result.get("status") == "flood":
+            wait_time = result.get("wait_seconds", 30)
+            logger.warning(f"Flood wait: sleeping {wait_time}s")
+            await asyncio.sleep(wait_time)
+            return False
+        else:
+            logger.error(f"Send failed: {result.get('message')}")
+            return False
     
     def add_session(self, session_id: str, session_data: Any):
         self.session_pool[session_id] = session_data

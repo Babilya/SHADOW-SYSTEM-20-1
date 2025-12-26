@@ -42,12 +42,20 @@ def botnet_description() -> str:
 
 @botnet_router.message(Command("botnet"))
 async def botnet_cmd(message: Message):
-    await message.answer("🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: 45 | Активних: 38 | Неактивних: 7", reply_markup=botnet_kb(), parse_mode="HTML")
+    from core.session_manager import session_manager
+    stats = session_manager.get_stats()
+    total = stats.get("total_sessions", 0)
+    active = stats.get("active_clients", 0)
+    await message.answer(f"🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: {total} | Активних: {active} | Неактивних: {total - active}", reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "botnet_main")
 async def botnet_menu(query: CallbackQuery):
     await query.answer()
-    await query.message.answer("🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: 45 | Активних: 38 | Неактивних: 7", reply_markup=botnet_kb(), parse_mode="HTML")
+    from core.session_manager import session_manager
+    stats = session_manager.get_stats()
+    total = stats.get("total_sessions", 0)
+    active = stats.get("active_clients", 0)
+    await query.message.answer(f"🤖 <b>УПРАВЛІННЯ BOTNET</b>\n\nВсього: {total} | Активних: {active} | Неактивних: {total - active}", reply_markup=botnet_kb(), parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "add_bots")
 async def add_bots(query: CallbackQuery):
@@ -76,8 +84,16 @@ async def proxy_type(query: CallbackQuery):
 @botnet_router.callback_query(F.data == "list_bots")
 async def list_bots(query: CallbackQuery):
     await query.answer()
+    from core.session_manager import session_manager
+    stats = session_manager.get_stats()
+    by_status = stats.get("by_status", {})
+    total = stats.get("total_sessions", 0)
+    active = by_status.get("active", 0) + by_status.get("validated", 0)
+    pending = by_status.get("pending_validation", 0)
+    error = by_status.get("banned", 0) + by_status.get("deactivated", 0)
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🟢 Активні", callback_data="bots_active")], [InlineKeyboardButton(text="🟡 Очікування", callback_data="bots_waiting")], [InlineKeyboardButton(text="🔴 Помилки", callback_data="bots_error")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
-    await query.message.answer("📋 <b>МОЇ БОТИ</b>\n\nВсього: 45\n🟢 Активні: 38\n🟡 Очікування: 5\n🔴 Помилки: 2", reply_markup=kb, parse_mode="HTML")
+    await query.message.answer(f"📋 <b>МОЇ БОТИ</b>\n\nВсього: {total}\n🟢 Активні: {active}\n🟡 Очікування: {pending}\n🔴 Помилки: {error}", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bots_active")
 async def bots_active(query: CallbackQuery):

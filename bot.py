@@ -17,7 +17,6 @@ try:
     from config import BOT_TOKEN, ADMIN_IDS
     from handlers.user import user_router
     from handlers.admin import admin_router
-    from handlers.payments import payments_router
     from handlers.botnet import botnet_router
     from handlers.osint import osint_router
     from handlers.analytics import analytics_router
@@ -61,7 +60,7 @@ dp.message.middleware(RoleMiddleware())
 dp.callback_query.middleware(RoleMiddleware())
 
 routers = [
-    user_router, admin_router, payments_router, botnet_router,
+    user_router, admin_router, botnet_router,
     osint_router, analytics_router, team_router, subscriptions_router,
     funnels_router, help_router, texting_router, applications_router,
     emergency_router, configurator_router, security_router, 

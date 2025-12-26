@@ -301,7 +301,27 @@ async def go_back(query: CallbackQuery):
 @user_router.callback_query(F.data == "payments_main")
 async def payments_main(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text("💳 <b>Платежі</b>\n\n💰 Баланс: ₴5,240\n\n<b>Виберіть спосіб оплати:</b>", reply_markup=payment_methods(), parse_mode="HTML")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔑 Активувати SHADOW ключ", callback_data="activate_key")],
+        [InlineKeyboardButton(text="📋 Мій ключ", callback_data="my_license")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
+    ])
+    await query.message.edit_text("""🔐 <b>ЛІЦЕНЗУВАННЯ</b>
+
+═══════════════════════
+
+<b>💎 SHADOW SYSTEM</b> використовує систему 
+ліцензійних ключів для авторизації.
+
+<b>🔑 Як отримати ключ:</b>
+├ Зв'яжіться з адміністратором
+├ Отримайте унікальний SHADOW ключ
+└ Активуйте через команду /activate
+
+<b>📋 Типи ліцензій:</b>
+├ <code>MANAGER</code> - Операційний доступ
+├ <code>LEADER</code> - Керування командою
+└ <code>ADMIN</code> - Повний контроль""", reply_markup=kb, parse_mode="HTML")
 
 @user_router.callback_query(F.data == "settings_main")
 async def settings_main(query: CallbackQuery):
@@ -323,7 +343,27 @@ async def help_callback(query: CallbackQuery):
 @user_router.callback_query(F.data == "profile")
 async def profile_callback(query: CallbackQuery):
     await query.answer()
-    await query.message.edit_text("👤 <b>Профіль</b>\n\nID: 6838247512\nІм'я: Admin\nРоль: Власник\nПлан: VIP Elite\n\nСтатистика:\n• Боти: 150\n• Розсилок: 2,345\n• OSINT запитів: 890\n• Баланс: ₴25,480", parse_mode="HTML")
+    from core.roles import ROLE_NAMES
+    user = query.from_user
+    role = user_service.get_user_role(user.id)
+    role_name = ROLE_NAMES.get(role, "Гість")
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
+    ])
+    
+    await query.message.edit_text(f"""👤 <b>ПРОФІЛЬ</b>
+
+═══════════════════════
+
+<b>📋 Інформація:</b>
+├ 🆔 ID: <code>{user.id}</code>
+├ 👤 Ім'я: {user.first_name}
+├ 🏷 Username: @{user.username or 'не вказано'}
+└ 👔 Роль: <b>{role_name}</b>
+
+<b>🔑 Ліцензія:</b>
+└ Статус: {'✅ Активна' if role != 'guest' else '⏳ Очікує активації'}""", reply_markup=kb, parse_mode="HTML")
 
 @user_router.callback_query(F.data == "my_bots")
 async def my_bots_callback(query: CallbackQuery):

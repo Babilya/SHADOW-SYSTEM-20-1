@@ -151,13 +151,13 @@ async def process_key(message: Message, state: FSMContext):
 @missing_router.callback_query(F.data == "balance_view")
 async def balance_view(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]
+        [InlineKeyboardButton(text="🔑 Активувати ключ", callback_data="activate_key")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
     await query.message.edit_text(
-        "💵 <b>ВАШ БАЛАНС</b>\n\n"
-        "💰 Баланс: <b>0 ₴</b>\n"
-        "🔒 Заморожено: 0 ₴\n"
-        "📊 Всього поповнено: 0 ₴",
+        "🔐 <b>ЛІЦЕНЗІЯ</b>\n\n"
+        "SHADOW SYSTEM використовує ліцензійні ключі.\n"
+        "Зверніться до адміністратора для отримання ключа.",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
@@ -313,37 +313,37 @@ async def duration_select(query: CallbackQuery, state: FSMContext):
 @missing_router.callback_query(F.data.in_(["buy_standard", "buy_premium", "buy_elite"]))
 async def buy_tier(query: CallbackQuery):
     tier_info = {
-        "buy_standard": ("СТАНДАРТ", "12,500 ₴"),
-        "buy_premium": ("ПРЕМІУМ", "62,500 ₴"),
-        "buy_elite": ("VIP ELITE", "100,000 ₴")
+        "buy_standard": ("СТАНДАРТ", "MANAGER"),
+        "buy_premium": ("ПРЕМІУМ", "LEADER"),
+        "buy_elite": ("VIP ELITE", "ADMIN")
     }
     
-    tier_name, price = tier_info.get(query.data, ("N/A", "N/A"))
+    tier_name, role = tier_info.get(query.data, ("N/A", "N/A"))
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Оплатити", callback_data="pay_card")],
+        [InlineKeyboardButton(text="📝 Подати заявку", callback_data="submit_license_request")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="subscription_main")]
     ])
     
     await query.message.edit_text(
-        f"🛒 <b>КУПІВЛЯ {tier_name}</b>\n\n"
-        f"💰 Ціна: {price}/місяць\n\n"
-        f"Оберіть спосіб оплати:",
+        f"🔑 <b>ЛІЦЕНЗІЯ {tier_name}</b>\n\n"
+        f"👔 Роль: {role}\n\n"
+        f"Подайте заявку для отримання SHADOW ключа:",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
 
-@missing_router.callback_query(F.data == "card_payment")
+@missing_router.callback_query(F.data.in_(["card_payment", "pay_card"]))
 async def card_payment_handler(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📸 Надіслати скріншот", callback_data="send_screenshot")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]
+        [InlineKeyboardButton(text="🔑 Активувати ключ", callback_data="activate_key")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
     await query.message.edit_text(
-        "💳 <b>ОПЛАТА КАРТКОЮ</b>\n\n"
-        "<b>Реквізити:</b>\n"
-        "Картка: <code>4441 1144 5555 7777</code>\n\n"
-        "Після оплати надішліть скріншот квитанції.",
+        "🔐 <b>ЛІЦЕНЗУВАННЯ</b>\n\n"
+        "SHADOW SYSTEM використовує ліцензійні ключі.\n\n"
+        "Зверніться до адміністратора для отримання ключа\n"
+        "або введіть існуючий ключ для активації.",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
@@ -351,13 +351,12 @@ async def card_payment_handler(query: CallbackQuery):
 @missing_router.callback_query(F.data == "create_invoice")
 async def create_invoice(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
     await query.message.edit_text(
-        "📄 <b>РАХУНОК СТВОРЕНО</b>\n\n"
-        "Номер: INV-2025-001\n"
-        "Сума: 12,500 ₴\n"
-        "Дійсний: 48 годин",
+        "🔑 <b>SHADOW КЛЮЧ</b>\n\n"
+        "Для отримання ліцензійного ключа\n"
+        "зверніться до адміністратора.",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
@@ -537,23 +536,23 @@ async def admin_tickets_closed(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "confirmed_payments")
-async def confirmed_payments(query: CallbackQuery):
+async def confirmed_licenses(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_payments_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_payments")]
     ])
     await query.message.edit_text(
-        "✅ <b>ПІДТВЕРДЖЕНІ ПЛАТЕЖІ</b>\n\nНемає підтверджених платежів.",
+        "✅ <b>АКТИВОВАНІ ЛІЦЕНЗІЇ</b>\n\nПерегляньте список через управління ключами.",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
 
 @missing_router.callback_query(F.data == "rejected_payments")
-async def rejected_payments(query: CallbackQuery):
+async def rejected_licenses(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_payments_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_payments")]
     ])
     await query.message.edit_text(
-        "❌ <b>ВІДХИЛЕНІ ПЛАТЕЖІ</b>\n\nНемає відхилених платежів.",
+        "❌ <b>ВІДХИЛЕНІ ЗАЯВКИ</b>\n\nНемає відхилених заявок.",
         reply_markup=kb, parse_mode="HTML"
     )
     await query.answer()
@@ -623,9 +622,11 @@ async def geo_select(query: CallbackQuery):
     await query.message.edit_text(f"📍 <b>Скан: {city}</b>\n\nАналіз регіону...", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
-@missing_router.callback_query(F.data.in_(["help_analytics", "help_botnet", "help_osint", "help_payments", "help_settings", "help_subscriptions", "help_team"]))
+@missing_router.callback_query(F.data.in_(["help_analytics", "help_botnet", "help_osint", "help_licenses", "help_settings", "help_subscriptions", "help_team"]))
 async def help_section(query: CallbackQuery):
     section = query.data.replace("help_", "").upper()
+    if section == "LICENSES":
+        section = "ЛІЦЕНЗУВАННЯ"
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="help_main")]])
     await query.message.edit_text(f"❓ <b>Допомога: {section}</b>\n\nДокументація скоро буде.", reply_markup=kb, parse_mode="HTML")
     await query.answer()
@@ -644,9 +645,9 @@ async def lang_select(query: CallbackQuery):
     await query.answer(f"✅ Мова: {lang}")
 
 @missing_router.callback_query(F.data == "liqpay_payment")
-async def liqpay_payment(query: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]])
-    await query.message.edit_text("💳 <b>LIQPAY</b>\n\nЦей метод тимчасово недоступний.", reply_markup=kb, parse_mode="HTML")
+async def liqpay_redirect(query: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]])
+    await query.message.edit_text("🔐 <b>ЛІЦЕНЗУВАННЯ</b>\n\nSHADOW SYSTEM використовує ключі активації.", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
 @missing_router.callback_query(F.data == "mailing_settings")
@@ -663,21 +664,21 @@ async def monitor_ops(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "payments_history")
-async def payments_history(query: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]])
-    await query.message.edit_text("📋 <b>ІСТОРІЯ ПЛАТЕЖІВ</b>\n\nНемає платежів.", reply_markup=kb, parse_mode="HTML")
+async def license_history(query: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]])
+    await query.message.edit_text("📋 <b>ІСТОРІЯ ЛІЦЕНЗІЙ</b>\n\nПерегляньте статус вашого ключа.", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
 @missing_router.callback_query(F.data == "refund_request")
-async def refund_request(query: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]])
-    await query.message.edit_text("💸 <b>ПОВЕРНЕННЯ КОШТІВ</b>\n\nЗверніться в підтримку.", reply_markup=kb, parse_mode="HTML")
+async def support_request(query: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]])
+    await query.message.edit_text("💬 <b>ПІДТРИМКА</b>\n\nНапишіть /support для звернення.", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
 @missing_router.callback_query(F.data.in_(["confirm_payment", "reject_payment"]))
-async def payment_decision(query: CallbackQuery):
-    action = "підтверджено" if "confirm" in query.data else "відхилено"
-    await query.answer(f"✅ Платіж {action}!")
+async def license_decision(query: CallbackQuery):
+    action = "схвалено" if "confirm" in query.data else "відхилено"
+    await query.answer(f"✅ Заявку {action}!")
 
 @missing_router.callback_query(F.data == "renew_premium")
 async def renew_premium(query: CallbackQuery):
@@ -706,9 +707,9 @@ async def settings_notifications(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data.in_(["stars_100", "stars_250", "stars_1250", "stars_payment"]))
-async def stars_ops(query: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="payments_menu")]])
-    await query.message.edit_text("⭐ <b>TELEGRAM STARS</b>", reply_markup=kb, parse_mode="HTML")
+async def stars_redirect(query: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]])
+    await query.message.edit_text("🔐 <b>ЛІЦЕНЗУВАННЯ</b>\n\nSHADOW SYSTEM використовує ліцензійні ключі.", reply_markup=kb, parse_mode="HTML")
     await query.answer()
 
 @missing_router.callback_query(F.data == "stats_detailed")

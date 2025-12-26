@@ -202,100 +202,51 @@ async def admin_stats(query: CallbackQuery):
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @admin_router.callback_query(F.data == "admin_payments")
-async def admin_payments(query: CallbackQuery):
+async def admin_licenses(query: CallbackQuery):
     if query.from_user.id not in ADMIN_IDS:
         await query.answer("❌ Доступ заборонено", show_alert=True)
         return
     await query.answer()
     
     from utils.db import async_session
-    from database.models import Payment, Application
+    from database.models import LicenseKey
     from sqlalchemy import select, func
     
     async with async_session() as session:
-        pending_result = await session.execute(
-            select(Payment).where(Payment.status == "pending").limit(10)
-        )
-        pending_payments = pending_result.scalars().all()
+        total_result = await session.execute(select(func.count(LicenseKey.id)))
+        total_keys = total_result.scalar() or 0
         
-        confirmed_result = await session.execute(
-            select(func.count(Payment.id)).where(Payment.status == "confirmed")
+        active_result = await session.execute(
+            select(func.count(LicenseKey.id)).where(LicenseKey.is_active == True)
         )
-        confirmed_count = confirmed_result.scalar() or 0
+        active_keys = active_result.scalar() or 0
         
-        total_result = await session.execute(
-            select(func.sum(Payment.amount)).where(Payment.status == "confirmed")
+        used_result = await session.execute(
+            select(func.count(LicenseKey.id)).where(LicenseKey.used_by != None)
         )
-        total_amount = total_result.scalar() or 0
+        used_keys = used_result.scalar() or 0
     
-    buttons = []
-    for p in pending_payments[:5]:
-        buttons.append([InlineKeyboardButton(
-            text=f"✅ #{p.id} - {p.amount}₴",
-            callback_data=f"confirm_pay_{p.id}"
-        )])
-    
-    buttons.extend([
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Генерувати ключ", callback_data="generate_key")],
+        [InlineKeyboardButton(text="📋 Список ключів", callback_data="list_keys")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
     
-    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-    
-    text = f"""💰 <b>ПЛАТЕЖІ ТА ЗАЯВКИ</b>
+    text = f"""🔑 <b>УПРАВЛІННЯ ЛІЦЕНЗІЯМИ</b>
 
-<b>🎫 Очікують підтвердження ({len(pending_payments)}):</b>
+═══════════════════════
 
-"""
-    
-    for i, p in enumerate(pending_payments[:5], 1):
-        text += f"{i}. ID: {p.user_id} - {p.amount}₴ ({p.method})\n"
-    
-    if not pending_payments:
-        text += "Немає очікуючих платежів\n"
-    
-    text += f"""
-<b>📊 Статистика:</b>
-├ Підтверджено: {confirmed_count}
-└ Сума: ₴{total_amount:,.0f}"""
+<b>📊 Статистика ключів:</b>
+├ Всього: <b>{total_keys}</b>
+├ Активних: <b>{active_keys}</b>
+├ Використаних: <b>{used_keys}</b>
+└ Вільних: <b>{active_keys - used_keys}</b>
+
+<b>🔐 SHADOW Keys:</b>
+Система ліцензування без платежів.
+Ключі прив'язуються до Telegram ID."""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-
-@admin_router.callback_query(F.data.startswith("confirm_pay_"))
-async def confirm_payment_handler(query: CallbackQuery):
-    if query.from_user.id not in ADMIN_IDS:
-        await query.answer("❌ Доступ заборонено", show_alert=True)
-        return
-    await query.answer()
-    
-    from utils.db import async_session
-    from database.models import Payment
-    from sqlalchemy import update
-    from datetime import datetime
-    
-    payment_id = int(query.data.replace("confirm_pay_", ""))
-    
-    async with async_session() as session:
-        await session.execute(
-            update(Payment).where(Payment.id == payment_id).values(
-                status="confirmed",
-                admin_id=str(query.from_user.id),
-                confirmed_at=datetime.now()
-            )
-        )
-        await session.commit()
-    
-    await audit_logger.log(
-        user_id=query.from_user.id,
-        action="payment_confirmed",
-        category=ActionCategory.FINANCIAL,
-        username=query.from_user.username,
-        details={"payment_id": payment_id}
-    )
-    
-    await query.message.edit_text(
-        f"✅ Платіж #{payment_id} підтверджено!",
-        reply_markup=admin_main_kb()
-    )
 
 @admin_router.callback_query(F.data == "admin_audit")
 async def admin_audit(query: CallbackQuery):

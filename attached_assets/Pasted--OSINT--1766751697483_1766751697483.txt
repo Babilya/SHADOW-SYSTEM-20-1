@@ -1,0 +1,393 @@
+Я не можу надавати інструменти для "темної" сторони OSINT, оскільки це може порушувати закони та правила. Однак, я можу запропонувати легальні OSINT-інструменти, які використовуються правоохоронними органами та дослідниками з безпеки:
+
+Легальні OSINT-інструменти для розслідувань:
+
+1. Телеграм-аналіз (легальні методи)
+
+```python
+# tools/telegram_analyzer.py
+from telethon import TelegramClient
+from telethon.tl.types import ChannelParticipantsSearch
+import pandas as pd
+
+class TelegramAnalyzer:
+    def __init__(self, api_id, api_hash, session_name='osint_session'):
+        self.client = TelegramClient(session_name, api_id, api_hash)
+        
+    async def analyze_public_channel(self, channel_link):
+        """Аналіз публічного каналу"""
+        async with self.client:
+            channel = await self.client.get_entity(channel_link)
+            participants = await self.client.get_participants(channel)
+            
+            data = []
+            for user in participants[:100]:  # Обмеження для легального використання
+                data.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'phone': user.phone
+                })
+            
+            return pd.DataFrame(data)
+    
+    async def get_channel_metadata(self, channel_link):
+        """Отримання публічної метаінформації"""
+        async with self.client:
+            channel = await self.client.get_entity(channel_link)
+            return {
+                'title': channel.title,
+                'participants_count': channel.participants_count,
+                'description': channel.about,
+                'date_created': channel.date
+            }
+```
+
+2. Публічні API соцмереж (легальний доступ)
+
+```python
+# tools/social_media_osint.py
+import requests
+import json
+from datetime import datetime
+
+class SocialMediaOSINT:
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+    
+    def search_public_posts(self, platform, keyword, limit=50):
+        """Пошук публічних постів за ключовими словами"""
+        results = []
+        
+        if platform == 'twitter':
+            # Використання Twitter API v2 (легальний доступ)
+            url = f"https://api.twitter.com/2/tweets/search/recent"
+            params = {
+                'query': keyword,
+                'max_results': limit,
+                'tweet.fields': 'created_at,author_id'
+            }
+            # Потрібен Bearer Token
+            
+        elif platform == 'reddit':
+            url = f"https://www.reddit.com/search.json"
+            params = {'q': keyword, 'limit': limit}
+            response = requests.get(url, params=params, headers=self.headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                for post in data['data']['children'][:limit]:
+                    results.append({
+                        'title': post['data']['title'],
+                        'author': post['data']['author'],
+                        'subreddit': post['data']['subreddit'],
+                        'created': datetime.fromtimestamp(post['data']['created_utc']),
+                        'url': post['data']['url']
+                    })
+        
+        return results
+    
+    def analyze_public_profile(self, username, platform):
+        """Аналіз публічного профілю"""
+        profile_data = {}
+        
+        if platform == 'github':
+            url = f"https://api.github.com/users/{username}"
+            response = requests.get(url, headers=self.headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                profile_data = {
+                    'name': data.get('name'),
+                    'company': data.get('company'),
+                    'location': data.get('location'),
+                    'public_repos': data.get('public_repos'),
+                    'followers': data.get('followers'),
+                    'created_at': data.get('created_at')
+                }
+        
+        return profile_data
+```
+
+3. Аналіз публічних даних WHOIS та DNS
+
+```python
+# tools/dns_whois_analyzer.py
+import whois
+import dns.resolver
+import socket
+from ipwhois import IPWhois
+
+class DNSWhoisAnalyzer:
+    def get_whois_info(self, domain):
+        """Отримання публічної WHOIS інформації"""
+        try:
+            w = whois.whois(domain)
+            return {
+                'domain_name': w.domain_name,
+                'registrar': w.registrar,
+                'creation_date': w.creation_date,
+                'expiration_date': w.expiration_date,
+                'name_servers': w.name_servers,
+                'registrant_country': w.country
+            }
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def get_dns_records(self, domain):
+        """Отримання публічних DNS записів"""
+        records = {}
+        
+        try:
+            # A записи
+            answers = dns.resolver.resolve(domain, 'A')
+            records['A'] = [str(r) for r in answers]
+            
+            # MX записи
+            answers = dns.resolver.resolve(domain, 'MX')
+            records['MX'] = [str(r) for r in answers]
+            
+            # TXT записи
+            answers = dns.resolver.resolve(domain, 'TXT')
+            records['TXT'] = [str(r) for r in answers]
+            
+        except Exception as e:
+            records['error'] = str(e)
+        
+        return records
+    
+    def get_ip_info(self, ip_address):
+        """Геолокація IP (публічні дані)"""
+        try:
+            obj = IPWhois(ip_address)
+            results = obj.lookup_rdap()
+            
+            return {
+                'country': results.get('asn_country_code'),
+                'asn': results.get('asn'),
+                'network': results.get('network', {}).get('name'),
+                'cidr': results.get('network', {}).get('cidr')
+            }
+        except:
+            return {'error': 'Unable to get IP info'}
+```
+
+4. Аналіз зображень (EXIF метадані)
+
+```python
+# tools/image_analyzer.py
+from PIL import Image
+from PIL.ExifTags import TAGS
+import requests
+from io import BytesIO
+
+class ImageAnalyzer:
+    def extract_exif_data(self, image_url):
+        """Витягнення EXIF даних з публічних зображень"""
+        try:
+            response = requests.get(image_url)
+            image = Image.open(BytesIO(response.content))
+            
+            exif_data = {}
+            if hasattr(image, '_getexif'):
+                exif = image._getexif()
+                if exif:
+                    for tag, value in exif.items():
+                        tag_name = TAGS.get(tag, tag)
+                        exif_data[tag_name] = value
+            
+            # Базовий аналіз
+            info = {
+                'format': image.format,
+                'size': image.size,
+                'mode': image.mode,
+                'exif': exif_data
+            }
+            
+            return info
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def reverse_image_search(self, image_url, engine='google'):
+        """Зворотний пошук зображень через публічні API"""
+        # Реалізація через Google Custom Search API або інші легальні API
+        pass
+```
+
+5. Аналіз криптоадрес (публічні дані блокчейну)
+
+```python
+# tools/crypto_analyzer.py
+import requests
+import json
+
+class CryptoAnalyzer:
+    def __init__(self):
+        self.apis = {
+            'bitcoin': 'https://blockchain.info/rawaddr/',
+            'ethereum': 'https://api.etherscan.io/api',
+            'ton': 'https://tonapi.io/v1/'
+        }
+    
+    def analyze_bitcoin_address(self, address):
+        """Аналіз публічної інформації Bitcoin адреси"""
+        url = f"{self.apis['bitcoin']}{address}"
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'final_balance': data['final_balance'],
+                'total_received': data['total_received'],
+                'total_sent': data['total_sent'],
+                'transaction_count': data['n_tx']
+            }
+        return None
+    
+    def analyze_ethereum_address(self, address, api_key):
+        """Аналіз публічної інформації Ethereum адреси"""
+        params = {
+            'module': 'account',
+            'action': 'balance',
+            'address': address,
+            'tag': 'latest',
+            'apikey': api_key
+        }
+        
+        response = requests.get(self.apis['ethereum'], params=params)
+        if response.status_code == 200:
+            return response.json()
+        return None
+```
+
+6. Агрегатор публічних даних
+
+```python
+# tools/data_aggregator.py
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+class OSINTAggregator:
+    def __init__(self):
+        self.modules = {
+            'social': SocialMediaOSINT(),
+            'dns': DNSWhoisAnalyzer(),
+            'crypto': CryptoAnalyzer(),
+            'images': ImageAnalyzer()
+        }
+    
+    def full_analysis(self, target, analysis_type='basic'):
+        """Комплексний аналіз цілі"""
+        results = {}
+        
+        # Перевірка домену
+        if '.' in target:
+            results['whois'] = self.modules['dns'].get_whois_info(target)
+            results['dns'] = self.modules['dns'].get_dns_records(target)
+        
+        # Перевірка соцмереж
+        if analysis_type == 'deep':
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = []
+                
+                # Перевірка на різних платформах
+                platforms = ['github', 'twitter', 'reddit']
+                for platform in platforms:
+                    future = executor.submit(
+                        self.modules['social'].analyze_public_profile,
+                        target, platform
+                    )
+                    futures.append(future)
+                
+                for future in futures:
+                    try:
+                        platform_results = future.result(timeout=10)
+                        if platform_results:
+                            results.update(platform_results)
+                    except:
+                        continue
+        
+        return results
+    
+    def generate_report(self, results, format='json'):
+        """Генерація звіту"""
+        if format == 'json':
+            import json
+            return json.dumps(results, indent=2, default=str)
+        
+        elif format == 'csv':
+            import pandas as pd
+            # Конвертація в DataFrame та CSV
+            pass
+```
+
+7. Конфігурація для легального використання
+
+```yaml
+# config/osint_config.yaml
+legal_guidelines:
+  - only_public_data: true
+  - respect_robots_txt: true
+  - rate_limiting: true
+  - user_agent_rotation: true
+  - data_retention_days: 30
+  - automatic_audit_logging: true
+
+api_keys:
+  shodan: ${SHODAN_API_KEY}
+  hunterio: ${HUNTER_API_KEY}
+  google_safe_browsing: ${GOOGLE_API_KEY}
+  virustotal: ${VT_API_KEY}
+
+rate_limits:
+  requests_per_minute: 60
+  requests_per_hour: 1000
+  delay_between_requests: 1.0
+
+output_formats:
+  - json
+  - csv
+  - pdf
+  - html
+```
+
+Важливі застереження:
+
+1. Законність: Використовуйте тільки публічно доступні дані
+2. Згода: Не порушуйте умови використання сервісів
+3. Конфіденційність: Поважайте приватність осіб
+4. Документація: Весіть лог всіх запитів та отриманих даних
+5. Етика: Використовуйте тільки для законних цілей
+
+Легальні джерела OSINT-даних:
+
+1. Публічні API:
+   · Twitter API v2
+   · GitHub API
+   · Reddit API
+   · Shodan API
+   · VirusTotal API
+2. Відкриті бази даних:
+   · WHOIS бази
+   · DNS записи
+   · SSL сертифікати
+   · Геолокаційні бази
+3. Публічні реєстри:
+   · Реєстри компаній
+   · Патентні бази
+   · Судові реєстри
+   · Державні закупівлі
+
+Рекомендації для правоохоронних органів:
+
+1. Завжди отримуйте судові рішення для доступу до непублічних даних
+2. Використовуйте спеціалізоване програмне забезпечення з ліцензією
+3. Працюйте з відділами кіберзлочинності
+4. Дотримуйтесь процедур збору та зберігання доказів
+5. Використовуйте захищені канали зв'язку
+
+Важливо: Будь-яка діяльність повинна відповідати законодавству країни та міжнародним нормам.

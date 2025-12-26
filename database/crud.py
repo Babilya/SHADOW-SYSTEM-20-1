@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import select, update, and_
+from sqlalchemy import select, update, and_, text
+import secrets
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from database.models import (
@@ -196,21 +197,27 @@ class ProjectCRUD:
         return db.query(Project).filter(Project.leader_id == leader_id).first()
     
     @staticmethod
-    async def create_async(leader_id: str, leader_username: str, key_id: int, name: str, tariff: str, bots_limit: int = 50, managers_limit: int = 5) -> Project:
+    async def create_async(leader_id: str, leader_username: str, key_id: int, name: str, tariff: str, bots_limit: int = 50, managers_limit: int = 5) -> bool:
         async with async_session() as session:
-            project = Project(
-                leader_id=str(leader_id),
-                leader_username=leader_username,
-                key_id=key_id,
-                name=name,
-                tariff=tariff,
-                bots_limit=bots_limit,
-                managers_limit=managers_limit
+            project_id = f"PRJ-{secrets.token_hex(4).upper()}"
+            await session.execute(
+                text("""
+                    INSERT INTO projects (project_id, leader_id, leader_username, key_id, name, tariff, bots_limit, managers_limit, is_active, created_at)
+                    VALUES (:project_id, :leader_id, :leader_username, :key_id, :name, :tariff, :bots_limit, :managers_limit, true, NOW())
+                """),
+                {
+                    "project_id": project_id,
+                    "leader_id": str(leader_id),
+                    "leader_username": leader_username,
+                    "key_id": key_id,
+                    "name": name,
+                    "tariff": tariff,
+                    "bots_limit": bots_limit,
+                    "managers_limit": managers_limit
+                }
             )
-            session.add(project)
             await session.commit()
-            await session.refresh(project)
-            return project
+            return True
 
 class SecurityCRUD:
     @staticmethod

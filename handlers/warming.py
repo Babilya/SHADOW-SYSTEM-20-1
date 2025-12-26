@@ -163,6 +163,9 @@ async def warm_bot(query: CallbackQuery):
     bot_id = int(query.data.replace("warm_bot_", ""))
     warming_id = await WarmingCRUD.start_warming(bot_id, query.from_user.id)
     
+    import asyncio
+    asyncio.create_task(run_warming_cycle(bot_id, warming_id))
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📊 Переглянути статус", callback_data="active_warmings")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="warming_menu")]
@@ -182,6 +185,118 @@ async def warm_bot(query: CallbackQuery):
 <b>⏱️ Завершення:</b> через 72 години""",
         reply_markup=kb, parse_mode="HTML"
     )
+
+async def run_warming_cycle(bot_id: int, warming_id: int):
+    import asyncio
+    import random
+    
+    try:
+        from core.session_manager import session_manager
+        from utils.db import async_session
+        from database.models import BotWarming, TelegramSession
+        from sqlalchemy import select, update
+        
+        async with async_session() as session:
+            result = await session.execute(
+                select(TelegramSession).where(TelegramSession.id == bot_id)
+            )
+            bot_session = result.scalar()
+        
+        if not bot_session:
+            logger.warning(f"No session found for bot {bot_id}")
+            return
+        
+        session_hash = bot_session.session_hash if hasattr(bot_session, 'session_hash') else None
+        if not session_hash:
+            logger.warning(f"No session hash for bot {bot_id}")
+            return
+        
+        client = await session_manager.connect_client(session_hash)
+        if not client:
+            logger.warning(f"Could not connect client for warming {warming_id}")
+            return
+        
+        PUBLIC_CHANNELS = [
+            "@telegram", "@durov", "@tikitak", "@bbcukrainian", 
+            "@unaboringtech", "@theinsider"
+        ]
+        
+        for phase in range(1, 4):
+            phase_duration = 24 * 3600
+            phase_start = datetime.now()
+            
+            async with async_session() as session:
+                await session.execute(
+                    update(BotWarming).where(BotWarming.id == warming_id).values(
+                        current_phase=phase
+                    )
+                )
+                await session.commit()
+            
+            logger.info(f"Warming {warming_id} entering phase {phase}")
+            
+            while (datetime.now() - phase_start).total_seconds() < phase_duration:
+                async with async_session() as session:
+                    result = await session.execute(
+                        select(BotWarming.status).where(BotWarming.id == warming_id)
+                    )
+                    status = result.scalar()
+                    if status != "active":
+                        logger.info(f"Warming {warming_id} stopped")
+                        return
+                
+                try:
+                    if phase == 1:
+                        channel = random.choice(PUBLIC_CHANNELS)
+                        try:
+                            entity = await client.get_entity(channel)
+                            async for msg in client.iter_messages(entity, limit=5):
+                                pass
+                            logger.debug(f"Warming phase 1: read {channel}")
+                        except Exception as e:
+                            logger.debug(f"Warming read error: {e}")
+                        await asyncio.sleep(random.uniform(300, 600))
+                    
+                    elif phase == 2:
+                        channel = random.choice(PUBLIC_CHANNELS)
+                        try:
+                            entity = await client.get_entity(channel)
+                            async for msg in client.iter_messages(entity, limit=3):
+                                if hasattr(msg, 'reactions') and msg.reactions:
+                                    pass
+                            logger.debug(f"Warming phase 2: interacted with {channel}")
+                        except Exception as e:
+                            logger.debug(f"Warming interaction error: {e}")
+                        await asyncio.sleep(random.uniform(180, 360))
+                    
+                    elif phase == 3:
+                        channel = random.choice(PUBLIC_CHANNELS)
+                        try:
+                            entity = await client.get_entity(channel)
+                            async for msg in client.iter_messages(entity, limit=10):
+                                pass
+                            logger.debug(f"Warming phase 3: active on {channel}")
+                        except Exception as e:
+                            logger.debug(f"Warming active error: {e}")
+                        await asyncio.sleep(random.uniform(120, 240))
+                
+                except Exception as e:
+                    logger.error(f"Warming cycle error: {e}")
+                    await asyncio.sleep(60)
+        
+        async with async_session() as session:
+            await session.execute(
+                update(BotWarming).where(BotWarming.id == warming_id).values(
+                    status="completed",
+                    end_time=datetime.now()
+                )
+            )
+            await session.commit()
+        
+        logger.info(f"Warming {warming_id} completed successfully")
+    
+    except Exception as e:
+        logger.error(f"Warming cycle failed: {e}")
 
 @warming_router.callback_query(F.data == "warm_all")
 async def warm_all(query: CallbackQuery):

@@ -3,7 +3,7 @@ modules = ["python-3.11", "docker", "nodejs-with-prybar-18", "web", "zig-0.11", 
 
 [nix]
 channel = "stable-25_05"
-packages = ["cacert", "cargo", "libiconv", "libxcrypt", "openssl", "pkg-config", "postgresql", "rustc"]
+packages = ["cacert", "cargo", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pkg-config", "postgresql", "rustc", "tcl", "tk", "zlib"]
 
 [unitTest]
 language = "python3"

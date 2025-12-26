@@ -135,6 +135,14 @@ class ApplicationCRUD:
             )
             await session.commit()
             return True
+    
+    @staticmethod
+    async def get_by_id_async(app_id: int) -> Optional[Application]:
+        async with async_session() as session:
+            result = await session.execute(
+                select(Application).where(Application.id == app_id)
+            )
+            return result.scalar_one_or_none()
 
 class KeyCRUD:
     @staticmethod
@@ -336,6 +344,67 @@ class MailingCRUD:
             )
             return list(result.scalars().all())
 
+class StatsCRUD:
+    @staticmethod
+    async def get_user_stats() -> dict:
+        async with async_session() as session:
+            from sqlalchemy import func
+            total = await session.execute(select(func.count(User.user_id)))
+            leaders = await session.execute(select(func.count(User.user_id)).where(User.role == "leader"))
+            managers = await session.execute(select(func.count(User.user_id)).where(User.role == "manager"))
+            guests = await session.execute(select(func.count(User.user_id)).where(User.role == "guest"))
+            blocked = await session.execute(select(func.count(User.user_id)).where(User.is_blocked == True))
+            return {
+                "total": total.scalar() or 0,
+                "leaders": leaders.scalar() or 0,
+                "managers": managers.scalar() or 0,
+                "guests": guests.scalar() or 0,
+                "blocked": blocked.scalar() or 0
+            }
+    
+    @staticmethod
+    async def get_app_stats() -> dict:
+        async with async_session() as session:
+            from sqlalchemy import func
+            total = await session.execute(select(func.count(Application.id)))
+            new = await session.execute(select(func.count(Application.id)).where(Application.status == "new"))
+            confirmed = await session.execute(select(func.count(Application.id)).where(Application.status == "confirmed"))
+            rejected = await session.execute(select(func.count(Application.id)).where(Application.status == "rejected"))
+            return {
+                "total": total.scalar() or 0,
+                "new": new.scalar() or 0,
+                "confirmed": confirmed.scalar() or 0,
+                "rejected": rejected.scalar() or 0
+            }
+    
+    @staticmethod
+    async def get_key_stats() -> dict:
+        async with async_session() as session:
+            from sqlalchemy import func
+            total = await session.execute(select(func.count(Key.id)))
+            active = await session.execute(select(func.count(Key.id)).where(Key.is_used == False))
+            used = await session.execute(select(func.count(Key.id)).where(Key.is_used == True))
+            return {
+                "total": total.scalar() or 0,
+                "active": active.scalar() or 0,
+                "used": used.scalar() or 0
+            }
+    
+    @staticmethod
+    async def get_campaign_stats() -> dict:
+        async with async_session() as session:
+            from sqlalchemy import func
+            total = await session.execute(select(func.count(Campaign.id)))
+            active = await session.execute(select(func.count(Campaign.id)).where(Campaign.status == "active"))
+            draft = await session.execute(select(func.count(Campaign.id)).where(Campaign.status == "draft"))
+            completed = await session.execute(select(func.count(Campaign.id)).where(Campaign.status == "completed"))
+            return {
+                "total": total.scalar() or 0,
+                "active": active.scalar() or 0,
+                "draft": draft.scalar() or 0,
+                "completed": completed.scalar() or 0
+            }
+
 user_crud = UserCRUD()
 security_crud = SecurityCRUD()
 referral_crud = ReferralCRUD()
@@ -345,3 +414,4 @@ audit_crud = AuditCRUD()
 key_crud = KeyCRUD()
 mailing_crud = MailingCRUD()
 application_crud = ApplicationCRUD()
+stats_crud = StatsCRUD()

@@ -1,10 +1,14 @@
 import asyncio
 import logging
 import sys
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, BotCommand
+from aiogram.types import Message
 from aiogram.fsm.storage.memory import MemoryStorage
+
+# Ensure base directory is in path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -23,34 +27,27 @@ try:
     from handlers.help import help_router
     from handlers.texting import texting_router
     from keyboards.user import main_menu
-    from utils.db import db
-    from middlewares.auth import AuthMiddleware, RateLimitMiddleware
+    from utils.db import db, init_db
     logger.info("✅ Все модулі завантажені успішно")
 except Exception as e:
     logger.error(f"❌ Помилка при завантаженні модулів: {e}", exc_info=True)
-    sys.exit(1)
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN or "PLACEHOLDER")
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-# Додання middleware
-dp.message.middleware(AuthMiddleware())
-dp.callback_query.middleware(AuthMiddleware())
-dp.message.middleware(RateLimitMiddleware(max_requests=20, time_window=60))
+# Register routers
+routers = [
+    user_router, admin_router, payments_router, botnet_router,
+    osint_router, analytics_router, team_router, subscriptions_router,
+    funnels_router, help_router, texting_router
+]
 
-# Реєстрація всіх роутерів
-dp.include_router(user_router)
-dp.include_router(admin_router)
-dp.include_router(payments_router)
-dp.include_router(botnet_router)
-dp.include_router(osint_router)
-dp.include_router(analytics_router)
-dp.include_router(team_router)
-dp.include_router(subscriptions_router)
-dp.include_router(funnels_router)
-dp.include_router(help_router)
-dp.include_router(texting_router)
+for r in routers:
+    try:
+        dp.include_router(r)
+    except Exception as e:
+        logger.error(f"❌ Error including router: {e}")
 
 @dp.message(CommandStart())
 async def command_start(message: Message):
@@ -89,19 +86,15 @@ async def command_start_help(message: Message):
 async def command_menu(message: Message):
     await message.answer("📱 Головне меню", reply_markup=main_menu())
 
-@dp.message()
-async def echo_handler(message: Message):
-    await message.answer("✉️ Повідомлення отримане!\n\nНапишіть /help для списку команд")
-
 async def main():
     logger.info("🤖 SHADOW SYSTEM iO v2.0 запускається...")
     try:
+        await init_db()
         await bot.delete_webhook(drop_pending_updates=True)
         logger.info("✅ Все готово!")
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     except Exception as e:
         logger.error(f"❌ ПОМИЛКА: {e}", exc_info=True)
-        raise
 
 if __name__ == "__main__":
     asyncio.run(main())

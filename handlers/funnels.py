@@ -202,3 +202,63 @@ async def sales_urgency(query: CallbackQuery):
         [InlineKeyboardButton(text="Мені потрібно подумати", callback_data="back_to_menu")]
     ])
     await query.message.edit_text(SALES_FUNNEL["urgency"], reply_markup=kb, parse_mode="HTML")
+
+# ====== LEAD MAGNET FUNNEL ======
+LEAD_MAGNET_TEXT = {
+    "start": """🎁 <b>БЕЗКОШТОВНИЙ ГАЙД</b>
+
+Бажаєте дізнатися, як збільшити конверсію ваших розсилок у 3 рази?
+
+Ми підготували для вас ексклюзивний PDF-гайд:
+<b>"ТОП-10 секретів успішного Telegram-маркетингу 2024"</b>
+
+Отримайте його прямо зараз безкоштовно! 👇""",
+    "success": """✅ <b>Ваш гайд готовий!</b>
+
+Завантажуйте за посиланням нижче:
+🔗 <a href='https://example.com/guide.pdf'>Завантажити Гайд (PDF)</a>
+
+Також ми даруємо вам <b>+10% до першого поповнення</b> балансу! 🎁"""
+}
+
+@funnels_router.message(Command("gift"))
+async def lead_magnet_start(message: Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Отримати гайд! 📥", callback_data="get_lead_magnet")]
+    ])
+    await message.answer(LEAD_MAGNET_TEXT["start"], reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data == "get_lead_magnet")
+async def lead_magnet_success(query: CallbackQuery):
+    await query.answer()
+    await query.message.edit_text(LEAD_MAGNET_TEXT["success"], parse_mode="HTML")
+
+# ====== LEAD MAGNET FUNNEL ======
+LEAD_MAGNET_TEXT = {
+    "start": """🎁 <b>БЕЗКОШТОВНИЙ ГАЙД</b>
+
+Бажаєте дізнатися, як збільшити конверсію ваших розсилок у 3 рази?
+
+Ми підготували для вас ексклюзивний PDF-гайд:
+<b>"ТОП-10 секретів успішного Telegram-маркетингу 2024"</b>
+
+Отримайте його прямо зараз безкоштовно! 👇""",
+    "success": """✅ <b>Ваш гайд готовий!</b>
+
+Завантажуйте за посиланням нижче:
+🔗 <a href='https://example.com/guide.pdf'>Завантажити Гайд (PDF)</a>
+
+Також ми даруємо вам <b>+10% до першого поповнення</b> балансу! 🎁"""
+}
+
+@funnels_router.message(Command("gift"))
+async def lead_magnet_start(message: Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Отримати гайд! 📥", callback_data="get_lead_magnet")]
+    ])
+    await message.answer(LEAD_MAGNET_TEXT["start"], reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data == "get_lead_magnet")
+async def lead_magnet_success(query: CallbackQuery):
+    await query.answer()
+    await query.message.edit_text(LEAD_MAGNET_TEXT["success"], parse_mode="HTML")

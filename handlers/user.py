@@ -15,6 +15,29 @@ class UserStates(StatesGroup):
     waiting_for_auto_reply_trigger = State()
     waiting_for_auto_reply_text = State()
 
+@user_router.callback_query(F.data == "texting_main")
+async def texting_main_callback(query: CallbackQuery):
+    await query.answer()
+    from handlers.texting import texting_menu
+    await texting_menu(query.message)
+
+@user_router.callback_query(F.data == "help_main")
+async def help_main_callback(query: CallbackQuery):
+    await query.answer()
+    from handlers.help import help_menu
+    await help_menu(query.message)
+
+@user_router.callback_query(F.data == "profile_main")
+async def profile_main_callback(query: CallbackQuery):
+    await query.answer()
+    await query.message.edit_text("👤 <b>Профіль</b>\n\nID: 6838247512\nІм'я: Admin\nРоль: Власник\nПлан: VIP Elite\n\nСтатистика:\n• Боти: 150\n• Розсилок: 2,345\n• OSINT запитів: 890\n• Баланс: ₴25,480", parse_mode="HTML")
+
+@user_router.callback_query(F.data == "balance_payments_main")
+async def balance_payments_main_callback(query: CallbackQuery):
+    await query.answer()
+    from handlers.payments import balance_payments_kb
+    await query.message.edit_text("⭐ <b>БАЛАНС & ПЛАТЕЖІ</b>\n\nВаш баланс: <b>5,240 ⭐</b>\n\nВиберіть опцію:", reply_markup=balance_payments_kb(), parse_mode="HTML")
+
 @user_router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(query: CallbackQuery):
     await query.answer()

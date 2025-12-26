@@ -12,21 +12,17 @@ class UserRole:
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True)
-    telegram_id = Column(String, unique=True)
+    user_id = Column(Integer, primary_key=True)
     username = Column(String)
-    first_name = Column(String)
     role = Column(String, default=UserRole.GUEST)
-    project_id = Column(Integer, nullable=True)
-    balance = Column(Float, default=0.0)
-    subscription_type = Column(String, nullable=True)
-    subscription_expires = Column(DateTime, nullable=True)
-    is_active = Column(Boolean, default=True)
+    project_id = Column(String, nullable=True)
+    status = Column(String, nullable=True)
     is_blocked = Column(Boolean, default=False)
     is_kicked = Column(Boolean, default=False)
     parent_leader_id = Column(String, nullable=True)
     referral_code = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
+    last_active = Column(DateTime, nullable=True)
 
 class Application(Base):
     __tablename__ = "applications"

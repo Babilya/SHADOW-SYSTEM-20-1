@@ -1,13 +1,13 @@
-import logging
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 from aiogram.filters import Command
 from database.repositories.osint_data_repository import OSINTDataRepository
-from database.db import get_session
+from database.db import get_db
 from core.osint_service import osint_service
 from core.osint_tools.evidence_exporter import evidence_exporter
 from core.ai_service import ai_service
 import os
+import logging
 
 logger = logging.getLogger(__name__)
 osint_router = Router()
@@ -17,7 +17,10 @@ osint_router = Router()
 async def cmd_osint_data(message: Message):
     """List OSINT data"""
     try:
-        async with get_session() as session:
+        if not message.from_user:
+            return
+            
+        async with get_db() as session:
             repo = OSINTDataRepository(session)
             data = await repo.get_user_osint_data(message.from_user.id, limit=20)
             
@@ -43,6 +46,9 @@ async def cmd_osint_data(message: Message):
 @osint_router.message(Command("scan_chat"))
 async def cmd_scan_chat(message: Message):
     """Scan telegram chat"""
+    if not message.text or not message.from_user:
+        return
+        
     args = message.text.split()
     if len(args) < 2:
         await message.answer("🔍 <b>Сканування чату</b>\n\nВикористання: /scan_chat [username/ID]")
@@ -73,6 +79,9 @@ async def cmd_scan_chat(message: Message):
 @osint_router.message(Command("geo_scan"))
 async def cmd_geo_scan(message: Message):
     """Geo scan chats"""
+    if not message.text:
+        return
+        
     args = message.text.split()
     if len(args) < 2:
         await message.answer("🗺️ <b>Гео-сканування</b>\n\nВикористання: /geo_scan [IP або координати lat,lon]")
@@ -100,6 +109,9 @@ async def cmd_geo_scan(message: Message):
 @osint_router.message(Command("ai_report"))
 async def cmd_ai_report(message: Message):
     """Generate AI OSINT report"""
+    if not message.text or not message.from_user:
+        return
+        
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
         await message.answer("🤖 <b>AI OSINT Звіт</b>\n\nНапишіть дані про ціль після команди.")

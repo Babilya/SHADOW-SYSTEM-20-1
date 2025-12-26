@@ -144,7 +144,7 @@ AI-аналіз, прогнозування ризиків та візуаліз
 def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="⚙️ Налаштування", callback_data="admin_settings"),
+            InlineKeyboardButton(text="⚙️ Налаштування", callback_data="admin_system"),
             InlineKeyboardButton(text="🚫 Блокування", callback_data="admin_block")
         ],
         [InlineKeyboardButton(text="🔄 Змінити роль", callback_data="admin_roles")],

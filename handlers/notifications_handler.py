@@ -483,6 +483,42 @@ async def unban(callback: CallbackQuery):
     await callback.answer("✅ Користувача розблоковано", show_alert=True)
     await bans_active(callback)
 
+@router.callback_query(F.data == "project_stats")
+async def project_stats_main(callback: CallbackQuery):
+    """Головне меню статистики проектів"""
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """
+📊 <b>СТАТИСТИКА ПРОЕКТІВ</b>
+═══════════════════════════════
+
+Аналітика по всіх проектах системи.
+
+<b>Доступні метрики:</b>
+├ 📨 Надіслано повідомлень
+├ ✅ Доставлено / ❌ Помилок
+├ 👥 Нових користувачів
+├ 🤖 Активних ботів
+├ 🚀 Запущених кампаній
+└ 🔍 OSINT звітів
+
+Виберіть період для перегляду:
+"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📅 Сьогодні", callback_data="stats_period:1:1"),
+            InlineKeyboardButton(text="📅 7 днів", callback_data="stats_period:1:7")
+        ],
+        [
+            InlineKeyboardButton(text="📅 30 днів", callback_data="stats_period:1:30"),
+            InlineKeyboardButton(text="📅 90 днів", callback_data="stats_period:1:90")
+        ],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    await safe_edit(callback, text, kb)
+
 @router.callback_query(F.data.startswith("stats_period:"))
 async def stats_period(callback: CallbackQuery):
     """Статистика за період"""

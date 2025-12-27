@@ -374,7 +374,8 @@ class ScheduledMailing(Base):
     """Заплановані розсилки"""
     __tablename__ = "scheduled_mailings"
     id = Column(Integer, primary_key=True)
-    template_id = Column(Integer)
+    template_id = Column(Integer, nullable=True)
+    funnel_id = Column(Integer, nullable=True)
     owner_id = Column(String)
     project_id = Column(Integer, nullable=True)
     name = Column(String)

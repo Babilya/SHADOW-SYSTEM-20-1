@@ -218,7 +218,8 @@ class SchedulerService:
         target_user_ids: List[str] = None,
         next_run_at: datetime = None,
         max_runs: int = None,
-        project_id: int = None
+        project_id: int = None,
+        funnel_id: int = None
     ) -> Dict[str, Any]:
         """Створення запланованої розсилки"""
         from database.models import ScheduledMailing
@@ -234,7 +235,8 @@ class SchedulerService:
             target_user_ids=json.dumps(target_user_ids or []),
             next_run_at=next_run_at or datetime.now(),
             max_runs=max_runs,
-            status='active'
+            status='active',
+            funnel_id=funnel_id
         )
         
         session.add(scheduled)
@@ -282,7 +284,8 @@ class SchedulerService:
                 'runs_count': m.runs_count,
                 'max_runs': m.max_runs,
                 'status': m.status,
-                'target_roles': json.loads(m.target_roles) if m.target_roles else []
+                'target_roles': json.loads(m.target_roles) if m.target_roles else [],
+                'funnel_id': getattr(m, 'funnel_id', None)
             }
             for m in mailings
         ]

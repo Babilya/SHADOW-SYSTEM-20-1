@@ -590,34 +590,104 @@ async def funnel_templates(query: CallbackQuery):
     await query.answer()
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
+    user_id = str(query.from_user.id)
+    
+    from utils.db import get_session
+    from services.template_service import template_service
+    
+    async with get_session() as session:
+        templates = await template_service.get_templates(session, owner_id=user_id, include_public=True)
     
     text = f"""<b>📝 ШАБЛОНИ ДЛЯ ВОРОНКИ</b>
 <i>{funnel.name if funnel else 'Воронка'}</i>
 
 ═══════════════════════════════
 
-Шаблони дозволяють швидко створювати 
-повідомлення для кроків воронки.
+Виберіть шаблон для застосування до 
+кроку воронки або створіть новий.
 
-<b>Категорії шаблонів:</b>
-├ 👋 Привітальні — для першого контакту
-├ 📢 Промо — акції та пропозиції  
-├ 📰 Новини — інформаційні повідомлення
-├ ⏰ Нагадування — follow-up
-├ 🚨 Алерти — термінові сповіщення
-└ 📄 Загальні — універсальні шаблони
+<b>Доступні шаблони:</b> {len(templates)}
 
 <b>Змінні для персоналізації:</b>
-├ <code>{name}</code> — ім'я користувача
-├ <code>{username}</code> — @username
-├ <code>{date}</code> — поточна дата
-└ <code>{time}</code> — поточний час"""
+├ <code>{{name}}</code> — ім'я користувача
+├ <code>{{username}}</code> — @username
+├ <code>{{date}}</code> — поточна дата
+└ <code>{{time}}</code> — поточний час"""
     
+    buttons = []
+    for t in templates[:8]:
+        cat_icon = {"welcome": "👋", "promo": "📢", "news": "📰", "reminder": "⏰", "alert": "🚨"}.get(t.get('category', ''), "📄")
+        buttons.append([InlineKeyboardButton(
+            text=f"{cat_icon} {t['name'][:25]}",
+            callback_data=f"apply_tpl:{funnel_id}:{t['id']}"
+        )])
+    
+    buttons.append([InlineKeyboardButton(text="➕ Створити шаблон", callback_data=f"tpl_for_funnel:{funnel_id}")])
+    buttons.append([InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")])
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data.startswith("apply_tpl:"))
+async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
+    """Застосування шаблону до кроку воронки"""
+    parts = query.data.split(":")
+    funnel_id = int(parts[1])
+    template_id = int(parts[2])
+    
+    from utils.db import get_session
+    from services.template_service import template_service
+    
+    async with get_session() as session:
+        template = await template_service.get_template(session, template_id)
+        await template_service.increment_usage(session, template_id)
+    
+    if not template:
+        await query.answer("Шаблон не знайдено", show_alert=True)
+        return
+    
+    funnel = funnel_service.get_funnel(funnel_id)
+    new_step = funnel_service.add_step(
+        funnel_id=funnel_id,
+        content=template['content'],
+        title=template['name'],
+        photo_file_id=template.get('media_file_id')
+    )
+    
+    await query.answer("✅ Крок з шаблоном додано!", show_alert=True)
+    
+    steps = funnel_service.get_steps(funnel_id)
+    await query.message.edit_text(
+        f"✅ <b>Крок додано з шаблону</b>\n\n"
+        f"📝 Шаблон: {template['name']}\n"
+        f"📋 Воронка: {funnel.name if funnel else ''}\n"
+        f"📊 Всього кроків: {len(steps)}",
+        reply_markup=funnel_steps_kb(funnel_id, steps),
+        parse_mode="HTML"
+    )
+
+@funnels_router.callback_query(F.data.startswith("tpl_for_funnel:"))
+async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
+    """Створення шаблону для воронки"""
+    funnel_id = int(query.data.split(":")[1])
+    await state.update_data(return_to_funnel=funnel_id)
+    
+    text = """
+📝 <b>НОВИЙ ШАБЛОН ДЛЯ ВОРОНКИ</b>
+═══════════════════════════════
+
+Виберіть категорію шаблону:
+"""
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Мої шаблони", callback_data="templates_list")],
-        [InlineKeyboardButton(text="➕ Створити шаблон", callback_data="template_create")],
-        [InlineKeyboardButton(text="🌐 Публічні шаблони", callback_data="templates_public")],
-        [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+        [
+            InlineKeyboardButton(text="👋 Привітання", callback_data=f"funnel_tpl_cat:{funnel_id}:welcome"),
+            InlineKeyboardButton(text="📢 Промо", callback_data=f"funnel_tpl_cat:{funnel_id}:promo")
+        ],
+        [
+            InlineKeyboardButton(text="📰 Новини", callback_data=f"funnel_tpl_cat:{funnel_id}:news"),
+            InlineKeyboardButton(text="⏰ Нагадування", callback_data=f"funnel_tpl_cat:{funnel_id}:reminder")
+        ],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"funnel_templates_{funnel_id}")]
     ])
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -628,6 +698,16 @@ async def funnel_schedule(query: CallbackQuery):
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     
+    from utils.db import get_session
+    from services.template_service import scheduler_service
+    
+    async with get_session() as session:
+        schedules = await scheduler_service.get_scheduled_mailings(session, owner_id=str(query.from_user.id))
+        funnel_schedules = [s for s in schedules if s.get('funnel_id') == funnel_id]
+    
+    active_count = len([s for s in funnel_schedules if s.get('status') == 'active'])
+    next_run = funnel_schedules[0].get('next_run_at', 'не заплановано') if funnel_schedules else 'не заплановано'
+    
     text = f"""<b>📅 ПЛАНУВАННЯ ВОРОНКИ</b>
 <i>{funnel.name if funnel else 'Воронка'}</i>
 
@@ -637,15 +717,13 @@ async def funnel_schedule(query: CallbackQuery):
 воронки за розкладом.
 
 <b>Типи розкладу:</b>
-├ 🔂 Одноразовий — запуск в заданий час
 ├ ⏱ Інтервальний — кожні N хвилин/годин
 ├ 📆 Щоденний — в певний час кожен день
-├ 📅 Щотижневий — в певні дні тижня
-└ 🗓 Щомісячний — в певний день місяця
+└ 📅 Щотижневий — в певні дні тижня
 
 <b>Поточний статус:</b>
-├ 📊 Активних розкладів: 0
-└ ⏰ Наступний запуск: не заплановано"""
+├ 📊 Активних розкладів: {active_count}
+└ ⏰ Наступний запуск: {next_run}"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📅 Мої розклади", callback_data="scheduled_list")],
@@ -685,14 +763,32 @@ async def funnel_schedule_set(query: CallbackQuery):
     funnel_id = int(parts[3])
     interval = int(parts[4])
     
+    from utils.db import get_session
+    from services.template_service import scheduler_service
+    
     interval_names = {60: "щогодини", 240: "кожні 4 години", 1440: "щодня", 10080: "щотижня"}
+    schedule_type = {60: "interval", 240: "interval", 1440: "daily", 10080: "weekly"}.get(interval, "interval")
+    
+    funnel = funnel_service.get_funnel(funnel_id)
+    
+    async with get_session() as session:
+        await scheduler_service.create_scheduled_mailing(
+            session,
+            template_id=None,
+            owner_id=str(query.from_user.id),
+            name=f"Воронка: {funnel.name if funnel else funnel_id}",
+            schedule_type=schedule_type,
+            interval_minutes=interval,
+            funnel_id=funnel_id
+        )
     
     await query.answer(f"✅ Розклад встановлено: {interval_names.get(interval, f'{interval} хв')}", show_alert=True)
     
-    funnel = funnel_service.get_funnel(funnel_id)
     await query.message.edit_text(
-        f"✅ Розклад для воронки <b>{funnel.name if funnel else ''}</b> налаштовано!\n\n"
-        f"⏱ Інтервал: {interval_names.get(interval, f'{interval} хв')}",
+        f"✅ <b>Розклад створено!</b>\n\n"
+        f"📋 Воронка: {funnel.name if funnel else ''}\n"
+        f"⏱ Інтервал: {interval_names.get(interval, f'{interval} хв')}\n"
+        f"📅 Тип: {schedule_type}",
         reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
         parse_mode="HTML"
     )

@@ -403,7 +403,12 @@ async def user_menu_handler(callback: CallbackQuery):
 @router.callback_query(F.data == "confirm_application")
 async def confirm_application(query: CallbackQuery, state: FSMContext):
     await query.answer("✅ Заявку надіслано!")
-    await query.message.edit_text("<b>✅ ЗАЯВКУ УСПІШНО СТВОРЕНО!</b>\n\nМи зв'яжемося з вами найближчим часом.", parse_mode="HTML")
+    await query.message.edit_text(
+        "<b>✅ Заявку успішно створено!</b>\n\n"
+        "Адміністратор вже отримав ваш запит. Ми перевіримо дані та зв'яжемося з вами в особисті повідомлення протягом 15 хвилин для надання реквізитів.\n\n"
+        "<i>Дякуємо, що обрали Shadow System.</i>",
+        parse_mode="HTML"
+    )
     await state.clear()
 
 @router.callback_query(F.data == "cancel_application")

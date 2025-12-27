@@ -7,6 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 router = Router()
 
 class ApplicationForm(StatesGroup):
+    waiting_duration = State()
     waiting_name = State()
     waiting_purpose = State()
     waiting_contact = State()
@@ -270,27 +271,52 @@ async def apply_package(query: CallbackQuery, state: FSMContext):
         return
     
     pkg = PACKAGES[pkg_key]
-    
     await state.update_data(
         selected_package=pkg_key, 
         package_name=pkg.get('name', ''),
         package_emoji=pkg.get('emoji', '')
     )
-    await state.set_state(ApplicationForm.waiting_name)
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏳ 14 днів", callback_data="dur_14"),
+         InlineKeyboardButton(text="⏳ 30 днів", callback_data="dur_30")],
+        [InlineKeyboardButton(text="⏳ 90 днів", callback_data="dur_90"),
+         InlineKeyboardButton(text="⏳ 365 днів", callback_data="dur_365")],
         [InlineKeyboardButton(text="❌ Скасувати", callback_data=f"pkg_{pkg_key}")]
+    ])
+    
+    await state.set_state(ApplicationForm.waiting_duration)
+    await query.answer()
+    await query.message.edit_text(
+        f"<b>📋 ОФОРМЛЕННЯ ЗАЯВКИ — КРОК 1/4</b>\n\n"
+        f"═══════════════════════\n\n"
+        f"<b>📦 Обраний тариф:</b> {pkg['emoji']} {pkg['name']}\n\n"
+        f"<b>⏳ Оберіть термін дії ліцензії:</b>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+@router.callback_query(ApplicationForm.waiting_duration, F.data.startswith("dur_"))
+async def process_duration(query: CallbackQuery, state: FSMContext):
+    duration = query.data.replace("dur_", "")
+    await state.update_data(duration=duration)
+    await state.set_state(ApplicationForm.waiting_name)
+    
+    data = await state.get_data()
+    pkg_name = data.get('package_name')
+    pkg_emoji = data.get('package_emoji')
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_application")]
     ])
     
     await query.answer()
     await query.message.edit_text(
-        f"""<b>📋 РЕЄСТРАЦІЯ — КРОК 1/3</b>
-
-<b>Обраний тариф:</b> {pkg['emoji']} {pkg['name']}
-
-<b>👤 Як до вас звертатися?</b>
-
-Введіть ваше ім'я:""",
+        f"<b>📋 ОФОРМЛЕННЯ ЗАЯВКИ — КРОК 2/4</b>\n\n"
+        f"═══════════════════════\n\n"
+        f"<b>📦 Тариф:</b> {pkg_emoji} {pkg_name}\n"
+        f"<b>⏳ Термін:</b> {duration} днів\n\n"
+        f"<b>👤 Як до вас звертатися?</b>\n\n"
+        f"<i>Введіть ваше ім'я або нікнейм:</i>",
         reply_markup=kb, parse_mode="HTML"
     )
 
@@ -299,22 +325,46 @@ async def process_name(message: Message, state: FSMContext):
     name = message.text.strip()
     await state.update_data(client_name=name)
     await state.set_state(ApplicationForm.waiting_purpose)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_application")]])
-    await message.answer(f"<b>📋 КРОК 2/3</b>\n\n<b>👤 Ім'я:</b> {name}\n\n<b>📝 Опишіть ваші задачі:</b>", reply_markup=kb, parse_mode="HTML")
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="cancel_application")]
+    ])
+    
+    await message.answer(
+        f"<b>📋 ОФОРМЛЕННЯ ЗАЯВКИ — КРОК 3/4</b>\n\n"
+        f"═══════════════════════\n\n"
+        f"<b>👤 Клієнт:</b> {name}\n\n"
+        f"<b>📝 Опишіть ваші цілі та задачі:</b>\n"
+        f"<i>(Наприклад: розсилка по базі, парсинг, OSINT моніторинг)</i>", 
+        reply_markup=kb, parse_mode="HTML"
+    )
 
 @router.message(ApplicationForm.waiting_purpose)
 async def process_purpose(message: Message, state: FSMContext):
     purpose = message.text.strip()
     await state.update_data(purpose=purpose)
     await state.set_state(ApplicationForm.waiting_contact)
-    contact_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="📱 Надіслати контакт", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-    await message.answer("<b>📋 КРОК 3/3</b>\n\n<b>📱 Надішліть ваш contact для зв'язку:</b>", reply_markup=contact_kb, parse_mode="HTML")
+    
+    contact_kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📱 Надіслати мій контакт", request_contact=True)]], 
+        resize_keyboard=True, 
+        one_time_keyboard=True
+    )
+    
+    await message.answer(
+        f"<b>📋 ОФОРМЛЕННЯ ЗАЯВКИ — КРОК 4/4</b>\n\n"
+        f"═══════════════════════\n\n"
+        f"<b>📱 Останній крок:</b>\n\n"
+        f"Нам потрібен ваш контакт для оперативного зв'язку в разі виникнення питань щодо активації.", 
+        reply_markup=contact_kb, parse_mode="HTML"
+    )
 
 @router.message(ApplicationForm.waiting_contact, F.contact)
 async def process_contact(message: Message, state: FSMContext):
     contact = message.contact
     data = await state.get_data()
-    pkg = PACKAGES.get(data.get('selected_package'), {})
+    pkg_name = data.get('package_name')
+    pkg_emoji = data.get('package_emoji')
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Надіслати заявку", callback_data="confirm_application")],
@@ -323,12 +373,15 @@ async def process_contact(message: Message, state: FSMContext):
     
     await state.update_data(phone=contact.phone_number)
     await message.answer(
-        f"<b>📋 ПЕРЕВІРКА ЗАЯВКИ</b>\n\n"
-        f"<b>💎 Пакет:</b> {pkg.get('emoji')} {pkg.get('name')}\n"
+        f"<b>📋 ПЕРЕВІРКА ДАНИХ ЗАЯВКИ</b>\n\n"
+        f"═══════════════════════\n\n"
+        f"<b>💎 Пакет:</b> {pkg_emoji} {pkg_name}\n"
+        f"<b>⏳ Термін:</b> {data.get('duration')} днів\n"
         f"<b>👤 Ім'я:</b> {data.get('client_name')}\n"
         f"<b>📝 Мета:</b> {data.get('purpose')}\n"
         f"<b>📞 Контакт:</b> {contact.phone_number}\n\n"
-        f"Адміністратор зв'яжеться з вами для надання ключа.",
+        f"═══════════════════════\n\n"
+        f"<i>Після підтвердження адміністратор перевірить заявку та надішле вам інструкції для активації.</i>",
         reply_markup=kb, parse_mode="HTML"
     )
 

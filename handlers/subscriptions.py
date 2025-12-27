@@ -97,7 +97,7 @@ def subscriptions_kb():
         [InlineKeyboardButton(text="📊 Порівняти", callback_data="pkg_compare"),
          InlineKeyboardButton(text="❓ FAQ", callback_data="subscription_faq"),
          InlineKeyboardButton(text="💬 Допомога", callback_data="subscription_support")],
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
 
 def subscriptions_description() -> str:
@@ -330,6 +330,18 @@ async def process_contact(message: Message, state: FSMContext):
         f"<b>📞 Контакт:</b> {contact.phone_number}\n\n"
         f"Адміністратор зв'яжеться з вами для надання ключа.",
         reply_markup=kb, parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "user_menu")
+async def user_menu_handler(callback: CallbackQuery):
+    await callback.answer()
+    from keyboards.role_menus import get_description_by_role, get_menu_by_role
+    from services.user_service import user_service
+    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    await callback.message.edit_text(
+        get_description_by_role(user.role),
+        reply_markup=get_menu_by_role(user.role),
+        parse_mode="HTML"
     )
 
 @router.callback_query(F.data == "confirm_application")

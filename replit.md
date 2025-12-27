@@ -292,3 +292,21 @@ AI features require OpenAI API key. When key is missing, system operates in grac
 - `campaigns_main` → Центр кампаній з статистикою
 - Інтеграція з mailing_engine
 - Моніторинг груп через monitoring_engine
+
+### Admin Panel Handlers (Full Coverage)
+- `bans_menu` → Управління банами (ban_user, active_bans, ban_history)
+- `project_stats` → Статистика проекту з експортом (stats_export_pdf, stats_export_csv)
+- `user_menu` → Перегляд меню гостя для тестування
+- `admin_roles` → Управління ролями (admin_set_role, admin_users_list)
+- `admin_apps` → Управління заявками (admin_new_apps, admin_approved_apps, admin_rejected_apps)
+- `admin_keys` → Ліцензійний центр (admin_gen_key, admin_active_keys, admin_revoke_key)
+- `admin_emergency` → Екстрений центр (emergency_activate, emergency_broadcast, emergency_lockdown)
+
+### Registered Routers (Full List)
+All routers properly registered in main.py:
+- start_router, auth_router, subs_router, tickets_router, admin_router
+- osint_router, botnet_router, campaigns_router, team_router, analytics_router
+- config_router, help_router, funnels_router, warming_router, mailing_router
+- geo_router, proxy_router, advanced_router, osint_handler_router
+- texting_router, scheduler_router, templates_router
+- support_router, notifications_router, missing_router

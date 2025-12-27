@@ -66,11 +66,14 @@ async def osint_cmd(message: Message):
 @osint_router.callback_query(F.data == "osint_main")
 async def osint_menu(query: CallbackQuery):
     await query.answer()
-    await query.message.answer(osint_description(), reply_markup=osint_kb(), parse_mode="HTML")
+    if query.message:
+        await query.message.answer(osint_description(), reply_markup=osint_kb(), parse_mode="HTML")
 
 @osint_router.callback_query(F.data == "osint_stats")
 async def osint_stats(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
@@ -89,6 +92,8 @@ async def osint_stats(query: CallbackQuery):
 @osint_router.callback_query(F.data == "osint_dns")
 async def osint_dns(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_dns_domain)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -122,6 +127,8 @@ async def osint_dns_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "osint_whois")
 async def osint_whois(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_whois_domain)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -156,6 +163,8 @@ async def osint_whois_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "osint_geoip")
 async def osint_geoip(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_ip)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -189,6 +198,8 @@ async def osint_geoip_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "osint_email")
 async def osint_email(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_email)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -221,6 +232,8 @@ async def osint_email_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "user_analysis")
 async def user_analysis(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_keyword)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -255,6 +268,8 @@ async def user_analysis_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "chat_analysis")
 async def chat_analysis(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_chat)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
@@ -285,6 +300,8 @@ async def chat_analysis_process(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "export_contacts")
 async def export_contacts(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📄 JSON", callback_data="export_json"),
@@ -303,11 +320,15 @@ async def export_contacts(query: CallbackQuery):
 
 @osint_router.callback_query(F.data.startswith("export_"))
 async def export_format(query: CallbackQuery):
+    if not query.data:
+        return
     fmt = query.data.split("_")[1]
     await query.answer(f"Експорт {fmt.upper()} скоро...")
 
 @osint_router.callback_query(F.data.startswith("funnel_osint:"))
 async def funnel_osint_action(query: CallbackQuery):
+    if not query.data or not query.message:
+        return
     parts = query.data.split(":")
     funnel_id = int(parts[1])
     action = parts[2] if len(parts) > 2 else "menu"
@@ -330,6 +351,8 @@ async def funnel_osint_action(query: CallbackQuery):
 @osint_router.callback_query(F.data == "deep_parse")
 async def deep_parse_menu(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_deep_parse)
     stats = advanced_parser.get_statistics()
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -379,6 +402,8 @@ async def process_deep_parse(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "realtime_monitor")
 async def realtime_monitor_menu(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     status = realtime_parser.get_monitoring_status()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -424,6 +449,8 @@ async def toggle_monitoring(query: CallbackQuery):
 @osint_router.callback_query(F.data == "add_monitor_chats")
 async def add_monitor_chats(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(OSINTStates.waiting_monitor_chats)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="realtime_monitor")]
@@ -456,6 +483,8 @@ async def process_monitor_chats(message: Message, state: FSMContext):
 @osint_router.callback_query(F.data == "monitor_settings")
 async def monitor_settings(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     settings = realtime_parser.settings
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -483,6 +512,8 @@ async def monitor_settings(query: CallbackQuery):
 
 @osint_router.callback_query(F.data.startswith("monitor_"))
 async def adjust_monitor_settings(query: CallbackQuery):
+    if not query.data:
+        return
     action = query.data.replace("monitor_", "")
     
     if action == "interval_up":

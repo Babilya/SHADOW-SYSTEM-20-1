@@ -83,6 +83,8 @@ async def botnet_cmd(message: Message):
 @botnet_router.callback_query(F.data == "botnet_main")
 async def botnet_menu(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     from core.session_manager import session_manager
     stats = session_manager.get_stats()
     by_status = stats.get("by_status", {})
@@ -95,6 +97,8 @@ async def botnet_menu(query: CallbackQuery):
 @botnet_router.callback_query(F.data == "add_bots")
 async def add_bots(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Завантажити CSV", callback_data="upload_csv")],
         [InlineKeyboardButton(text="⚙️ Налаштування імпорту", callback_data="bot_settings")],
@@ -124,6 +128,8 @@ async def add_bots(query: CallbackQuery):
 @botnet_router.callback_query(F.data == "upload_csv")
 async def upload_csv(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(BotnetStates.waiting_csv)
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="add_bots")]])
     await query.message.answer("""📤 <b>ЗАВАНТАЖЕННЯ CSV</b>
@@ -141,9 +147,19 @@ async def upload_csv(query: CallbackQuery, state: FSMContext):
 async def process_csv_file(message: Message, state: FSMContext):
     await state.clear()
     
+    if not message.bot or not message.document or not message.from_user:
+        await message.answer("❌ Помилка обробки файлу")
+        return
+    
     try:
         file = await message.bot.get_file(message.document.file_id)
+        if not file.file_path:
+            await message.answer("❌ Не вдалося отримати файл")
+            return
         file_content = await message.bot.download_file(file.file_path)
+        if not file_content:
+            await message.answer("❌ Не вдалося завантажити файл")
+            return
         
         content = file_content.read().decode('utf-8')
         lines = content.strip().split('\n')
@@ -219,6 +235,10 @@ async def process_csv_file(message: Message, state: FSMContext):
 async def process_csv_text(message: Message, state: FSMContext):
     await state.clear()
     
+    if not message.text or not message.from_user:
+        await message.answer("❌ Помилка обробки тексту")
+        return
+    
     lines = message.text.strip().split('\n')
     imported = []
     
@@ -268,18 +288,24 @@ async def process_csv_text(message: Message, state: FSMContext):
 @botnet_router.callback_query(F.data == "bot_settings")
 async def bot_settings(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔒 SOCKS5", callback_data="proxy_socks5")], [InlineKeyboardButton(text="🌐 HTTP", callback_data="proxy_http")], [InlineKeyboardButton(text="◀️ Назад", callback_data="add_bots")]])
     await query.message.answer("⚙️ <b>НАЛАШТУВАННЯ БОТІВ</b>\n\nТип проксі: SOCKS5 (рекомендовано)\nІнтервал: 10-30 сек\nПрогрів: Автоматичний (72 ч)", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data.in_(["proxy_socks5", "proxy_http"]))
 async def proxy_type(query: CallbackQuery):
     await query.answer("✅ Тип обрано!")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bot_settings")]])
     await query.message.answer("✅ <b>НАЛАШТУВАННЯ ЗБЕРЕЖЕНО</b>\n\nБоти будуть додані з обраними параметрами", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "list_bots")
 async def list_bots(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     from core.session_manager import session_manager
     stats = session_manager.get_stats()
     by_status = stats.get("by_status", {})
@@ -315,110 +341,145 @@ async def list_bots(query: CallbackQuery):
 @botnet_router.callback_query(F.data == "bots_active")
 async def bots_active(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📊 Деталі", callback_data="bot_detail_1")], [InlineKeyboardButton(text="🔧 Дії", callback_data="bot_actions")], [InlineKeyboardButton(text="◀️ Назад", callback_data="list_bots")]])
     await query.message.answer("🟢 <b>АКТИВНІ БОТИ (38)</b>\n\n@bot_001 | 234 пов. | 0 помилок\n@bot_002 | 189 пов. | 1 помилка\n@bot_003 | 156 пов. | 0 помилок", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bot_detail_1")
 async def bot_detail(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_active")]])
     await query.message.answer("📊 <b>ДЕТАЛІ БОТА @bot_001</b>\n\nСтатус: 🟢 Online\nПовідомлень: 234\nПомилок: 0\nЛиш активна: 2 хв", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bot_actions")
 async def bot_actions(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔧 Перезавантажити", callback_data="restart_bot")], [InlineKeyboardButton(text="🗑️ Видалити", callback_data="delete_bot")], [InlineKeyboardButton(text="◀️ Назад", callback_data="bots_active")]])
     await query.message.answer("🔧 <b>ДІЇ З БОТОМ</b>\n\nВиберіть дію для бота @bot_001", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "delete_bot")
 async def delete_bot(query: CallbackQuery):
     await query.answer("✅ Бот видален!")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_active")]])
     await query.message.answer("✅ <b>БОТ ВИДАЛЕН</b>\n\n@bot_001 видален з системи", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bots_waiting")
 async def bots_waiting(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="list_bots")]])
     await query.message.answer("🟡 <b>БОТИ В ОЧІКУВАННІ (5)</b>\n\nbot_041 - Прогрівання (35%)\nbot_042 - Авторизація\nbot_043 - Чекає номера", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bots_error")
 async def bots_error(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔧 Виправити", callback_data="fix_error")], [InlineKeyboardButton(text="🗑️ Видалити", callback_data="delete_error_bot")], [InlineKeyboardButton(text="◀️ Назад", callback_data="list_bots")]])
     await query.message.answer("🔴 <b>БОТИ З ПОМИЛКАМИ (2)</b>\n\nbot_043 - Блокування від Telegram\nbot_044 - Помилка авторизації", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "fix_error")
 async def fix_error(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_error")]])
     await query.message.answer("🔧 <b>ВИПРАВЛЕННЯ ПОМИЛКИ</b>\n\nПопробуємо перезавантажити бота...\nПочекайте 1-2 хвилини", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "delete_error_bot")
 async def delete_error_bot(query: CallbackQuery):
     await query.answer("✅ Бот видален!")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_error")]])
     await query.message.answer("✅ <b>БОТ З ПОМИЛКОЮ ВИДАЛЕН</b>\n\nДобавте новий бот", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "proxy_rotation")
 async def proxy_rotation(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔧 Налаштування", callback_data="proxy_config")], [InlineKeyboardButton(text="📊 Статистика", callback_data="proxy_stats")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
     await query.message.answer("🔄 <b>РОТАЦІЯ ПРОКСІ</b>\n\nАктивних: 12\nРобочих: 11 (92%)\nМертвих: 1 (8%)", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "proxy_config")
 async def proxy_config(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="proxy_rotation")]])
     await query.message.answer("⚙️ <b>НАЛАШТУВАННЯ ПРОКСІ</b>\n\nІнтервал: 60 хвилин\nТип: SOCKS5 (100%)\nРегіони: UA, RU, US, EU", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "proxy_stats")
 async def proxy_stats(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="proxy_rotation")]])
     await query.message.answer("📊 <b>СТАТИСТИКА ПРОКСІ</b>\n\nЗапитів день: 1,245\nПомилок: 2 (0.16%)\nСередня швидкість: 245ms", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "warm_bots")
 async def warm_bots(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⏸️ Пауза", callback_data="pause_warming")], [InlineKeyboardButton(text="🛑 Зупинити", callback_data="stop_warming")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
     await query.message.answer("🔥 <b>ПРОГРІЙ БОТІВ</b>\n\nПрогрес: 28/45 (62%)\nЗалишилось: 47 годин 15 хвилин", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "pause_warming")
 async def pause_warming(query: CallbackQuery):
     await query.answer("⏸️ Прогрів паузовано!")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="▶️ Продовжити", callback_data="warm_bots")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
     await query.message.answer("⏸️ <b>ПРОГРІЙ ПАУЗОВАНО</b>\n\nМожете продовжити коли будете готові", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "stop_warming")
 async def stop_warming(query: CallbackQuery):
     await query.answer("🛑 Прогрів зупинен!")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
     await query.message.answer("🛑 <b>ПРОГРІЙ ЗУПИНЕН</b>\n\nПрогрів скасовано. Боти не будуть готові", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "bots_stats")
 async def bots_stats(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📈 Графіки", callback_data="stat_charts")], [InlineKeyboardButton(text="⚠️ Помилки", callback_data="stat_errors")], [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]])
     await query.message.answer("📊 <b>СТАТИСТИКА БОТІВ</b>\n\nАктивність: 84.4%\nЯкість: 93.3%\nПомилки: 6.7%", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "stat_charts")
 async def stat_charts(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_stats")]])
     await query.message.answer("📈 <b>ГРАФІКИ АКТИВНОСТІ</b>\n\nПонеділок: 85% | Вівторок: 87% | Середа: 92%\nЧетвер: 90% | Пятниця: 88%", reply_markup=kb, parse_mode="HTML")
 
 @botnet_router.callback_query(F.data == "stat_errors")
 async def stat_errors(query: CallbackQuery):
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="bots_stats")]])
     await query.message.answer("⚠️ <b>АНАЛІЗ ПОМИЛОК</b>\n\nБлокування: 1 (33%)\nАвторизація: 1 (33%)\nНомер: 1 (33%)", reply_markup=kb, parse_mode="HTML")
 
 
 @botnet_router.callback_query(F.data == "antidetect_menu")
 async def antidetect_menu(query: CallbackQuery):
-    """Меню антидетект системи"""
     await query.answer()
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📱 Профілі пристроїв", callback_data="antidetect_profiles")],
         [InlineKeyboardButton(text="🎭 Патерни поведінки", callback_data="antidetect_behavior")],
@@ -441,8 +502,9 @@ async def antidetect_menu(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "antidetect_profiles")
 async def antidetect_profiles(query: CallbackQuery):
-    """Список профілів пристроїв"""
     await query.answer()
+    if not query.message:
+        return
     profiles = list(antidetect_system.DEVICE_PROFILES.keys())
     text = "<b>📱 ПРОФІЛІ ПРИСТРОЇВ</b>\n═══════════════════════\n\n"
     for i, p in enumerate(profiles, 1):
@@ -456,8 +518,9 @@ async def antidetect_profiles(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "antidetect_behavior")
 async def antidetect_behavior(query: CallbackQuery):
-    """Патерни поведінки"""
     await query.answer()
+    if not query.message:
+        return
     patterns = list(antidetect_system.BEHAVIOR_PATTERNS.keys())
     text = "<b>🎭 ПАТЕРНИ ПОВЕДІНКИ</b>\n═══════════════════════\n\n"
     for p in patterns:
@@ -475,8 +538,9 @@ async def antidetect_behavior(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "antidetect_generate")
 async def antidetect_generate(query: CallbackQuery):
-    """Генерація нового fingerprint"""
     await query.answer()
+    if not query.message:
+        return
     profile_type = antidetect_system.get_random_profile_type()
     fingerprint = antidetect_system.generate_device_fingerprint(profile_type)
     report = antidetect_system.format_fingerprint_report(fingerprint)
@@ -489,8 +553,9 @@ async def antidetect_generate(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "antidetect_stats")
 async def antidetect_stats(query: CallbackQuery):
-    """Статистика антидетект"""
     await query.answer()
+    if not query.message:
+        return
     generated = len(antidetect_system.generated_fingerprints)
     profiles_count = len(antidetect_system.DEVICE_PROFILES)
     patterns_count = len(antidetect_system.BEHAVIOR_PATTERNS)
@@ -509,8 +574,9 @@ async def antidetect_stats(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "recovery_menu")
 async def recovery_menu(query: CallbackQuery):
-    """Меню системи відновлення"""
     await query.answer()
+    if not query.message:
+        return
     proxy_stats = await recovery_system.health_check_proxies()
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Відновити ботів", callback_data="recovery_bots")],
@@ -535,8 +601,9 @@ async def recovery_menu(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "recovery_bots")
 async def recovery_bots(query: CallbackQuery):
-    """Відновлення ботів"""
     await query.answer()
+    if not query.message:
+        return
     stats = botnet_manager.get_statistics()
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Відновити все", callback_data="recovery_all")],
@@ -557,8 +624,9 @@ async def recovery_bots(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "recovery_all")
 async def recovery_all(query: CallbackQuery):
-    """Масове відновлення"""
     await query.answer("🔄 Запуск відновлення...")
+    if not query.message:
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="recovery_menu")]
     ])
@@ -576,8 +644,9 @@ async def recovery_all(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "recovery_proxies")
 async def recovery_proxies(query: CallbackQuery):
-    """Управління проксі пулом"""
     await query.answer()
+    if not query.message:
+        return
     stats = recovery_system.get_proxy_stats()
     text = "<b>🌐 ПУЛ ПРОКСІ</b>\n═══════════════════════\n\n"
     if not stats:
@@ -596,8 +665,9 @@ async def recovery_proxies(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "add_proxy")
 async def add_proxy(query: CallbackQuery, state: FSMContext):
-    """Додавання проксі"""
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(BotnetStates.waiting_proxy_add)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="recovery_proxies")]
@@ -616,8 +686,10 @@ async def add_proxy(query: CallbackQuery, state: FSMContext):
 
 @botnet_router.message(BotnetStates.waiting_proxy_add)
 async def process_proxy_add(message: Message, state: FSMContext):
-    """Обробка додавання проксі"""
     await state.clear()
+    if not message.text:
+        await message.answer("❌ Невірний формат")
+        return
     lines = message.text.strip().split('\n')
     added = 0
     for line in lines:
@@ -641,8 +713,9 @@ async def process_proxy_add(message: Message, state: FSMContext):
 
 @botnet_router.callback_query(F.data == "recovery_backups")
 async def recovery_backups(query: CallbackQuery):
-    """Резервні копії"""
     await query.answer()
+    if not query.message:
+        return
     backups_count = sum(len(b) for b in recovery_system.backup_storage.values())
     bots_with_backups = len(recovery_system.backup_storage)
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -661,8 +734,9 @@ async def recovery_backups(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "session_import_menu")
 async def session_import_menu(query: CallbackQuery):
-    """Меню імпорту сесій"""
     await query.answer()
+    if not query.message:
+        return
     imported = len(session_importer.imported_sessions)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Завантажити файл", callback_data="import_session_file")],
@@ -686,8 +760,9 @@ async def session_import_menu(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "import_session_file")
 async def import_session_file(query: CallbackQuery, state: FSMContext):
-    """Запит файлу сесії"""
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(BotnetStates.waiting_session_file)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="session_import_menu")]
@@ -705,11 +780,17 @@ async def import_session_file(query: CallbackQuery, state: FSMContext):
 
 @botnet_router.message(BotnetStates.waiting_session_file, F.document)
 async def process_session_file(message: Message, state: FSMContext):
-    """Обробка файлу сесії"""
     await state.clear()
+    if not message.bot or not message.document:
+        await message.answer("❌ Помилка обробки файлу")
+        return
     try:
         file = await message.bot.get_file(message.document.file_id)
-        file_path = f"/tmp/{message.document.file_name}"
+        if not file.file_path:
+            await message.answer("❌ Не вдалося отримати файл")
+            return
+        file_name = message.document.file_name or "session"
+        file_path = f"/tmp/{file_name}"
         await message.bot.download_file(file.file_path, file_path)
         result = await session_importer.import_session(file_path=file_path)
         report = session_importer.format_import_report(result)
@@ -725,8 +806,9 @@ async def process_session_file(message: Message, state: FSMContext):
 
 @botnet_router.callback_query(F.data == "import_session_string")
 async def import_session_string(query: CallbackQuery, state: FSMContext):
-    """Запит StringSession"""
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(BotnetStates.waiting_session_string)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="session_import_menu")]
@@ -744,8 +826,10 @@ async def import_session_string(query: CallbackQuery, state: FSMContext):
 
 @botnet_router.message(BotnetStates.waiting_session_string)
 async def process_session_string(message: Message, state: FSMContext):
-    """Обробка StringSession"""
     await state.clear()
+    if not message.text:
+        await message.answer("❌ Невірний формат")
+        return
     result = await session_importer.import_session(session_string=message.text)
     report = session_importer.format_import_report(result)
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -757,9 +841,11 @@ async def process_session_string(message: Message, state: FSMContext):
 
 @botnet_router.callback_query(F.data.startswith("validate_session:"))
 async def validate_session(query: CallbackQuery):
-    """Валідація сесії"""
     await query.answer("⏳ Валідація...")
-    session_hash = query.data.split(":")[1]
+    if not query.message or not query.data:
+        return
+    parts = query.data.split(":")
+    session_hash = parts[1] if len(parts) > 1 else ""
     if not session_hash:
         await query.message.edit_text("❌ Невірний hash сесії")
         return
@@ -773,8 +859,9 @@ async def validate_session(query: CallbackQuery):
 
 @botnet_router.callback_query(F.data == "imported_sessions_list")
 async def imported_sessions_list(query: CallbackQuery):
-    """Список імпортованих сесій"""
     await query.answer()
+    if not query.message:
+        return
     sessions = session_importer.get_imported_sessions()
     text = "<b>📋 ІМПОРТОВАНІ СЕСІЇ</b>\n═══════════════════════\n\n"
     if not sessions:

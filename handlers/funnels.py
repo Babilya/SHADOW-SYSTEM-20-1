@@ -8,6 +8,7 @@ from services.user_service import user_service
 from config import ADMIN_IDS
 from database.models import UserRole
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 funnels_router = Router()
@@ -33,13 +34,23 @@ class FunnelStates(StatesGroup):
     editing_step_content = State()
     editing_step_photo = State()
 
+def _get_attr(obj: Any, attr: str, default: Any = None) -> Any:
+    val = getattr(obj, attr, default)
+    if hasattr(val, '__clause_element__'):
+        return default
+    return val if val is not None else default
+
 def funnels_main_kb(funnels: list) -> InlineKeyboardMarkup:
     buttons = []
     for f in funnels[:10]:
-        status_icon = "🟢" if f.is_active else "⚪"
+        is_active = bool(_get_attr(f, 'is_active', False))
+        status_icon = "🟢" if is_active else "⚪"
+        f_id = _get_attr(f, 'id', 0)
+        name = _get_attr(f, 'name', 'Воронка')
+        steps = _get_attr(f, 'steps_count', 0)
         buttons.append([InlineKeyboardButton(
-            text=f"{status_icon} {f.name} ({f.steps_count} кроків)",
-            callback_data=f"funnel_view_{f.id}"
+            text=f"{status_icon} {name} ({steps} кроків)",
+            callback_data=f"funnel_view_{f_id}"
         )])
     buttons.append([InlineKeyboardButton(text="➕ Створити воронку", callback_data="funnel_create")])
     buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")])
@@ -75,10 +86,16 @@ def funnel_view_kb(funnel_id: int, is_active: bool) -> InlineKeyboardMarkup:
 def funnel_steps_kb(funnel_id: int, steps: list) -> InlineKeyboardMarkup:
     buttons = []
     for step in steps:
-        photo_icon = "🖼" if step.photo_file_id else "📝"
+        photo_file_id = _get_attr(step, 'photo_file_id', None)
+        photo_icon = "🖼" if photo_file_id else "📝"
+        step_order = _get_attr(step, 'step_order', 0)
+        step_id = _get_attr(step, 'id', 0)
+        title = _get_attr(step, 'title', '')
+        content = _get_attr(step, 'content', '')
+        display = title or (content[:30] if content else 'Крок')
         buttons.append([InlineKeyboardButton(
-            text=f"{step.step_order}. {photo_icon} {step.title or step.content[:30]}...",
-            callback_data=f"step_view_{step.id}"
+            text=f"{step_order}. {photo_icon} {display}...",
+            callback_data=f"step_view_{step_id}"
         )])
     buttons.append([InlineKeyboardButton(text="➕ Додати крок", callback_data=f"step_add_{funnel_id}")])
     buttons.append([InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")])
@@ -89,6 +106,9 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.clear()
     
+    if not query.message:
+        return
+    
     if not await check_funnel_access(query.from_user.id):
         await query.message.edit_text("❌ У вас немає доступу до управління воронками")
         return
@@ -96,9 +116,9 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
     user_id = str(query.from_user.id)
     funnels = funnel_service.get_funnels_by_owner(user_id)
     
-    total_views = sum(f.views_count or 0 for f in funnels)
-    total_conv = sum(f.conversions or 0 for f in funnels)
-    active_count = sum(1 for f in funnels if f.is_active)
+    total_views = sum(int(_get_attr(f, 'views_count', 0) or 0) for f in funnels)
+    total_conv = sum(int(_get_attr(f, 'conversions', 0) or 0) for f in funnels)
+    active_count = sum(1 for f in funnels if _get_attr(f, 'is_active', False))
     
     text = f"""<b>🎯 МЕНЕДЖЕР ВОРОНОК</b>
 <i>Створюйте та керуйте воронками продажів</i>
@@ -123,6 +143,8 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data == "funnel_create")
 async def funnel_create_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     await state.set_state(FunnelStates.waiting_name)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="❌ Скасувати", callback_data="funnels_main")]
@@ -136,6 +158,9 @@ async def funnel_create_start(query: CallbackQuery, state: FSMContext):
 
 @funnels_router.message(FunnelStates.waiting_name)
 async def funnel_create_name(message: Message, state: FSMContext):
+    if not message.text or not message.from_user:
+        await message.answer("❌ Введіть назву воронки")
+        return
     name = message.text.strip()
     if len(name) < 2 or len(name) > 100:
         await message.answer("❌ Назва має бути від 2 до 100 символів")
@@ -146,15 +171,18 @@ async def funnel_create_name(message: Message, state: FSMContext):
     
     if funnel:
         await state.clear()
+        f_id = int(_get_attr(funnel, 'id', 0))
+        f_name = _get_attr(funnel, 'name', name)
+        is_active = bool(_get_attr(funnel, 'is_active', False))
         text = f"""✅ <b>Воронку створено!</b>
 
-<b>📁 {funnel.name}</b>
-├ ID: <code>{funnel.id}</code>
+<b>📁 {f_name}</b>
+├ ID: <code>{f_id}</code>
 ├ Статус: Чернетка
 └ Кроків: 0
 
 Тепер налаштуйте воронку:"""
-        await message.answer(text, reply_markup=funnel_view_kb(funnel.id, funnel.is_active), parse_mode="HTML")
+        await message.answer(text, reply_markup=funnel_view_kb(f_id, is_active), parse_mode="HTML")
     else:
         await message.answer("❌ Помилка створення воронки")
 
@@ -162,6 +190,8 @@ async def funnel_create_name(message: Message, state: FSMContext):
 async def funnel_view(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.clear()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     
@@ -169,37 +199,48 @@ async def funnel_view(query: CallbackQuery, state: FSMContext):
         await query.message.edit_text("❌ Воронку не знайдено")
         return
     
-    status = "🟢 Активна" if funnel.is_active else "⚪ Неактивна"
-    conv_rate = 0
-    if funnel.views_count and funnel.views_count > 0:
-        conv_rate = round((funnel.conversions or 0) / funnel.views_count * 100, 1)
+    is_active = bool(_get_attr(funnel, 'is_active', False))
+    status = "🟢 Активна" if is_active else "⚪ Неактивна"
+    conv_rate = 0.0
+    views_count = int(_get_attr(funnel, 'views_count', 0) or 0)
+    conversions = int(_get_attr(funnel, 'conversions', 0) or 0)
+    if views_count > 0:
+        conv_rate = round(conversions / views_count * 100, 1)
     
-    text = f"""<b>🎯 {funnel.name}</b>
-<i>{funnel.description or 'Без опису'}</i>
+    name = _get_attr(funnel, 'name', 'Воронка')
+    description = _get_attr(funnel, 'description', None) or 'Без опису'
+    steps_count = _get_attr(funnel, 'steps_count', 0)
+    photo_file_id = _get_attr(funnel, 'photo_file_id', None)
+    tariff_info = _get_attr(funnel, 'tariff_info', None)
+    
+    text = f"""<b>🎯 {name}</b>
+<i>{description}</i>
 
 ───────────────
 
 <b>📋 ІНФОРМАЦІЯ:</b>
-├ 🆔 ID: <code>{funnel.id}</code>
+├ 🆔 ID: <code>{funnel_id}</code>
 ├ 📊 Статус: {status}
-├ 📝 Кроків: <b>{funnel.steps_count}</b>
-├ 🖼 Фото: {'Так' if funnel.photo_file_id else 'Ні'}
-└ ⚙️ Конфіг: {'Налаштовано' if funnel.tariff_info else 'Не вказано'}
+├ 📝 Кроків: <b>{steps_count}</b>
+├ 🖼 Фото: {'Так' if photo_file_id else 'Ні'}
+└ ⚙️ Конфіг: {'Налаштовано' if tariff_info else 'Не вказано'}
 
 <b>📈 СТАТИСТИКА:</b>
-├ 👁 Переглядів: <b>{funnel.views_count or 0}</b>
-├ ✅ Конверсій: <b>{funnel.conversions or 0}</b>
+├ 👁 Переглядів: <b>{views_count}</b>
+├ ✅ Конверсій: <b>{conversions}</b>
 └ 📊 CR: <b>{conv_rate}%</b>
 
 ───────────────
 
 <b>⚙️ НАЛАШТУВАННЯ:</b>"""
     
-    await query.message.edit_text(text, reply_markup=funnel_view_kb(funnel_id, funnel.is_active), parse_mode="HTML")
+    await query.message.edit_text(text, reply_markup=funnel_view_kb(funnel_id, is_active), parse_mode="HTML")
 
 @funnels_router.callback_query(F.data.startswith("funnel_edit_name_"))
 async def funnel_edit_name_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
     await state.set_state(FunnelStates.editing_name)
@@ -213,15 +254,22 @@ async def funnel_edit_name_start(query: CallbackQuery, state: FSMContext):
 
 @funnels_router.message(FunnelStates.editing_name)
 async def funnel_edit_name_save(message: Message, state: FSMContext):
+    if not message.text:
+        await message.answer("❌ Введіть назву")
+        return
     data = await state.get_data()
     funnel_id = data.get("editing_funnel_id")
+    if not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     name = message.text.strip()
     
     if funnel_service.update_funnel(funnel_id, name=name):
         await state.clear()
         funnel = funnel_service.get_funnel(funnel_id)
+        is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
         await message.answer(f"✅ Назву змінено на: <b>{name}</b>", 
-                           reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+                           reply_markup=funnel_view_kb(funnel_id, is_active),
                            parse_mode="HTML")
     else:
         await message.answer("❌ Помилка збереження")
@@ -229,6 +277,8 @@ async def funnel_edit_name_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_desc_"))
 async def funnel_edit_desc_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
     await state.set_state(FunnelStates.editing_description)
@@ -244,12 +294,16 @@ async def funnel_edit_desc_start(query: CallbackQuery, state: FSMContext):
 async def funnel_edit_desc_save(message: Message, state: FSMContext):
     data = await state.get_data()
     funnel_id = data.get("editing_funnel_id")
+    if not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     
     if funnel_service.update_funnel(funnel_id, description=message.text):
         await state.clear()
         funnel = funnel_service.get_funnel(funnel_id)
+        is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
         await message.answer("✅ Опис збережено!", 
-                           reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+                           reply_markup=funnel_view_kb(funnel_id, is_active),
                            parse_mode="HTML")
     else:
         await message.answer("❌ Помилка збереження")
@@ -257,6 +311,8 @@ async def funnel_edit_desc_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_photo_"))
 async def funnel_edit_photo_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
     await state.set_state(FunnelStates.editing_photo)
@@ -271,15 +327,22 @@ async def funnel_edit_photo_start(query: CallbackQuery, state: FSMContext):
 
 @funnels_router.message(FunnelStates.editing_photo, F.photo)
 async def funnel_edit_photo_save(message: Message, state: FSMContext):
+    if not message.photo:
+        await message.answer("❌ Надішліть фото")
+        return
     data = await state.get_data()
     funnel_id = data.get("editing_funnel_id")
+    if not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     photo_id = message.photo[-1].file_id
     
     if funnel_service.update_funnel(funnel_id, photo_file_id=photo_id):
         await state.clear()
         funnel = funnel_service.get_funnel(funnel_id)
+        is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
         await message.answer("✅ Фото збережено!", 
-                           reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+                           reply_markup=funnel_view_kb(funnel_id, is_active),
                            parse_mode="HTML")
     else:
         await message.answer("❌ Помилка збереження")
@@ -287,17 +350,22 @@ async def funnel_edit_photo_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_remove_photo_"))
 async def funnel_remove_photo(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel_service.update_funnel(funnel_id, photo_file_id=None)
     await state.clear()
     funnel = funnel_service.get_funnel(funnel_id)
+    is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
     await query.message.edit_text("✅ Фото видалено!", 
-                                 reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+                                 reply_markup=funnel_view_kb(funnel_id, is_active),
                                  parse_mode="HTML")
 
 @funnels_router.callback_query(F.data.startswith("funnel_edit_config_"))
 async def funnel_edit_config_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
     await state.set_state(FunnelStates.editing_tariff)
@@ -314,12 +382,16 @@ async def funnel_edit_config_start(query: CallbackQuery, state: FSMContext):
 async def funnel_edit_config_save(message: Message, state: FSMContext):
     data = await state.get_data()
     funnel_id = data.get("editing_funnel_id")
+    if not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     
     if funnel_service.update_funnel(funnel_id, tariff_info=message.text):
         await state.clear()
         funnel = funnel_service.get_funnel(funnel_id)
+        is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
         await message.answer("✅ Конфігурацію збережено!", 
-                           reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+                           reply_markup=funnel_view_kb(funnel_id, is_active),
                            parse_mode="HTML")
     else:
         await message.answer("❌ Помилка збереження")
@@ -327,10 +399,13 @@ async def funnel_edit_config_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_toggle_"))
 async def funnel_toggle(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     if funnel:
-        new_status = not funnel.is_active
+        is_active = bool(_get_attr(funnel, 'is_active', False))
+        new_status = not is_active
         funnel_service.update_funnel(funnel_id, is_active=new_status)
         status_text = "🟢 Активовано" if new_status else "⚪ Призупинено"
         await query.message.edit_text(
@@ -342,30 +417,42 @@ async def funnel_toggle(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_stats_"))
 async def funnel_stats(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     
     if not funnel:
         return
     
-    conv_rate = 0
-    if funnel.views_count and funnel.views_count > 0:
-        conv_rate = round((funnel.conversions or 0) / funnel.views_count * 100, 1)
+    views_count = int(_get_attr(funnel, 'views_count', 0) or 0)
+    conversions = int(_get_attr(funnel, 'conversions', 0) or 0)
+    conv_rate = 0.0
+    if views_count > 0:
+        conv_rate = round(conversions / views_count * 100, 1)
+    
+    name = _get_attr(funnel, 'name', 'Воронка')
+    steps_count = _get_attr(funnel, 'steps_count', 0)
+    created_at = _get_attr(funnel, 'created_at', None)
+    updated_at = _get_attr(funnel, 'updated_at', None)
+    
+    created_str = created_at.strftime('%d.%m.%Y') if created_at else 'N/A'
+    updated_str = updated_at.strftime('%d.%m.%Y') if updated_at else 'N/A'
     
     text = f"""<b>📊 СТАТИСТИКА ВОРОНКИ</b>
-<i>{funnel.name}</i>
+<i>{name}</i>
 
 ───────────────
 
 <b>📈 МЕТРИКИ:</b>
-├ 👁 Переглядів: <b>{funnel.views_count or 0}</b>
-├ ✅ Конверсій: <b>{funnel.conversions or 0}</b>
+├ 👁 Переглядів: <b>{views_count}</b>
+├ ✅ Конверсій: <b>{conversions}</b>
 ├ 📊 Конверсія: <b>{conv_rate}%</b>
-└ 📝 Кроків пройдено: <b>{funnel.steps_count}</b>
+└ 📝 Кроків пройдено: <b>{steps_count}</b>
 
 <b>📅 ДАТИ:</b>
-├ 🗓 Створено: {funnel.created_at.strftime('%d.%m.%Y') if funnel.created_at else 'N/A'}
-└ ✏️ Оновлено: {funnel.updated_at.strftime('%d.%m.%Y') if funnel.updated_at else 'N/A'}"""
+├ 🗓 Створено: {created_str}
+└ ✏️ Оновлено: {updated_str}"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
@@ -375,6 +462,8 @@ async def funnel_stats(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_delete_"))
 async def funnel_delete_confirm(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -391,6 +480,8 @@ async def funnel_delete_confirm(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_delete_confirm_"))
 async def funnel_delete_execute(query: CallbackQuery):
     await query.answer("Видалено!")
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel_service.delete_funnel(funnel_id)
     
@@ -405,12 +496,16 @@ async def funnel_delete_execute(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_steps_"))
 async def funnel_steps_list(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     steps = funnel_service.get_steps(funnel_id)
     
+    name = _get_attr(funnel, 'name', 'N/A') if funnel else 'N/A'
+    
     text = f"""<b>📋 КРОКИ ВОРОНКИ</b>
-<i>{funnel.name if funnel else 'N/A'}</i>
+<i>{name}</i>
 
 ───────────────
 
@@ -423,6 +518,8 @@ async def funnel_steps_list(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_add_"))
 async def step_add_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(adding_step_funnel_id=funnel_id)
     await state.set_state(FunnelStates.waiting_step_content)
@@ -440,7 +537,7 @@ async def step_add_start(query: CallbackQuery, state: FSMContext):
 async def step_add_content(message: Message, state: FSMContext):
     data = await state.get_data()
     funnel_id = data.get("adding_step_funnel_id")
-    content = message.text
+    content = message.text or ""
     
     await state.update_data(step_content=content)
     await state.set_state(FunnelStates.waiting_step_photo)
@@ -456,17 +553,23 @@ async def step_add_content(message: Message, state: FSMContext):
 
 @funnels_router.message(FunnelStates.waiting_step_photo, F.photo)
 async def step_add_photo(message: Message, state: FSMContext):
+    if not message.photo:
+        return
     data = await state.get_data()
     funnel_id = data.get("adding_step_funnel_id")
-    content = data.get("step_content")
+    content = data.get("step_content", "")
+    if not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     photo_id = message.photo[-1].file_id
     
     step = funnel_service.add_step(funnel_id, content, photo_file_id=photo_id)
     await state.clear()
     
     if step:
+        step_order = _get_attr(step, 'step_order', 0)
         steps = funnel_service.get_steps(funnel_id)
-        await message.answer(f"✅ Крок #{step.step_order} додано з фото!", 
+        await message.answer(f"✅ Крок #{step_order} додано з фото!", 
                            reply_markup=funnel_steps_kb(funnel_id, steps))
     else:
         await message.answer("❌ Помилка додавання кроку")
@@ -474,16 +577,22 @@ async def step_add_photo(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data == "step_skip_photo")
 async def step_skip_photo(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message:
+        return
     data = await state.get_data()
     funnel_id = data.get("adding_step_funnel_id")
-    content = data.get("step_content")
+    content = data.get("step_content", "")
+    if not funnel_id:
+        await query.message.edit_text("❌ Помилка")
+        return
     
     step = funnel_service.add_step(funnel_id, content)
     await state.clear()
     
     if step:
+        step_order = _get_attr(step, 'step_order', 0)
         steps = funnel_service.get_steps(funnel_id)
-        await query.message.edit_text(f"✅ Крок #{step.step_order} додано!", 
+        await query.message.edit_text(f"✅ Крок #{step_order} додано!", 
                                      reply_markup=funnel_steps_kb(funnel_id, steps))
     else:
         await query.message.edit_text("❌ Помилка додавання кроку")
@@ -491,6 +600,8 @@ async def step_skip_photo(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("step_view_"))
 async def step_view(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     step_id = int(query.data.split("_")[-1])
     
     from utils.db import SessionLocal
@@ -502,16 +613,24 @@ async def step_view(query: CallbackQuery):
             await query.message.edit_text("❌ Крок не знайдено")
             return
         
-        funnel_id = step.funnel_id
-        text = f"""<b>📝 КРОК #{step.step_order}</b>
+        funnel_id = int(_get_attr(step, 'funnel_id', 0))
+        step_order = _get_attr(step, 'step_order', 0)
+        content = _get_attr(step, 'content', '')
+        photo_file_id = _get_attr(step, 'photo_file_id', None)
+        button_text = _get_attr(step, 'button_text', 'N/A')
+        
+        display_content = content[:500] if content else ''
+        suffix = '...' if len(content) > 500 else ''
+        
+        text = f"""<b>📝 КРОК #{step_order}</b>
 
 ───────────────
 
 <b>📄 Контент:</b>
-{step.content[:500]}{'...' if len(step.content) > 500 else ''}
+{display_content}{suffix}
 
-<b>🖼 Фото:</b> {'Є' if step.photo_file_id else 'Немає'}
-<b>🔘 Кнопка:</b> {step.button_text}"""
+<b>🖼 Фото:</b> {'Є' if photo_file_id else 'Немає'}
+<b>🔘 Кнопка:</b> {button_text}"""
         
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -527,6 +646,8 @@ async def step_view(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_delete_"))
 async def step_delete(query: CallbackQuery):
     await query.answer("Видалено!")
+    if not query.message or not query.data:
+        return
     step_id = int(query.data.split("_")[-1])
     
     from utils.db import SessionLocal
@@ -534,7 +655,7 @@ async def step_delete(query: CallbackQuery):
     db = SessionLocal()
     try:
         step = db.query(FunnelStep).filter(FunnelStep.id == step_id).first()
-        funnel_id = step.funnel_id if step else None
+        funnel_id = int(_get_attr(step, 'funnel_id', 0)) if step else None
     finally:
         db.close()
     
@@ -547,6 +668,8 @@ async def step_delete(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_edit_"))
 async def step_edit_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
+    if not query.message or not query.data:
+        return
     step_id = int(query.data.split("_")[-1])
     
     from utils.db import SessionLocal
@@ -557,7 +680,7 @@ async def step_edit_start(query: CallbackQuery, state: FSMContext):
         if not step:
             await query.message.edit_text("❌ Крок не знайдено")
             return
-        funnel_id = step.funnel_id
+        funnel_id = int(_get_attr(step, 'funnel_id', 0))
     finally:
         db.close()
     
@@ -578,6 +701,9 @@ async def step_edit_content_save(message: Message, state: FSMContext):
     data = await state.get_data()
     step_id = data.get("editing_step_id")
     funnel_id = data.get("editing_step_funnel_id")
+    if not step_id or not funnel_id:
+        await message.answer("❌ Помилка")
+        return
     
     if funnel_service.update_step(step_id, content=message.text):
         await state.clear()
@@ -589,9 +715,12 @@ async def step_edit_content_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_templates_"))
 async def funnel_templates(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
     user_id = str(query.from_user.id)
+    name = _get_attr(funnel, 'name', 'Воронка') if funnel else 'Воронка'
     
     from utils.db import get_session
     from services.template_service import template_service
@@ -600,7 +729,7 @@ async def funnel_templates(query: CallbackQuery):
         templates = await template_service.get_templates(session, owner_id=user_id, include_public=True)
     
     text = f"""<b>📝 ШАБЛОНИ ДЛЯ ВОРОНКИ</b>
-<i>{funnel.name if funnel else 'Воронка'}</i>
+<i>{name}</i>
 
 ───────────────═════
 
@@ -631,7 +760,8 @@ async def funnel_templates(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("apply_tpl:"))
 async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
-    """Застосування шаблону до кроку воронки"""
+    if not query.message or not query.data:
+        return
     parts = query.data.split(":")
     funnel_id = int(parts[1])
     template_id = int(parts[2])
@@ -648,6 +778,7 @@ async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
         return
     
     funnel = funnel_service.get_funnel(funnel_id)
+    funnel_name = _get_attr(funnel, 'name', '') if funnel else ''
     new_step = funnel_service.add_step(
         funnel_id=funnel_id,
         content=template['content'],
@@ -661,7 +792,7 @@ async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
     await query.message.edit_text(
         f"✅ <b>Крок додано з шаблону</b>\n\n"
         f"📝 Шаблон: {template['name']}\n"
-        f"📋 Воронка: {funnel.name if funnel else ''}\n"
+        f"📋 Воронка: {funnel_name}\n"
         f"📊 Всього кроків: {len(steps)}",
         reply_markup=funnel_steps_kb(funnel_id, steps),
         parse_mode="HTML"
@@ -669,7 +800,8 @@ async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
 
 @funnels_router.callback_query(F.data.startswith("tpl_for_funnel:"))
 async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
-    """Створення шаблону для воронки"""
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split(":")[1])
     await state.update_data(return_to_funnel=funnel_id)
     
@@ -696,8 +828,11 @@ async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_schedule_"))
 async def funnel_schedule(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
+    name = _get_attr(funnel, 'name', 'Воронка') if funnel else 'Воронка'
     
     from utils.db import get_session
     from services.template_service import scheduler_service
@@ -710,7 +845,7 @@ async def funnel_schedule(query: CallbackQuery):
     next_run = funnel_schedules[0].get('next_run_at', 'не заплановано') if funnel_schedules else 'не заплановано'
     
     text = f"""<b>📅 ПЛАНУВАННЯ ВОРОНКИ</b>
-<i>{funnel.name if funnel else 'Воронка'}</i>
+<i>{name}</i>
 
 ───────────────═════
 
@@ -737,6 +872,8 @@ async def funnel_schedule(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_add_schedule_"))
 async def funnel_add_schedule(query: CallbackQuery):
     await query.answer()
+    if not query.message or not query.data:
+        return
     funnel_id = int(query.data.split("_")[-1])
     
     text = """<b>⏱ ВИБІР ІНТЕРВАЛУ</b>
@@ -760,6 +897,8 @@ async def funnel_add_schedule(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("funnel_sched_set_"))
 async def funnel_schedule_set(query: CallbackQuery):
+    if not query.message or not query.data:
+        return
     parts = query.data.split("_")
     funnel_id = int(parts[3])
     interval = int(parts[4])
@@ -771,13 +910,15 @@ async def funnel_schedule_set(query: CallbackQuery):
     schedule_type = {60: "interval", 240: "interval", 1440: "daily", 10080: "weekly"}.get(interval, "interval")
     
     funnel = funnel_service.get_funnel(funnel_id)
+    name = _get_attr(funnel, 'name', str(funnel_id)) if funnel else str(funnel_id)
+    is_active = bool(_get_attr(funnel, 'is_active', True)) if funnel else True
     
     async with get_session() as session:
         await scheduler_service.create_scheduled_mailing(
             session,
             template_id=None,
             owner_id=str(query.from_user.id),
-            name=f"Воронка: {funnel.name if funnel else funnel_id}",
+            name=f"Воронка: {name}",
             schedule_type=schedule_type,
             interval_minutes=interval,
             funnel_id=funnel_id
@@ -787,21 +928,23 @@ async def funnel_schedule_set(query: CallbackQuery):
     
     await query.message.edit_text(
         f"✅ <b>Розклад створено!</b>\n\n"
-        f"📋 Воронка: {funnel.name if funnel else ''}\n"
+        f"📋 Воронка: {name}\n"
         f"⏱ Інтервал: {interval_names.get(interval, f'{interval} хв')}\n"
         f"📅 Тип: {schedule_type}",
-        reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+        reply_markup=funnel_view_kb(funnel_id, is_active),
         parse_mode="HTML"
     )
 
 @funnels_router.callback_query(F.data.startswith("funnel_monitor:"))
 async def funnel_monitor_action(query: CallbackQuery):
-    """Інтеграція моніторингу з воронкою"""
+    if not query.message or not query.data:
+        return
     parts = query.data.split(":")
     funnel_id = int(parts[1])
     action = parts[2] if len(parts) > 2 else "menu"
     
     funnel = funnel_service.get_funnel(funnel_id)
+    name = _get_attr(funnel, 'name', f'Воронка #{funnel_id}') if funnel else f'Воронка #{funnel_id}'
     
     if action == "menu":
         kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -813,7 +956,7 @@ async def funnel_monitor_action(query: CallbackQuery):
         ])
         await query.message.edit_text(
             f"📡 <b>МОНІТОРИНГ ВОРОНКИ</b>\n"
-            f"<i>{funnel.name if funnel else f'Воронка #{funnel_id}'}</i>\n\n"
+            f"<i>{name}</i>\n\n"
             "───────────────═════\n\n"
             "<b>Можливості моніторингу:</b>\n"
             "├ 🔍 Відстеження реакцій на кроки\n"
@@ -841,18 +984,19 @@ async def funnel_monitor_action(query: CallbackQuery):
         )
     elif action == "report":
         steps = funnel_service.get_steps(funnel_id)
-        views = funnel.views_count if funnel else 0
-        conversions = funnel.conversions if funnel else 0
+        views = int(_get_attr(funnel, 'views_count', 0) or 0) if funnel else 0
+        conversions = int(_get_attr(funnel, 'conversions', 0) or 0) if funnel else 0
+        rate = round(conversions / views * 100, 1) if views else 0
         
         await query.message.edit_text(
             f"📊 <b>ЗВІТ АКТИВНОСТІ</b>\n"
-            f"<i>{funnel.name if funnel else f'Воронка #{funnel_id}'}</i>\n\n"
+            f"<i>{name}</i>\n\n"
             "───────────────═════\n\n"
             f"<b>Загальна статистика:</b>\n"
             f"├ Кроків: {len(steps)}\n"
             f"├ Переглядів: {views}\n"
             f"├ Конверсій: {conversions}\n"
-            f"└ Коефіцієнт: {round(conversions/views*100, 1) if views else 0}%\n\n"
+            f"└ Коефіцієнт: {rate}%\n\n"
             "<b>Активність за 24 години:</b>\n"
             "├ Нових користувачів: 0\n"
             "├ Завершили воронку: 0\n"

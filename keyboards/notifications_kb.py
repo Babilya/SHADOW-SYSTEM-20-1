@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 def notifications_menu_kb(is_admin: bool = False) -> InlineKeyboardMarkup:
     """Головне меню сповіщень"""
@@ -65,9 +65,10 @@ def notification_role_kb(notif_type: str) -> InlineKeyboardMarkup:
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def notification_multi_role_kb(notif_type: str, selected: List[str] = None) -> InlineKeyboardMarkup:
+def notification_multi_role_kb(notif_type: str, selected: Optional[List[str]] = None) -> InlineKeyboardMarkup:
     """Вибір декількох ролей"""
-    selected = selected or []
+    if selected is None:
+        selected = []
     
     roles = [
         ("👤 Гості", "guest"),

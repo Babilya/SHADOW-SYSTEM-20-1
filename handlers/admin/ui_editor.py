@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from config.settings import ADMIN_IDS
+from config import ADMIN_IDS
 from sqlalchemy import select
 from utils.db import async_session
 from database.models import UIConfig, UIButton, UIStyle

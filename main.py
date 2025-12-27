@@ -33,6 +33,10 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
 
+    from middlewares.role_middleware import RoleMiddleware
+    dp.message.middleware(RoleMiddleware())
+    dp.callback_query.middleware(RoleMiddleware())
+
     # Register routers
     dp.include_router(start_router)
     dp.include_router(auth_router)

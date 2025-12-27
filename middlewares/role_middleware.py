@@ -26,23 +26,22 @@ class RoleMiddleware(BaseMiddleware):
         
         if user:
             telegram_id = user.id
-            username = user.username
-            first_name = user.first_name
+            username = user.username or ""
+            first_name = user.first_name or ""
             
             db_user = user_service.get_or_create_user(telegram_id, username, first_name)
             if db_user:
                 from config.settings import ADMIN_ID
-                # Force update role if matches ADMIN_ID
                 current_id_str = str(telegram_id)
                 admin_id_str = str(ADMIN_ID)
                 
                 if current_id_str == admin_id_str:
                     if db_user.role != UserRole.ADMIN:
-                        db_user.role = UserRole.ADMIN
-                        user_service.update_user(db_user)
+                        user_service.set_user_role(telegram_id, UserRole.ADMIN)
                         logger.info(f"Promoted user {telegram_id} to ADMIN")
+                        db_user = user_service.get_user(telegram_id)
                 
-                data['user_role'] = db_user.role
+                data['user_role'] = db_user.role if db_user else UserRole.GUEST
                 data['db_user'] = db_user
             else:
                 data['user_role'] = UserRole.GUEST

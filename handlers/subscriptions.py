@@ -282,7 +282,7 @@ async def apply_package(query: CallbackQuery, state: FSMContext):
          InlineKeyboardButton(text="⏳ 30 днів", callback_data="dur_30")],
         [InlineKeyboardButton(text="⏳ 90 днів", callback_data="dur_90"),
          InlineKeyboardButton(text="⏳ 365 днів", callback_data="dur_365")],
-        [InlineKeyboardButton(text="❌ Скасувати", callback_data=f"pkg_{pkg_key}")]
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="user_menu")]
     ])
     
     await state.set_state(ApplicationForm.waiting_duration)

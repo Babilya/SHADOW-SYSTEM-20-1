@@ -70,6 +70,7 @@ async def get_db():
 
 
 sync_engine = create_engine(DATABASE_URL, echo=False)
+engine = sync_engine # Export as engine for audit_logger and other modules
 SessionLocal = sessionmaker(bind=sync_engine, expire_on_commit=False)
 
 def get_sync_session() -> Session:

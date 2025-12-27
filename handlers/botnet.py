@@ -28,26 +28,24 @@ def botnet_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="➕ ДОДАТИ БОТІВ", callback_data="add_bots")],
         [
-            InlineKeyboardButton(text="📋 МОЇ БОТИ", callback_data="list_bots"),
-            InlineKeyboardButton(text="🔄 РОТАЦІЯ ПРОКСІ", callback_data="proxy_rotation")
+            InlineKeyboardButton(text="📋 БОТИ", callback_data="list_bots"),
+            InlineKeyboardButton(text="🔄 ПРОКСІ", callback_data="proxy_rotation"),
+            InlineKeyboardButton(text="📊 СТАТИ", callback_data="bots_stats")
         ],
         [
-            InlineKeyboardButton(text="🔥 ЦИКЛ ПРОГРІВУ", callback_data="warm_bots"),
-            InlineKeyboardButton(text="📊 СТАТИСТИКА", callback_data="bots_stats")
-        ],
-        [
+            InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warm_bots"),
             InlineKeyboardButton(text="🛡️ АНТИДЕТЕКТ", callback_data="antidetect_menu"),
-            InlineKeyboardButton(text="🔧 ВІДНОВЛЕННЯ", callback_data="recovery_menu")
+            InlineKeyboardButton(text="🔧 РЕКАВЕРІ", callback_data="recovery_menu")
         ],
         [InlineKeyboardButton(text="📥 ІМПОРТ СЕСІЙ", callback_data="session_import_menu")],
-        [InlineKeyboardButton(text="◀️ ПОВЕРНУТИСЬ", callback_data="user_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
 
 def botnet_description(total=0, active=0, pending=0, errors=0) -> str:
     return f"""<b>🤖 ЦЕНТР УПРАВЛІННЯ БОТАМИ</b>
 <i>Повний контроль над вашою мережею</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📊 ПОТОЧНИЙ СТАТУС:</b>
 ├ 📱 Всього ботів: <code>{total}</code>
@@ -55,7 +53,7 @@ def botnet_description(total=0, active=0, pending=0, errors=0) -> str:
 ├ 🟡 Очікування: <code>{pending}</code>
 └ 🔴 Помилки: <code>{errors}</code>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>🛠️ ДОСТУПНІ ІНСТРУМЕНТИ:</b>
 
@@ -105,7 +103,7 @@ async def add_bots(query: CallbackQuery):
     text = """<b>➕ ДОДАВАННЯ НОВИХ БОТІВ</b>
 <i>Швидкий імпорт через CSV-файл</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📋 Формат CSV-файлу:</b>
 <code>phone,firstName,lastName</code>
@@ -115,7 +113,7 @@ async def add_bots(query: CallbackQuery):
 <b>💡 Підказка:</b>
 Ви також можете просто надіслати список номерів телефонів, кожен з нового рядка.
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>⚡ Після імпорту:</b>
 ├ Автоматична валідація номерів
@@ -301,7 +299,7 @@ async def list_bots(query: CallbackQuery):
     text = f"""<b>📋 ОГЛЯД УСІХ БОТІВ</b>
 <i>Детальний список та фільтрація</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📊 ЗАГАЛЬНА СТАТИСТИКА:</b>
 ├ 📱 Всього у системі: <code>{total}</code>
@@ -309,7 +307,7 @@ async def list_bots(query: CallbackQuery):
 ├ 🟡 В очікуванні: <code>{pending}</code>
 └ 🔴 З помилками: <code>{error}</code>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>🔍 Оберіть категорію для перегляду:</b>"""
     await query.message.answer(text, reply_markup=kb, parse_mode="HTML")

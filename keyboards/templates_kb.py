@@ -4,10 +4,14 @@ from typing import List, Dict
 def templates_menu_kb() -> InlineKeyboardMarkup:
     """Головне меню шаблонів"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Мої шаблони", callback_data="templates_list")],
-        [InlineKeyboardButton(text="➕ Створити шаблон", callback_data="template_create")],
-        [InlineKeyboardButton(text="📁 За категоріями", callback_data="templates_categories")],
-        [InlineKeyboardButton(text="🌐 Публічні шаблони", callback_data="templates_public")],
+        [
+            InlineKeyboardButton(text="📝 Мої", callback_data="templates_list"),
+            InlineKeyboardButton(text="➕ Створити", callback_data="template_create")
+        ],
+        [
+            InlineKeyboardButton(text="📁 Категорії", callback_data="templates_categories"),
+            InlineKeyboardButton(text="🌐 Публічні", callback_data="templates_public")
+        ],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="mailing_main")]
     ])
 

@@ -8,11 +8,15 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def get_ai_analysis_menu() -> InlineKeyboardMarkup:
     """Меню AI аналізу"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔍 Аналіз тексту", callback_data="ai_analyze_text")],
-        [InlineKeyboardButton(text="📍 Пошук координат", callback_data="ai_find_coords")],
-        [InlineKeyboardButton(text="⚠️ Детекція загроз", callback_data="ai_detect_threats")],
-        [InlineKeyboardButton(text="📱 Пошук телефонів", callback_data="ai_find_phones")],
-        [InlineKeyboardButton(text="💰 Пошук криптовалют", callback_data="ai_find_crypto")],
+        [
+            InlineKeyboardButton(text="🔍 Текст", callback_data="ai_analyze_text"),
+            InlineKeyboardButton(text="📍 Координати", callback_data="ai_find_coords"),
+            InlineKeyboardButton(text="⚠️ Загрози", callback_data="ai_detect_threats")
+        ],
+        [
+            InlineKeyboardButton(text="📱 Телефони", callback_data="ai_find_phones"),
+            InlineKeyboardButton(text="💰 Крипто", callback_data="ai_find_crypto")
+        ],
         [InlineKeyboardButton(text="🤖 Повний AI аналіз", callback_data="ai_full_analysis")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
@@ -21,9 +25,11 @@ def get_ai_analysis_menu() -> InlineKeyboardMarkup:
 def get_spam_analyzer_menu() -> InlineKeyboardMarkup:
     """Меню аналізатора спаму"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Перевірити текст", callback_data="spam_check_text")],
-        [InlineKeyboardButton(text="📊 Аналіз кампанії", callback_data="spam_check_campaign")],
-        [InlineKeyboardButton(text="📋 Рекомендації", callback_data="spam_recommendations")],
+        [
+            InlineKeyboardButton(text="📝 Текст", callback_data="spam_check_text"),
+            InlineKeyboardButton(text="📊 Кампанія", callback_data="spam_check_campaign"),
+            InlineKeyboardButton(text="📋 Поради", callback_data="spam_recommendations")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="mailing_main")]
     ])
 
@@ -32,9 +38,11 @@ def get_drip_campaign_menu() -> InlineKeyboardMarkup:
     """Меню каскадних кампаній"""
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="➕ Створити кампанію", callback_data="drip_create")],
-        [InlineKeyboardButton(text="📋 Мої кампанії", callback_data="drip_list")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="drip_stats")],
-        [InlineKeyboardButton(text="⚙️ Шаблони", callback_data="drip_templates")],
+        [
+            InlineKeyboardButton(text="📋 Мої", callback_data="drip_list"),
+            InlineKeyboardButton(text="📊 Статистика", callback_data="drip_stats"),
+            InlineKeyboardButton(text="⚙️ Шаблони", callback_data="drip_templates")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="mailing_main")]
     ])
 
@@ -54,10 +62,14 @@ def get_drip_campaign_actions(campaign_id: str) -> InlineKeyboardMarkup:
 def get_behavior_menu() -> InlineKeyboardMarkup:
     """Меню аналізу поведінки"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👤 Аналіз користувача", callback_data="behavior_analyze_user")],
-        [InlineKeyboardButton(text="📊 Патерни активності", callback_data="behavior_patterns")],
-        [InlineKeyboardButton(text="⚠️ Аномалії", callback_data="behavior_anomalies")],
-        [InlineKeyboardButton(text="🔮 Прогноз", callback_data="behavior_predict")],
+        [
+            InlineKeyboardButton(text="👤 Юзер", callback_data="behavior_analyze_user"),
+            InlineKeyboardButton(text="📊 Патерни", callback_data="behavior_patterns")
+        ],
+        [
+            InlineKeyboardButton(text="⚠️ Аномалії", callback_data="behavior_anomalies"),
+            InlineKeyboardButton(text="🔮 Прогноз", callback_data="behavior_predict")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
 
@@ -65,10 +77,14 @@ def get_behavior_menu() -> InlineKeyboardMarkup:
 def get_keyword_menu() -> InlineKeyboardMarkup:
     """Меню аналізу ключових слів"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Аналіз тексту", callback_data="keywords_analyze_text")],
-        [InlineKeyboardButton(text="📊 ТОП слова", callback_data="keywords_top")],
-        [InlineKeyboardButton(text="😊 Сентимент", callback_data="keywords_sentiment")],
-        [InlineKeyboardButton(text="📈 Тренди", callback_data="keywords_trends")],
+        [
+            InlineKeyboardButton(text="📝 Текст", callback_data="keywords_analyze_text"),
+            InlineKeyboardButton(text="📊 ТОП", callback_data="keywords_top")
+        ],
+        [
+            InlineKeyboardButton(text="😊 Сентимент", callback_data="keywords_sentiment"),
+            InlineKeyboardButton(text="📈 Тренди", callback_data="keywords_trends")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
 
@@ -76,10 +92,14 @@ def get_keyword_menu() -> InlineKeyboardMarkup:
 def get_reports_menu() -> InlineKeyboardMarkup:
     """Меню генерації звітів"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📄 OSINT звіт", callback_data="report_osint")],
-        [InlineKeyboardButton(text="📊 Звіт кампанії", callback_data="report_campaign")],
-        [InlineKeyboardButton(text="👤 Звіт користувача", callback_data="report_user")],
-        [InlineKeyboardButton(text="📈 Аналітичний звіт", callback_data="report_analytics")],
+        [
+            InlineKeyboardButton(text="📄 OSINT", callback_data="report_osint"),
+            InlineKeyboardButton(text="📊 Кампанія", callback_data="report_campaign")
+        ],
+        [
+            InlineKeyboardButton(text="👤 Юзер", callback_data="report_user"),
+            InlineKeyboardButton(text="📈 Аналітика", callback_data="report_analytics")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
     ])
 

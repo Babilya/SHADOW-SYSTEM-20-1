@@ -46,34 +46,30 @@ def funnels_main_kb(funnels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def funnel_view_kb(funnel_id: int, is_active: bool) -> InlineKeyboardMarkup:
-    toggle_text = "⏸ Призупинити" if is_active else "▶️ Активувати"
+    toggle_text = "⏸ Стоп" if is_active else "▶️ Старт"
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="✏️ Назва", callback_data=f"funnel_edit_name_{funnel_id}"),
-            InlineKeyboardButton(text="📝 Опис", callback_data=f"funnel_edit_desc_{funnel_id}")
-        ],
-        [
-            InlineKeyboardButton(text="🖼 Фото", callback_data=f"funnel_edit_photo_{funnel_id}"),
-            InlineKeyboardButton(text="⚙️ Конфіг", callback_data=f"funnel_edit_config_{funnel_id}")
+            InlineKeyboardButton(text="📝 Опис", callback_data=f"funnel_edit_desc_{funnel_id}"),
+            InlineKeyboardButton(text="🖼 Фото", callback_data=f"funnel_edit_photo_{funnel_id}")
         ],
         [InlineKeyboardButton(text="📋 Кроки воронки", callback_data=f"funnel_steps_{funnel_id}")],
         [
             InlineKeyboardButton(text="📝 Шаблони", callback_data=f"funnel_templates_{funnel_id}"),
-            InlineKeyboardButton(text="📅 Планування", callback_data=f"funnel_schedule_{funnel_id}")
+            InlineKeyboardButton(text="📅 План", callback_data=f"funnel_schedule_{funnel_id}"),
+            InlineKeyboardButton(text="⚙️ Конфіг", callback_data=f"funnel_edit_config_{funnel_id}")
         ],
         [
             InlineKeyboardButton(text="📧 Розсилка", callback_data=f"funnel_mailing:{funnel_id}:menu"),
-            InlineKeyboardButton(text="🔍 OSINT", callback_data=f"funnel_osint:{funnel_id}:menu")
-        ],
-        [
-            InlineKeyboardButton(text="📡 Моніторинг", callback_data=f"funnel_monitor:{funnel_id}:menu"),
-            InlineKeyboardButton(text="📊 Статистика", callback_data=f"funnel_stats_{funnel_id}")
+            InlineKeyboardButton(text="🔍 OSINT", callback_data=f"funnel_osint:{funnel_id}:menu"),
+            InlineKeyboardButton(text="📡 Монітор", callback_data=f"funnel_monitor:{funnel_id}:menu")
         ],
         [
             InlineKeyboardButton(text=toggle_text, callback_data=f"funnel_toggle_{funnel_id}"),
+            InlineKeyboardButton(text="📊 Стати", callback_data=f"funnel_stats_{funnel_id}"),
             InlineKeyboardButton(text="🗑 Видалити", callback_data=f"funnel_delete_{funnel_id}")
         ],
-        [InlineKeyboardButton(text="◀️ До воронок", callback_data="funnels_main")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="funnels_main")]
     ])
 
 def funnel_steps_kb(funnel_id: int, steps: list) -> InlineKeyboardMarkup:
@@ -107,7 +103,7 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
     text = f"""<b>🎯 МЕНЕДЖЕР ВОРОНОК</b>
 <i>Створюйте та керуйте воронками продажів</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📊 СТАТИСТИКА:</b>
 ├ 📁 Всього воронок: <b>{len(funnels)}</b>
@@ -115,7 +111,7 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
 ├ 👁 Переглядів: <b>{total_views}</b>
 └ ✅ Конверсій: <b>{total_conv}</b>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>🎯 ВАШІ ВОРОНКИ:</b>"""
     
@@ -181,7 +177,7 @@ async def funnel_view(query: CallbackQuery, state: FSMContext):
     text = f"""<b>🎯 {funnel.name}</b>
 <i>{funnel.description or 'Без опису'}</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📋 ІНФОРМАЦІЯ:</b>
 ├ 🆔 ID: <code>{funnel.id}</code>
@@ -195,7 +191,7 @@ async def funnel_view(query: CallbackQuery, state: FSMContext):
 ├ ✅ Конверсій: <b>{funnel.conversions or 0}</b>
 └ 📊 CR: <b>{conv_rate}%</b>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>⚙️ НАЛАШТУВАННЯ:</b>"""
     
@@ -359,7 +355,7 @@ async def funnel_stats(query: CallbackQuery):
     text = f"""<b>📊 СТАТИСТИКА ВОРОНКИ</b>
 <i>{funnel.name}</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📈 МЕТРИКИ:</b>
 ├ 👁 Переглядів: <b>{funnel.views_count or 0}</b>
@@ -416,7 +412,7 @@ async def funnel_steps_list(query: CallbackQuery):
     text = f"""<b>📋 КРОКИ ВОРОНКИ</b>
 <i>{funnel.name if funnel else 'N/A'}</i>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📝 Всього кроків:</b> {len(steps)}
 
@@ -509,7 +505,7 @@ async def step_view(query: CallbackQuery):
         funnel_id = step.funnel_id
         text = f"""<b>📝 КРОК #{step.step_order}</b>
 
-━━━━━━━━━━━━━━━━━━━━━━━
+───────────────
 
 <b>📄 Контент:</b>
 {step.content[:500]}{'...' if len(step.content) > 500 else ''}
@@ -606,7 +602,7 @@ async def funnel_templates(query: CallbackQuery):
     text = f"""<b>📝 ШАБЛОНИ ДЛЯ ВОРОНКИ</b>
 <i>{funnel.name if funnel else 'Воронка'}</i>
 
-═══════════════════════════════
+───────────────═════
 
 Виберіть шаблон для застосування до 
 кроку воронки або створіть новий.
@@ -679,7 +675,7 @@ async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
     
     text = """
 📝 <b>НОВИЙ ШАБЛОН ДЛЯ ВОРОНКИ</b>
-═══════════════════════════════
+───────────────═════
 
 Виберіть категорію шаблону:
 """
@@ -716,7 +712,7 @@ async def funnel_schedule(query: CallbackQuery):
     text = f"""<b>📅 ПЛАНУВАННЯ ВОРОНКИ</b>
 <i>{funnel.name if funnel else 'Воронка'}</i>
 
-═══════════════════════════════
+───────────────═════
 
 Налаштуйте автоматичний запуск кроків 
 воронки за розкладом.
@@ -744,7 +740,7 @@ async def funnel_add_schedule(query: CallbackQuery):
     funnel_id = int(query.data.split("_")[-1])
     
     text = """<b>⏱ ВИБІР ІНТЕРВАЛУ</b>
-═══════════════════════════════
+───────────────═════
 
 Як часто запускати кроки воронки?"""
     
@@ -818,7 +814,7 @@ async def funnel_monitor_action(query: CallbackQuery):
         await query.message.edit_text(
             f"📡 <b>МОНІТОРИНГ ВОРОНКИ</b>\n"
             f"<i>{funnel.name if funnel else f'Воронка #{funnel_id}'}</i>\n\n"
-            "═══════════════════════════════\n\n"
+            "───────────────═════\n\n"
             "<b>Можливості моніторингу:</b>\n"
             "├ 🔍 Відстеження реакцій на кроки\n"
             "├ 👥 Моніторинг нових користувачів\n"
@@ -851,7 +847,7 @@ async def funnel_monitor_action(query: CallbackQuery):
         await query.message.edit_text(
             f"📊 <b>ЗВІТ АКТИВНОСТІ</b>\n"
             f"<i>{funnel.name if funnel else f'Воронка #{funnel_id}'}</i>\n\n"
-            "═══════════════════════════════\n\n"
+            "───────────────═════\n\n"
             f"<b>Загальна статистика:</b>\n"
             f"├ Кроків: {len(steps)}\n"
             f"├ Переглядів: {views}\n"

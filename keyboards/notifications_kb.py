@@ -4,14 +4,16 @@ from typing import List, Dict
 def notifications_menu_kb(is_admin: bool = False) -> InlineKeyboardMarkup:
     """Головне меню сповіщень"""
     buttons = [
-        [InlineKeyboardButton(text="📬 Мої сповіщення", callback_data="notifications_my")],
-        [InlineKeyboardButton(text="🔔 Непрочитані", callback_data="notifications_unread")]
+        [
+            InlineKeyboardButton(text="📬 Мої", callback_data="notifications_my"),
+            InlineKeyboardButton(text="🔔 Нові", callback_data="notifications_unread")
+        ]
     ]
     
     if is_admin:
-        buttons.extend([
-            [InlineKeyboardButton(text="📢 Створити сповіщення", callback_data="notification_create")],
-            [InlineKeyboardButton(text="📋 Історія відправок", callback_data="notifications_history")]
+        buttons.append([
+            InlineKeyboardButton(text="📢 Створити", callback_data="notification_create"),
+            InlineKeyboardButton(text="📋 Історія", callback_data="notifications_history")
         ])
     
     buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu")])
@@ -145,9 +147,11 @@ def notification_view_kb(notif_id: int, is_admin: bool = False) -> InlineKeyboar
 def bans_menu_kb() -> InlineKeyboardMarkup:
     """Меню банів"""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚫 Забанити користувача", callback_data="ban_user")],
-        [InlineKeyboardButton(text="📋 Активні бани", callback_data="bans_active")],
-        [InlineKeyboardButton(text="📜 Історія банів", callback_data="bans_history")],
+        [InlineKeyboardButton(text="🚫 Забанити", callback_data="ban_user")],
+        [
+            InlineKeyboardButton(text="📋 Активні", callback_data="bans_active"),
+            InlineKeyboardButton(text="📜 Історія", callback_data="bans_history")
+        ],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_panel")]
     ])
 

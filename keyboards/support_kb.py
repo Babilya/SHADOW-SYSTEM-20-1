@@ -4,14 +4,16 @@ from typing import List, Dict
 def support_menu_kb(is_admin: bool = False) -> InlineKeyboardMarkup:
     """Головне меню підтримки"""
     buttons = [
-        [InlineKeyboardButton(text="📩 Створити тікет", callback_data="ticket_create")],
-        [InlineKeyboardButton(text="📋 Мої тікети", callback_data="tickets_my")]
+        [
+            InlineKeyboardButton(text="📩 Створити", callback_data="ticket_create"),
+            InlineKeyboardButton(text="📋 Мої", callback_data="tickets_my")
+        ]
     ]
     
     if is_admin:
-        buttons.extend([
-            [InlineKeyboardButton(text="📥 Всі тікети", callback_data="tickets_all")],
-            [InlineKeyboardButton(text="📊 Статистика", callback_data="tickets_stats")]
+        buttons.append([
+            InlineKeyboardButton(text="📥 Всі", callback_data="tickets_all"),
+            InlineKeyboardButton(text="📊 Статистика", callback_data="tickets_stats")
         ])
     
     buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu")])

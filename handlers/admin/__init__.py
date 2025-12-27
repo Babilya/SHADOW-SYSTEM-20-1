@@ -11,3 +11,6 @@ from .keys import *
 from .stats import *
 from .emergency import *
 from .system import *
+from .ui_editor import ui_editor_router
+
+admin_router.include_router(ui_editor_router)

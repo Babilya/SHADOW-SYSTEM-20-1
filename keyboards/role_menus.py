@@ -177,6 +177,7 @@ def admin_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_main"),
             InlineKeyboardButton(text="🤖 БОТНЕТ", callback_data="botnet_main")
         ],
+        [InlineKeyboardButton(text="🎨 РЕДАКТОР UI", callback_data="ui_editor")],
         [InlineKeyboardButton(text="📱 ПЕРЕГЛЯД МЕНЮ ЮЗЕРА", callback_data="user_menu")],
         [InlineKeyboardButton(text="🆘 EMERGENCY ALERT", callback_data="admin_emergency")]
     ])

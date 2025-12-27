@@ -6,9 +6,9 @@ def guest_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📦 Тарифи", callback_data="subscription_main")],
         [
             InlineKeyboardButton(text="🔑 Ключ", callback_data="enter_key"),
-            InlineKeyboardButton(text="💬 Підтримка", callback_data="support")
-        ],
-        [InlineKeyboardButton(text="📖 Довідка", callback_data="help_main")]
+            InlineKeyboardButton(text="💬 Підтримка", callback_data="support"),
+            InlineKeyboardButton(text="📖 Довідка", callback_data="help_main")
+        ]
     ])
 
 def guest_description() -> str:
@@ -41,13 +41,11 @@ def manager_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🚀 КАМПАНІЇ", callback_data="campaigns_main")],
         [
             InlineKeyboardButton(text="🤖 БОТИ", callback_data="botnet_main"),
-            InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
+            InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main"),
+            InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu")
         ],
         [
-            InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
-            InlineKeyboardButton(text="✍️ ТЕКСТОВКИ", callback_data="texting_main")
-        ],
-        [
+            InlineKeyboardButton(text="✍️ ТЕКСТОВКИ", callback_data="texting_main"),
             InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu"),
             InlineKeyboardButton(text="👤 ПРОФІЛЬ", callback_data="profile_main")
         ],
@@ -84,27 +82,23 @@ def leader_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🤖 БОТИ", callback_data="botnet_main")],
         [
             InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_main"),
-            InlineKeyboardButton(text="🚀 КАМПАНІЇ", callback_data="campaigns_main")
-        ],
-        [
-            InlineKeyboardButton(text="🎯 ВОРОНКИ", callback_data="funnels_main"),
-            InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
+            InlineKeyboardButton(text="🚀 КАМПАНІЇ", callback_data="campaigns_main"),
+            InlineKeyboardButton(text="🎯 ВОРОНКИ", callback_data="funnels_main")
         ],
         [
             InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor"),
-            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse")
+            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse"),
+            InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
         ],
         [
             InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
-            InlineKeyboardButton(text="🔔 СПОВІЩЕННЯ", callback_data="notifications_menu")
-        ],
-        [
-            InlineKeyboardButton(text="👥 КОМАНДА", callback_data="team_main"),
-            InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu")
+            InlineKeyboardButton(text="🔔 СПОВІЩ", callback_data="notifications_menu"),
+            InlineKeyboardButton(text="👥 КОМАНДА", callback_data="team_main")
         ],
         [
             InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warming_main"),
-            InlineKeyboardButton(text="⚙️ КОНФІГ", callback_data="settings_main")
+            InlineKeyboardButton(text="⚙️ КОНФІГ", callback_data="settings_main"),
+            InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu")
         ],
         [InlineKeyboardButton(text="🛠 ІНСТРУМЕНТИ", callback_data="advanced_tools")],
         [

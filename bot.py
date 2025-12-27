@@ -48,7 +48,7 @@ try:
     from middlewares.role_middleware import RoleMiddleware
     from keyboards.role_menus import get_menu_by_role, get_description_by_role
     from services.user_service import user_service
-    from database.models import UserRole
+    from core.role_constants import UserRole
     logger.info("✅ Все модулі завантажені успішно")
 except Exception as e:
     logger.error(f"❌ Помилка при завантаженні модулів: {e}", exc_info=True)

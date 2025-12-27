@@ -116,3 +116,23 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - Enhanced error logging in safe_edit_message function
 - All admin panel buttons now have working handlers
 - Better navigation flow between menus
+
+### Registered Routers (December 2025)
+All feature routers now properly registered in main.py:
+- warming_router (account warming with profiles)
+- mailing_router (broadcast/targeted campaigns)
+- geo_router (geo scanner)
+- proxy_router (proxy management)
+- advanced_router (scheduler, A/B testing, auto-responder, segmentation)
+- osint_handler_router (OSINT commands)
+- texting_router (text creation/templates)
+- scheduler_router (campaign scheduling)
+
+### Warming Profiles Added
+- Conservative (~20 actions/day)
+- Standard (~50 actions/day)
+- Aggressive (100+ actions/day)
+- Custom (manual settings)
+
+## AI Integration Notes
+AI features require OpenAI API key. When key is missing, system operates in graceful degradation mode - all non-AI features remain fully functional.

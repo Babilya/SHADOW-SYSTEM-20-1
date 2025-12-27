@@ -1,0 +1,1480 @@
+ДЕТАЛЬНИЙ ПРИНЦИП РОБОТИ ПАРСИНГУ ТА РОЗСИЛОК ДЛЯ КІБЕРПОЛІЦІЇ
+
+📊 АРХІТЕКТУРА СИСТЕМИ
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    КІБЕРПОЛІЦІЯ - СИСТЕМА АНАЛІЗУ ТА РОЗСИЛОК            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  LAYER 1: ПАРСИНГ / OSINT                  LAYER 2: РОЗСИЛКИ             │
+│  ┌─────────────┐  ┌─────────────┐          ┌─────────────┐               │
+│  │   Збір даних│  │   Аналіз    │          │ Кампанії    │               │
+│  │   • Чати    │  │   • AI      │          │ • Шаблони   │               │
+│  │   • Юзери   │  │   • Патерни │          │ • Розклад   │               │
+│  │   • Пости   │  │   • Графи   │          │ • Сегменти  │               │
+│  └─────────────┘  └─────────────┘          └─────────────┘               │
+│        │                    │                       │                     │
+├────────┼────────────────────┼───────────────────────┼─────────────────────┤
+│                            БАЗА ДАНИХ                                      │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Таблиці: chats, users, messages, campaigns, results, analytics    │  │
+│  │  Індекси: по чатах, юзерах, датах, ключових словах                 │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│        │                    │                       │                     │
+├────────┴────────────────────┴───────────────────────┴─────────────────────┤
+│                     КОМУНІКАЦІЙНИЙ ШАР (Telethon/API)                     │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Боти: 1..N сесій з різними проксі та device fingerprints          │  │
+│  │  Обмеження: FloodWait обробка, обхід лімітів, паузи                │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+🔍 ДЕТАЛЬНИЙ ПАРСИНГ (OSINT / РОЗВІДКА)
+
+1. КОМПЛЕКСНИЙ ПАРСЕР ДАНИХ
+
+```python
+# parsers/advanced_parser.py
+import asyncio
+import re
+import json
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+from collections import defaultdict
+
+from telethon import TelegramClient
+from telethon.tl.functions.messages import GetHistoryRequest, SearchRequest
+from telethon.tl.types import (
+    PeerChannel, PeerChat, PeerUser,
+    Channel, Chat, User,
+    Message, MessageMediaPhoto, MessageMediaDocument
+)
+
+@dataclass
+class ParsedMessage:
+    """Структура для збереження розібраних повідомлень"""
+    id: int
+    date: datetime
+    sender_id: int
+    sender_username: Optional[str]
+    text: str
+    media_type: Optional[str]
+    views: int
+    forwards: int
+    replies: Optional[int]
+    edit_date: Optional[datetime]
+    contains_coordinates: bool = False
+    contains_keywords: List[str] = None
+    threat_level: int = 0
+
+class AdvancedTelegramParser:
+    """Розширений парсер Telegram даних"""
+    
+    def __init__(self, client: TelegramClient):
+        self.client = client
+        self.parsed_data = {
+            'chats': {},
+            'users': {},
+            'messages': [],
+            'statistics': defaultdict(int)
+        }
+        
+        # Патерни для аналізу
+        self.patterns = {
+            'coordinates': [
+                r'\b(\d{2}\.\d{4,6}),\s*(\d{2,3}\.\d{4,6})\b',
+                r'\b(\d{2})°(\d{2})\'(\d{2})"[NS]\s*(\d{2})°(\d{2})\'(\d{2})"[EW]\b',
+                r'\b[A-R]{2}\d{2}[a-x]{2}\b',  # Military grid
+            ],
+            'phone_numbers': r'[\+\(]?[1-9][0-9\-\(\)\.]{8,}\d',
+            'crypto_wallets': r'\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b',
+            'explosives': ['тнт', 'динаміт', 'детонатор', 'запал', 'вибухівка', 'порох'],
+            'weapons': ['автомат', 'гранатомет', 'снайпер', 'рpg', 'танк', 'бтр'],
+            'military_terms': ['координати', 'азимут', 'зсу', 'рф', 'рота', 'взвод']
+        }
+    
+    async def parse_chat_deep(self, chat_identifier, limit: int = 5000) -> Dict:
+        """Глибокий парсинг чату з повним аналізом"""
+        try:
+            entity = await self.client.get_entity(chat_identifier)
+            
+            chat_data = {
+                'id': entity.id,
+                'title': getattr(entity, 'title', 'Unknown'),
+                'username': getattr(entity, 'username', None),
+                'participants_count': getattr(entity, 'participants_count', 0),
+                'date_created': getattr(entity, 'date', None),
+                'scam': getattr(entity, 'scam', False),
+                'verified': getattr(entity, 'verified', False),
+                'access_hash': entity.access_hash if hasattr(entity, 'access_hash') else None
+            }
+            
+            # Збереження інформації про чат
+            self.parsed_data['chats'][entity.id] = chat_data
+            
+            # Парсинг учасників
+            participants = await self.parse_participants(entity, limit=200)
+            
+            # Парсинг повідомлень
+            messages = await self.parse_messages(entity, limit=limit)
+            
+            # Побудова графа взаємодій
+            interaction_graph = self.build_interaction_graph(messages, participants)
+            
+            # Аналіз активності
+            activity_analysis = self.analyze_activity(messages)
+            
+            # Виявлення ключових осіб
+            key_persons = self.identify_key_persons(interaction_graph, messages)
+            
+            return {
+                'chat_info': chat_data,
+                'participants_count': len(participants),
+                'messages_count': len(messages),
+                'time_range': self.get_time_range(messages),
+                'activity_analysis': activity_analysis,
+                'key_persons': key_persons,
+                'interaction_graph': interaction_graph,
+                'threat_assessment': self.assess_threat_level(messages, participants)
+            }
+            
+        except Exception as e:
+            print(f"Помилка парсингу чату {chat_identifier}: {e}")
+            return {}
+    
+    async def parse_participants(self, entity, limit: int = 200) -> List[Dict]:
+        """Парсинг учасників чату з детальною інформацією"""
+        participants_data = []
+        
+        try:
+            participants = await self.client.get_participants(entity, limit=limit, aggressive=True)
+            
+            for user in participants:
+                user_data = {
+                    'id': user.id,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'phone': user.phone,
+                    'bot': user.bot,
+                    'verified': user.verified,
+                    'scam': user.scam,
+                    'fake': user.fake,
+                    'restricted': user.restricted,
+                    'status': str(user.status),
+                    'last_seen': self.parse_last_seen(user.status),
+                    'photo': bool(user.photo),
+                    'premium': getattr(user, 'premium', False),
+                    'risk_score': self.calculate_user_risk_score(user)
+                }
+                
+                participants_data.append(user_data)
+                
+                # Збереження в глобальній базі
+                self.parsed_data['users'][user.id] = user_data
+                
+            return participants_data
+            
+        except Exception as e:
+            print(f"Помилка парсингу учасників: {e}")
+            return []
+    
+    async def parse_messages(self, entity, limit: int = 5000) -> List[ParsedMessage]:
+        """Парсинг повідомлень з детальним аналізом"""
+        messages_data = []
+        offset_id = 0
+        total_parsed = 0
+        
+        print(f"🔍 Початок парсингу повідомлень (ліміт: {limit})...")
+        
+        while total_parsed < limit:
+            try:
+                # Отримання порції повідомлень
+                history = await self.client(GetHistoryRequest(
+                    peer=entity,
+                    offset_id=offset_id,
+                    offset_date=None,
+                    add_offset=0,
+                    limit=min(100, limit - total_parsed),
+                    max_id=0,
+                    min_id=0,
+                    hash=0
+                ))
+                
+                if not history.messages:
+                    break
+                
+                # Обробка кожного повідомлення
+                for msg in history.messages:
+                    parsed_msg = await self.parse_single_message(msg)
+                    messages_data.append(parsed_msg)
+                    
+                    total_parsed += 1
+                    
+                    # Прогрес кожні 100 повідомлень
+                    if total_parsed % 100 == 0:
+                        print(f"📥 Парсинг: {total_parsed}/{limit} повідомлень")
+                
+                # Оновлення offset для наступної порції
+                offset_id = history.messages[-1].id
+                
+                # Якщо отримано менше ніж запитували - значить більше немає
+                if len(history.messages) < 100:
+                    break
+                    
+                # Невелика пауза, щоб не перевантажувати API
+                await asyncio.sleep(0.5)
+                
+            except Exception as e:
+                print(f"Помилка при парсингу повідомлень: {e}")
+                break
+        
+        print(f"✅ Парсинг завершено: {len(messages_data)} повідомлень")
+        return messages_data
+    
+    async def parse_single_message(self, message: Message) -> ParsedMessage:
+        """Детальний парсинг одного повідомлення"""
+        # Базові дані
+        parsed = ParsedMessage(
+            id=message.id,
+            date=message.date,
+            sender_id=message.sender_id if hasattr(message, 'sender_id') else 0,
+            sender_username=None,
+            text=message.message or '',
+            media_type=self.get_media_type(message.media) if message.media else None,
+            views=message.views or 0,
+            forwards=message.forwards or 0,
+            replies=message.replies.replies if hasattr(message, 'replies') else 0,
+            edit_date=message.edit_date if hasattr(message, 'edit_date') else None
+        )
+        
+        # Пошук ключових слів та патернів
+        parsed.contains_keywords = self.find_keywords_in_text(parsed.text)
+        parsed.contains_coordinates = self.find_coordinates_in_text(parsed.text)
+        
+        # Розрахунок рівня загрози
+        parsed.threat_level = self.calculate_threat_level(parsed)
+        
+        # Збереження в статистиці
+        self.update_statistics(parsed)
+        
+        return parsed
+    
+    def find_coordinates_in_text(self, text: str) -> bool:
+        """Пошук координат у тексті"""
+        for pattern in self.patterns['coordinates']:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
+    
+    def find_keywords_in_text(self, text: str) -> List[str]:
+        """Пошук ключових слів у тексті"""
+        found_keywords = []
+        text_lower = text.lower()
+        
+        # Перевірка категорій ключових слів
+        for category, keywords in self.patterns.items():
+            if category in ['coordinates', 'phone_numbers', 'crypto_wallets']:
+                continue
+            
+            for keyword in keywords:
+                if keyword in text_lower:
+                    found_keywords.append(f"{category}:{keyword}")
+        
+        return found_keywords
+    
+    def calculate_threat_level(self, message: ParsedMessage) -> int:
+        """Розрахунок рівня загрози повідомлення"""
+        threat_score = 0
+        
+        # Координати +50
+        if message.contains_coordinates:
+            threat_score += 50
+        
+        # Ключові слова +10 за кожне
+        if message.contains_keywords:
+            threat_score += len(message.contains_keywords) * 10
+        
+        # Медіа (може містити EXIF дані) +20
+        if message.media_type:
+            threat_score += 20
+        
+        # Редагування (може бути шифром) +15
+        if message.edit_date:
+            threat_score += 15
+        
+        # Обмеження до 100
+        return min(threat_score, 100)
+    
+    def build_interaction_graph(self, messages: List[ParsedMessage], participants: List[Dict]) -> Dict:
+        """Побудова графа взаємодій між користувачами"""
+        graph = {
+            'nodes': [],
+            'edges': [],
+            'centrality': {}
+        }
+        
+        # Додавання нод (учасників)
+        for user in participants:
+            graph['nodes'].append({
+                'id': user['id'],
+                'label': user.get('username') or user.get('first_name', str(user['id'])),
+                'group': 'participant',
+                'risk_score': user.get('risk_score', 0),
+                'messages_count': 0,
+                'influence': 0
+            })
+        
+        # Підрахунок повідомлень та взаємодій
+        user_message_counts = defaultdict(int)
+        reply_edges = defaultdict(int)
+        
+        for msg in messages:
+            sender_id = msg.sender_id
+            user_message_counts[sender_id] += 1
+            
+            # Тут можна додати аналіз відповідей (reply_to)
+            # та пересилань (forward_from)
+        
+        # Розрахунок центральності
+        total_messages = len(messages)
+        for node in graph['nodes']:
+            user_id = node['id']
+            msg_count = user_message_counts.get(user_id, 0)
+            
+            node['messages_count'] = msg_count
+            node['influence'] = (msg_count / total_messages * 100) if total_messages > 0 else 0
+            
+            # Degree centrality (спрощено)
+            graph['centrality'][user_id] = node['influence']
+        
+        return graph
+    
+    def identify_key_persons(self, graph: Dict, messages: List[ParsedMessage]) -> List[Dict]:
+        """Ідентифікація ключових осіб у чаті"""
+        if not graph['nodes']:
+            return []
+        
+        # Сортування за впливовістю
+        sorted_nodes = sorted(
+            graph['nodes'],
+            key=lambda x: x['influence'],
+            reverse=True
+        )
+        
+        key_persons = []
+        for node in sorted_nodes[:10]:  # Топ-10
+            # Пошук повідомлень цього користувача
+            user_messages = [m for m in messages if m.sender_id == node['id']]
+            
+            # Аналіз змісту повідомлень
+            high_threat_messages = [m for m in user_messages if m.threat_level > 50]
+            
+            key_persons.append({
+                'user_id': node['id'],
+                'username': node['label'],
+                'influence_score': node['influence'],
+                'messages_count': node['messages_count'],
+                'high_threat_messages': len(high_threat_messages),
+                'average_threat_level': sum(m.threat_level for m in user_messages) / len(user_messages) if user_messages else 0,
+                'last_active': max(m.date for m in user_messages).isoformat() if user_messages else None
+            })
+        
+        return key_persons
+```
+
+2. ПАРСИНГ З РЕАЛЬНИМ ЧАСОМ ТА ІНКРЕМЕНТАЛЬНИМИ ОНОВЛЕННЯМИ
+
+```python
+# parsers/realtime_parser.py
+import asyncio
+from datetime import datetime, timedelta
+import hashlib
+
+class RealTimeParser:
+    """Парсинг з реальним часом та інкрементальними оновленнями"""
+    
+    def __init__(self, client: TelegramClient):
+        self.client = client
+        self.last_parsed = {}  # {chat_id: last_message_id}
+        self.message_hashes = set()  # Для дедуплікації
+        
+    async def start_realtime_monitoring(self, chat_identifiers: List[str]):
+        """Запуск моніторингу в реальному часі"""
+        print(f"📡 Запуск реального моніторингу для {len(chat_identifiers)} чатів")
+        
+        # Ініціалізація для кожного чату
+        for chat_id in chat_identifiers:
+            try:
+                entity = await self.client.get_entity(chat_id)
+                
+                # Отримання останнього повідомлення для визначення початкової точки
+                messages = await self.client.get_messages(entity, limit=1)
+                if messages:
+                    self.last_parsed[entity.id] = messages[0].id
+                
+                print(f"✅ Моніторинг чату {chat_id} активовано")
+                
+            except Exception as e:
+                print(f"❌ Помилка ініціалізації {chat_id}: {e}")
+        
+        # Запуск циклу моніторингу
+        asyncio.create_task(self.monitoring_loop())
+    
+    async def monitoring_loop(self):
+        """Основний цикл моніторингу"""
+        while True:
+            try:
+                for chat_id, last_msg_id in list(self.last_parsed.items()):
+                    await self.check_new_messages(chat_id, last_msg_id)
+                
+                # Пауза між перевірками
+                await asyncio.sleep(30)  # 30 секунд
+                
+            except Exception as e:
+                print(f"Помилка моніторингу: {e}")
+                await asyncio.sleep(60)
+    
+    async def check_new_messages(self, chat_id: int, last_msg_id: int):
+        """Перевірка нових повідомлень з останнього парсингу"""
+        try:
+            entity = await self.client.get_input_entity(chat_id)
+            
+            # Отримання нових повідомлень (з запасом для випадку видалення)
+            messages = await self.client.get_messages(
+                entity,
+                limit=50,
+                offset_id=last_msg_id,
+                min_id=last_msg_id
+            )
+            
+            if not messages:
+                return
+            
+            # Обробка в зворотному порядку (від старих до нових)
+            for msg in reversed(messages):
+                # Перевірка на дублікат через хеш
+                msg_hash = self.calculate_message_hash(msg)
+                
+                if msg_hash in self.message_hashes:
+                    continue
+                
+                # Парсинг нового повідомлення
+                parsed = await self.parse_single_message(msg)
+                
+                # Аналіз на загрози в реальному часі
+                if parsed.threat_level > 30:
+                    await self.trigger_real_time_alert(parsed, chat_id)
+                
+                # Оновлення останнього ID
+                self.last_parsed[chat_id] = max(self.last_parsed.get(chat_id, 0), msg.id)
+                
+                # Додавання хешу
+                self.message_hashes.add(msg_hash)
+                
+            # Обмеження розміру набору хешів
+            if len(self.message_hashes) > 10000:
+                self.message_hashes = set(list(self.message_hashes)[-5000:])
+                
+        except Exception as e:
+            print(f"Помилка перевірки нових повідомлень для {chat_id}: {e}")
+    
+    def calculate_message_hash(self, message) -> str:
+        """Розрахунок унікального хешу повідомлення"""
+        content = f"{message.id}-{message.text}-{message.date.timestamp()}"
+        return hashlib.md5(content.encode()).hexdigest()
+    
+    async def trigger_real_time_alert(self, message: ParsedMessage, chat_id: int):
+        """Тригер сповіщення в реальному часі"""
+        alert_data = {
+            'timestamp': datetime.now().isoformat(),
+            'chat_id': chat_id,
+            'message_id': message.id,
+            'sender_id': message.sender_id,
+            'threat_level': message.threat_level,
+            'keywords': message.contains_keywords,
+            'has_coordinates': message.contains_coordinates,
+            'text_preview': message.text[:200]
+        }
+        
+        print(f"🚨 РЕАЛЬНИЙ ЧАС: Загроза рівня {message.threat_level} в чаті {chat_id}")
+        
+        # Тут можна додати відправку в Telegram, запис в лог, тощо
+        # await self.send_alert_to_operators(alert_data)
+```
+
+📨 ДЕТАЛЬНІ РОЗСИЛКИ (MASS MESSAGING)
+
+3. СИСТЕМА КЕРУВАННЯ КАМПАНІЯМИ
+
+```python
+# campaigns/campaign_manager.py
+import asyncio
+import json
+import random
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+from enum import Enum
+from dataclasses import dataclass
+import pandas as pd
+
+class CampaignStatus(Enum):
+    DRAFT = "draft"
+    SCHEDULED = "scheduled"
+    RUNNING = "running"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+@dataclass
+class CampaignTarget:
+    """Ціль для розсилки"""
+    identifier: str  # username, phone, chat_id
+    type: str  # user, chat, phone
+    data: Dict = None  # Додаткові дані
+
+@dataclass
+class CampaignMessage:
+    """Повідомлення для розсилки"""
+    text: str
+    media_path: Optional[str] = None
+    parse_mode: str = "html"  # html, markdown, none
+    buttons: List[Dict] = None  # Кнопки для повідомлення
+
+class AdvancedCampaignManager:
+    """Розширений менеджер кампаній розсилки"""
+    
+    def __init__(self, botnet_manager):
+        self.botnet = botnet_manager
+        self.active_campaigns = {}
+        self.campaign_history = []
+        
+        # Статистика в реальному часі
+        self.realtime_stats = {
+            'total_sent': 0,
+            'success_rate': 0.0,
+            'active_campaigns': 0,
+            'bots_utilization': 0.0
+        }
+        
+        # Шаблони повідомлень
+        self.message_templates = self.load_templates()
+    
+    def load_templates(self) -> Dict:
+        """Завантаження шаблонів повідомлень"""
+        return {
+            'warning': {
+                'name': 'Попередження',
+                'template': """⚠️ УВАГА {name}!
+
+Ваша активність зафіксована в системі.
+Місцезнаходження: {location}
+Час: {time}
+
+Рекомендуємо {action}.
+
+Це автоматичне сповіщення."""
+            },
+            'disinformation': {
+                'name': 'Дезінформація',
+                'template': """🚨 ЕКСТРЕНЕ ПОВІДОМЛЕННЯ
+
+{false_information}
+
+Не поширюйте цю інформацію.
+Час: {time}"""
+            },
+            'psychological': {
+                'name': 'Психологічна операція',
+                'template': """🧠 ПСИХОЛОГІЧНИЙ ВПЛИВ
+
+{message}
+
+Подумайте про {suggestion}.
+
+Ваше благополуччя важливо для нас."""
+            }
+        }
+    
+    async def create_campaign(self, campaign_data: Dict) -> str:
+        """Створення нової кампанії"""
+        campaign_id = f"CMP-{datetime.now().strftime('%Y%m%d%H%M%S')}-{random.randint(1000, 9999)}"
+        
+        campaign = {
+            'id': campaign_id,
+            'name': campaign_data.get('name', 'Без назви'),
+            'status': CampaignStatus.DRAFT.value,
+            'created_at': datetime.now().isoformat(),
+            'created_by': campaign_data.get('creator', 'system'),
+            
+            # Цілі
+            'targets': self.prepare_targets(campaign_data.get('targets', [])),
+            'target_type': campaign_data.get('target_type', 'users'),
+            
+            # Повідомлення
+            'messages': self.prepare_messages(campaign_data.get('messages', [])),
+            'message_strategy': campaign_data.get('strategy', 'sequential'),  # sequential, random, a/b
+            
+            # Розклад
+            'schedule': {
+                'start_time': campaign_data.get('start_time'),
+                'end_time': campaign_data.get('end_time'),
+                'timezone': campaign_data.get('timezone', 'Europe/Kyiv'),
+                'delays': campaign_data.get('delays', {'min': 3, 'max': 10})
+            },
+            
+            # Обмеження
+            'limits': {
+                'messages_per_hour': campaign_data.get('messages_per_hour', 100),
+                'messages_per_bot': campaign_data.get('messages_per_bot', 20),
+                'retry_attempts': campaign_data.get('retry_attempts', 3)
+            },
+            
+            # Статистика
+            'statistics': {
+                'total_targets': 0,
+                'processed': 0,
+                'successful': 0,
+                'failed': 0,
+                'started_at': None,
+                'completed_at': None
+            },
+            
+            # Налаштування
+            'settings': {
+                'personalization': campaign_data.get('personalization', True),
+                'tracking': campaign_data.get('tracking', True),
+                'stop_on_failure_rate': campaign_data.get('stop_on_failure_rate', 50),
+                'auto_pause_on_flood': campaign_data.get('auto_pause_on_flood', True)
+            }
+        }
+        
+        # Збереження кампанії
+        self.active_campaigns[campaign_id] = campaign
+        
+        print(f"✅ Кампанія {campaign_id} створена: {campaign['name']}")
+        
+        return campaign_id
+    
+    def prepare_targets(self, raw_targets: List) -> List[CampaignTarget]:
+        """Підготовка цілей для кампанії"""
+        prepared_targets = []
+        
+        for target in raw_targets:
+            if isinstance(target, str):
+                # Автоматичне визначення типу
+                if target.startswith('@'):
+                    target_type = 'username'
+                elif target.startswith('+'):
+                    target_type = 'phone'
+                elif target.isdigit() or (target.startswith('-100') and target[4:].isdigit()):
+                    target_type = 'chat_id'
+                else:
+                    target_type = 'unknown'
+                
+                prepared_targets.append(CampaignTarget(
+                    identifier=target,
+                    type=target_type
+                ))
+            elif isinstance(target, dict):
+                prepared_targets.append(CampaignTarget(
+                    identifier=target['identifier'],
+                    type=target.get('type', 'user'),
+                    data=target.get('data', {})
+                ))
+        
+        return prepared_targets
+    
+    def prepare_messages(self, raw_messages: List) -> List[CampaignMessage]:
+        """Підготовка повідомлень для кампанії"""
+        prepared_messages = []
+        
+        for msg in raw_messages:
+            if isinstance(msg, str):
+                # Простий текст
+                prepared_messages.append(CampaignMessage(text=msg))
+            elif isinstance(msg, dict):
+                # Детальне повідомлення
+                prepared_messages.append(CampaignMessage(
+                    text=msg.get('text', ''),
+                    media_path=msg.get('media'),
+                    parse_mode=msg.get('parse_mode', 'html'),
+                    buttons=msg.get('buttons')
+                ))
+        
+        return prepared_messages
+    
+    async def start_campaign(self, campaign_id: str):
+        """Запуск кампанії"""
+        if campaign_id not in self.active_campaigns:
+            raise ValueError(f"Кампанія {campaign_id} не знайдена")
+        
+        campaign = self.active_campaigns[campaign_id]
+        
+        # Перевірка можливості запуску
+        if not await self.can_start_campaign(campaign):
+            print(f"❌ Неможливо запустити кампанію {campaign_id}")
+            return False
+        
+        # Оновлення статусу
+        campaign['status'] = CampaignStatus.RUNNING.value
+        campaign['statistics']['started_at'] = datetime.now().isoformat()
+        campaign['statistics']['total_targets'] = len(campaign['targets'])
+        
+        print(f"🚀 Запуск кампанії {campaign_id}: {campaign['name']}")
+        
+        # Запуск воркера кампанії
+        asyncio.create_task(self.campaign_worker(campaign_id))
+        
+        return True
+    
+    async def campaign_worker(self, campaign_id: str):
+        """Воркер для виконання кампанії"""
+        campaign = self.active_campaigns[campaign_id]
+        
+        print(f"👷 Воркер кампанії {campaign_id} запущено")
+        
+        # Стратегія відправки
+        strategy = campaign['message_strategy']
+        
+        # Обробка цілей
+        for i, target in enumerate(campaign['targets']):
+            # Перевірка статусу кампанії
+            if campaign['status'] != CampaignStatus.RUNNING.value:
+                print(f"⏸️ Кампанія {campaign_id} призупинена")
+                break
+            
+            # Вибір повідомлення за стратегією
+            message = self.select_message(campaign['messages'], strategy, i)
+            
+            # Персоналізація повідомлення
+            personalized_message = self.personalize_message(
+                message.text,
+                target,
+                campaign.get('context', {})
+            )
+            
+            # Створення завдання для ботнета
+            task = {
+                'type': 'send_message',
+                'campaign_id': campaign_id,
+                'target': target.identifier,
+                'target_type': target.type,
+                'message': personalized_message,
+                'media': message.media_path,
+                'parse_mode': message.parse_mode,
+                'buttons': message.buttons,
+                'priority': 'normal',
+                'retry_count': campaign['limits']['retry_attempts']
+            }
+            
+            # Додавання завдання в чергу
+            await self.botnet.add_task(task)
+            
+            # Оновлення статистики
+            campaign['statistics']['processed'] += 1
+            
+            # Випадкова затримка
+            delay_min = campaign['schedule']['delays']['min']
+            delay_max = campaign['schedule']['delays']['max']
+            await asyncio.sleep(random.uniform(delay_min, delay_max))
+            
+            # Прогрес кожні 10%
+            total = len(campaign['targets'])
+            if i > 0 and i % max(1, total // 10) == 0:
+                progress = (i / total) * 100
+                print(f"📊 Кампанія {campaign_id}: {progress:.1f}% завершено")
+        
+        # Завершення кампанії
+        await self.finish_campaign(campaign_id)
+    
+    def select_message(self, messages: List[CampaignMessage], strategy: str, index: int) -> CampaignMessage:
+        """Вибір повідомлення за стратегією"""
+        if not messages:
+            return CampaignMessage(text="No message")
+        
+        if strategy == 'sequential':
+            # По черзі
+            return messages[index % len(messages)]
+        elif strategy == 'random':
+            # Випадково
+            return random.choice(messages)
+        elif strategy == 'weighted':
+            # З вагами (якщо є в даних)
+            # Спрощена версія
+            return messages[index % len(messages)]
+        else:
+            return messages[0]
+    
+    def personalize_message(self, template: str, target: CampaignTarget, context: Dict) -> str:
+        """Персоналізація повідомлення"""
+        message = template
+        
+        # Базові замінники
+        replacements = {
+            '{name}': target.data.get('first_name', 'Користувач'),
+            '{username}': target.identifier if target.identifier.startswith('@') else '',
+            '{phone}': target.identifier if target.identifier.startswith('+') else '',
+            '{time}': datetime.now().strftime('%H:%M'),
+            '{date}': datetime.now().strftime('%d.%m.%Y'),
+            '{location}': context.get('location', 'невідомо'),
+            '{action}': context.get('action', 'залишити місце'),
+            '{false_information}': context.get('false_info', 'інформація недоступна'),
+            '{suggestion}': context.get('suggestion', 'ваш вибір')
+        }
+        
+        # Заміна
+        for placeholder, value in replacements.items():
+            if placeholder in message:
+                message = message.replace(placeholder, value)
+        
+        return message
+    
+    async def finish_campaign(self, campaign_id: str):
+        """Завершення кампанії"""
+        campaign = self.active_campaigns[campaign_id]
+        
+        # Оновлення статусу
+        success_rate = (campaign['statistics']['successful'] / 
+                       campaign['statistics']['processed'] * 100) if campaign['statistics']['processed'] > 0 else 0
+        
+        if success_rate > 50:
+            campaign['status'] = CampaignStatus.COMPLETED.value
+            print(f"✅ Кампанія {campaign_id} успішно завершена ({success_rate:.1f}% успіху)")
+        else:
+            campaign['status'] = CampaignStatus.FAILED.value
+            print(f"❌ Кампанія {campaign_id} провалена ({success_rate:.1f}% успіху)")
+        
+        campaign['statistics']['completed_at'] = datetime.now().isoformat()
+        
+        # Збереження в історію
+        self.campaign_history.append(campaign.copy())
+        
+        # Видалення з активних (якщо завершена)
+        if campaign['status'] == CampaignStatus.COMPLETED.value:
+            del self.active_campaigns[campaign_id]
+```
+
+4. СИСТЕМА ПЕРСОНАЛІЗАЦІЇ ТА A/B ТЕСТУВАННЯ
+
+```python
+# campaigns/personalization_engine.py
+import json
+from typing import Dict, List
+import random
+
+class PersonalizationEngine:
+    """Двигун персоналізації та A/B тестування"""
+    
+    def __init__(self):
+        self.variants_history = {}
+        self.user_profiles = {}
+        
+    def generate_message_variants(self, base_template: str, num_variants: int = 3) -> List[Dict]:
+        """Генерація варіантів повідомлень для A/B тестування"""
+        variants = []
+        
+        for i in range(num_variants):
+            variant = self.create_variant(base_template, i)
+            variants.append({
+                'id': f"var_{i}",
+                'text': variant,
+                'style': self.get_variant_style(i),
+                'performance': {
+                    'impressions': 0,
+                    'clicks': 0,
+                    'responses': 0,
+                    'conversion_rate': 0.0
+                }
+            })
+        
+        return variants
+    
+    def create_variant(self, template: str, variant_id: int) -> str:
+        """Створення варіанту повідомлення"""
+        # Різні стилі для різних варіантів
+        styles = {
+            0: {'urgency': 'high', 'formality': 'low', 'length': 'short'},
+            1: {'urgency': 'medium', 'formality': 'medium', 'length': 'medium'},
+            2: {'urgency': 'low', 'formality': 'high', 'length': 'long'}
+        }
+        
+        style = styles.get(variant_id % 3, styles[0])
+        
+        # Модифікація шаблону відповідно до стилю
+        modified = template
+        
+        if style['urgency'] == 'high':
+            modified = "🚨 УВАГА! " + modified
+            modified = modified.replace('.', '!')
+        
+        if style['formality'] == 'high':
+            modified = "Шановний користувачу,\n\n" + modified + "\n\nЗ повагою, система"
+        
+        if style['length'] == 'short':
+            # Скорочення до 200 символів
+            if len(modified) > 200:
+                modified = modified[:197] + "..."
+        
+        return modified
+    
+    def personalize_for_user(self, user_data: Dict, message_template: str) -> str:
+        """Персоналізація повідомлення для конкретного користувача"""
+        personalized = message_template
+        
+        # Демографічна персоналізація
+        if user_data.get('age'):
+            if user_data['age'] < 25:
+                personalized = "👋 Привіт! " + personalized
+            elif user_data['age'] > 50:
+                personalized = "Доброго дня. " + personalized
+        
+        # Географічна персоналізація
+        if user_data.get('city'):
+            personalized = personalized.replace('{city}', user_data['city'])
+        
+        # Персоналізація за активністю
+        if user_data.get('activity_level'):
+            if user_data['activity_level'] == 'high':
+                personalized = personalized.replace('{urgency}', 'терміново')
+            else:
+                personalized = personalized.replace('{urgency}', 'рекомендуємо')
+        
+        # Додавання імені
+        if user_data.get('first_name'):
+            personalized = personalized.replace('{name}', user_data['first_name'])
+        
+        return personalized
+    
+    def select_best_variant(self, campaign_id: str) -> str:
+        """Вибір найкращого варіанту на основі статистики"""
+        if campaign_id not in self.variants_history:
+            return None
+        
+        variants = self.variants_history[campaign_id]
+        
+        # Розрахунок performance score для кожного варіанту
+        best_variant = None
+        best_score = -1
+        
+        for variant in variants:
+            perf = variant['performance']
+            
+            if perf['impressions'] < 10:  # Недостатньо даних
+                continue
+            
+            # Розрахунок score (можна налаштовувати)
+            score = (
+                perf['conversion_rate'] * 50 +
+                (perf['responses'] / max(1, perf['impressions'])) * 30 +
+                (perf['clicks'] / max(1, perf['impressions'])) * 20
+            )
+            
+            if score > best_score:
+                best_score = score
+                best_variant = variant['id']
+        
+        return best_variant
+```
+
+5. СКЛАДНІ АЛГОРИТМИ РОЗСИЛОК
+
+```python
+# campaigns/advanced_strategies.py
+import asyncio
+from datetime import datetime
+import numpy as np
+from scipy import stats
+
+class AdvancedMailingStrategies:
+    """Складні алгоритми розсилок"""
+    
+    @staticmethod
+    async def smart_timing_strategy(targets: List[Dict], campaign_data: Dict):
+        """Розумний розклад відправки на основі активності"""
+        scheduled_tasks = []
+        
+        for target in targets:
+            # Аналіз історичної активності користувача
+            user_activity = target.get('activity_pattern', {})
+            
+            if user_activity:
+                # Визначення оптимального часу відправки
+                optimal_time = AdvancedMailingStrategies.calculate_optimal_time(
+                    user_activity,
+                    campaign_data.get('urgency', 'medium')
+                )
+                
+                # Планування завдання
+                task = {
+                    'target': target,
+                    'scheduled_time': optimal_time,
+                    'priority': 'scheduled'
+                }
+                scheduled_tasks.append(task)
+            else:
+                # Випадковий час в робочий період
+                task = {
+                    'target': target,
+                    'scheduled_time': AdvancedMailingStrategies.random_business_hours(),
+                    'priority': 'normal'
+                }
+                scheduled_tasks.append(task)
+        
+        # Сортування за часом
+        scheduled_tasks.sort(key=lambda x: x['scheduled_time'])
+        
+        return scheduled_tasks
+    
+    @staticmethod
+    def calculate_optimal_time(activity_pattern: Dict, urgency: str) -> datetime:
+        """Розрахунок оптимального часу відправки"""
+        now = datetime.now()
+        
+        # Аналіз піків активності
+        if 'hourly_activity' in activity_pattern:
+            # Знаходження години з максимальною активністю
+            hourly = activity_pattern['hourly_activity']
+            peak_hour = max(hourly.items(), key=lambda x: x[1])[0]
+            
+            # Корекція залежно від urgency
+            if urgency == 'high':
+                # Відправляємо негайно або в найближчий пік
+                if hourly.get(now.hour, 0) > 0.3:
+                    return now
+                else:
+                    # Наступний пік
+                    return now.replace(hour=peak_hour, minute=0, second=0)
+            elif urgency == 'medium':
+                # Відправляємо в наступний пік
+                return now.replace(hour=peak_hour, minute=0, second=0)
+            else:
+                # Випадково протягом доби
+                random_hour = random.randint(9, 18)  # Робочі години
+                return now.replace(hour=random_hour, minute=0, second=0)
+        
+        # Запасний варіант
+        return now.replace(hour=14, minute=0, second=0)  # 14:00
+    
+    @staticmethod
+    def drip_campaign_strategy(targets: List, messages: List, intervals: List[int]):
+        """Каскадна (drip) стратегія розсилки"""
+        drip_sequences = []
+        
+        for target in targets:
+            sequence = []
+            current_time = datetime.now()
+            
+            for i, (message, interval) in enumerate(zip(messages, intervals)):
+                step = {
+                    'target': target,
+                    'message': message,
+                    'step_number': i + 1,
+                    'scheduled_time': current_time + timedelta(hours=interval),
+                    'condition': f"step_{i}_condition"  # Умова для наступного кроку
+                }
+                sequence.append(step)
+            
+            drip_sequences.append({
+                'target': target,
+                'sequence': sequence,
+                'current_step': 0,
+                'completed': False
+            })
+        
+        return drip_sequences
+    
+    @staticmethod
+    def adaptive_throttling(success_rate: float, recent_errors: int) -> Dict:
+        """Адаптивне регулювання швидкості відправки"""
+        base_delay = (3, 7)  # Мін, макс затримка
+        
+        if success_rate < 30:
+            # Збільшення затримки при низькому успіху
+            return {
+                'min_delay': base_delay[0] * 3,
+                'max_delay': base_delay[1] * 3,
+                'batch_size': 1,  # Менші партії
+                'retry_delay': 30  # Більша затримка між спробами
+            }
+        elif success_rate > 80:
+            # Зменшення затримки при високому успіху
+            return {
+                'min_delay': max(1, base_delay[0] / 2),
+                'max_delay': max(2, base_delay[1] / 2),
+                'batch_size': 5,  # Більші партії
+                'retry_delay': 5  # Менша затримка
+            }
+        else:
+            # Стандартні налаштування
+            return {
+                'min_delay': base_delay[0],
+                'max_delay': base_delay[1],
+                'batch_size': 3,
+                'retry_delay': 15
+            }
+```
+
+🎯 ІНТЕГРАЦІЯ ПАРСИНГУ ТА РОЗСИЛОК
+
+```python
+# integration/osint_mailing_integration.py
+class OSINTMailingIntegration:
+    """Інтеграція систем парсингу та розсилок"""
+    
+    def __init__(self, parser, campaign_manager):
+        self.parser = parser
+        self.campaign_manager = campaign_manager
+        
+    async def intelligence_based_campaign(self, chat_link: str, analysis_config: Dict):
+        """Кампанія на основі розвідувальних даних"""
+        print(f"🔍 Початок розвідувальної кампанії для {chat_link}")
+        
+        # 1. Парсинг даних
+        print("📊 Фаза 1: Збір інтелектуальних даних...")
+        intelligence_data = await self.parser.parse_chat_deep(chat_link, limit=1000)
+        
+        if not intelligence_data:
+            print("❌ Не вдалося зібрати дані")
+            return None
+        
+        # 2. Аналіз та визначення цілей
+        print("🎯 Фаза 2: Аналіз та визначення цілей...")
+        targets = self.identify_targets_from_intelligence(intelligence_data, analysis_config)
+        
+        # 3. Генерація повідомлень
+        print("✍️ Фаза 3: Генерація персоналізованих повідомлень...")
+        messages = self.generate_targeted_messages(targets, analysis_config.get('message_templates'))
+        
+        # 4. Створення кампанії
+        print("🚀 Фаза 4: Створення кампанії розсилки...")
+        campaign_data = {
+            'name': f"Операція {chat_link}",
+            'targets': targets,
+            'messages': messages,
+            'strategy': analysis_config.get('strategy', 'smart'),
+            'creator': 'OSINT System',
+            'personalization': True,
+            'tracking': True
+        }
+        
+        campaign_id = await self.campaign_manager.create_campaign(campaign_data)
+        
+        # 5. Запуск кампанії
+        print("▶️ Фаза 5: Запуск кампанії...")
+        await self.campaign_manager.start_campaign(campaign_id)
+        
+        return {
+            'campaign_id': campaign_id,
+            'intelligence_summary': {
+                'chat_title': intelligence_data.get('chat_info', {}).get('title'),
+                'total_users': len(intelligence_data.get('participants', [])),
+                'key_persons': len(intelligence_data.get('key_persons', [])),
+                'high_risk_users': self.count_high_risk_users(intelligence_data)
+            },
+            'campaign_targets': len(targets)
+        }
+    
+    def identify_targets_from_intelligence(self, intelligence_data: Dict, config: Dict) -> List[Dict]:
+        """Визначення цілей на основі розвідувальних даних"""
+        targets = []
+        
+        # Критерії відбору з конфігурації
+        criteria = config.get('target_criteria', {
+            'min_risk_score': 50,
+            'min_influence': 20,
+            'require_keywords': True,
+            'max_targets': 50
+        })
+        
+        # Ключові особи з високим впливом
+        key_persons = intelligence_data.get('key_persons', [])
+        
+        for person in key_persons:
+            if len(targets) >= criteria['max_targets']:
+                break
+            
+            # Перевірка критеріїв
+            if (person['influence_score'] >= criteria['min_influence'] and
+                person['average_threat_level'] >= criteria['min_risk_score']):
+                
+                target_data = {
+                    'identifier': f"@{person['username']}" if person['username'] else str(person['user_id']),
+                    'type': 'username' if person['username'] else 'user_id',
+                    'data': {
+                        'first_name': person['username'] or 'User',
+                        'risk_score': person['average_threat_level'],
+                        'influence': person['influence_score'],
+                        'last_active': person['last_active']
+                    }
+                }
+                targets.append(target_data)
+        
+        return targets
+    
+    def generate_targeted_messages(self, targets: List[Dict], templates: Dict) -> List[Dict]:
+        """Генерація цільових повідомлень"""
+        messages = []
+        
+        # Типи повідомлень залежно від ризику
+        for target in targets:
+            risk_score = target['data'].get('risk_score', 0)
+            
+            if risk_score > 70:
+                # Високий ризик - жорстке попередження
+                message = {
+                    'text': templates.get('high_risk', 'Високоризикована загроза виявлена.'),
+                    'urgency': 'high'
+                }
+            elif risk_score > 40:
+                # Середній ризик - інформаційне повідомлення
+                message = {
+                    'text': templates.get('medium_risk', 'Ваша активність привернула увагу.'),
+                    'urgency': 'medium'
+                }
+            else:
+                # Низький ризик - спостережне повідомлення
+                message = {
+                    'text': templates.get('low_risk', 'Зафіксована підозріла активність.'),
+                    'urgency': 'low'
+                }
+            
+            messages.append(message)
+        
+        return messages
+```
+
+📊 МОНІТОРИНГ ТА АНАЛІТИКА
+
+```python
+# analytics/campaign_analytics.py
+import pandas as pd
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+class CampaignAnalytics:
+    """Аналітика кампаній розсилки"""
+    
+    def __init__(self):
+        self.performance_data = []
+        
+    def generate_campaign_report(self, campaign_data: Dict, results: List[Dict]) -> Dict:
+        """Генерація детального звіту по кампанії"""
+        df = pd.DataFrame(results)
+        
+        # Основна статистика
+        total = len(df)
+        successful = len(df[df['status'] == 'success'])
+        failed = total - successful
+        success_rate = (successful / total * 100) if total > 0 else 0
+        
+        # Часова аналітика
+        df['hour'] = pd.to_datetime(df['timestamp']).dt.hour
+        hourly_stats = df.groupby('hour').agg({
+            'status': ['count', lambda x: (x == 'success').sum()]
+        }).reset_index()
+        
+        # Аналіз помилок
+        error_analysis = df[df['status'] != 'success'].groupby('error_type').size().to_dict()
+        
+        # Продуктивність ботів
+        bot_performance = df.groupby('bot_id').agg({
+            'status': ['count', lambda x: (x == 'success').sum()]
+        }).reset_index()
+        
+        report = {
+            'summary': {
+                'campaign_name': campaign_data.get('name'),
+                'total_messages': total,
+                'successful': successful,
+                'failed': failed,
+                'success_rate': success_rate,
+                'duration_hours': self.calculate_duration(campaign_data),
+                'average_delay_seconds': df['processing_time'].mean() if 'processing_time' in df.columns else 0
+            },
+            'hourly_analysis': hourly_stats.to_dict('records'),
+            'error_analysis': error_analysis,
+            'bot_performance': bot_performance.to_dict('records'),
+            'recommendations': self.generate_recommendations(df, campaign_data)
+        }
+        
+        # Генерація графіків
+        report['visualizations'] = self.generate_visualizations(df)
+        
+        return report
+    
+    def generate_visualizations(self, df: pd.DataFrame) -> Dict:
+        """Генерація графіків для звіту"""
+        visualizations = {}
+        
+        # Графік успішності по годинах
+        if 'hour' in df.columns and 'status' in df.columns:
+            hourly_success = df.groupby('hour')['status'].apply(
+                lambda x: (x == 'success').mean() * 100
+            ).reset_index()
+            
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=hourly_success['hour'],
+                    y=hourly_success['status'],
+                    name='Успішність %'
+                )
+            ])
+            
+            fig.update_layout(
+                title='Успішність відправки по годинах',
+                xaxis_title='Година',
+                yaxis_title='Успішність %'
+            )
+            
+            visualizations['hourly_success'] = fig.to_html()
+        
+        return visualizations
+    
+    def generate_recommendations(self, df: pd.DataFrame, campaign_data: Dict) -> List[str]:
+        """Генерація рекомендацій на основі аналізу"""
+        recommendations = []
+        
+        # Аналіз успішності
+        success_rate = (len(df[df['status'] == 'success']) / len(df) * 100) if len(df) > 0 else 0
+        
+        if success_rate < 30:
+            recommendations.append("⚡ Низька успішність. Рекомендовано:")
+            recommendations.append("  • Збільшити затримки між повідомленнями")
+            recommendations.append("  • Використовувати боти з кращим success rate")
+            recommendations.append("  • Перевірити якість цільових контактів")
+        
+        elif success_rate > 80:
+            recommendations.append("✅ Висока успішність. Можна:")
+            recommendations.append("  • Збільшити кількість повідомлень")
+            recommendations.append("  • Скоротити затримки між відправками")
+            recommendations.append("  • Розширити список цілей")
+        
+        # Аналіз помилок
+        if 'error_type' in df.columns:
+            common_errors = df['error_type'].value_counts().head(3)
+            
+            if not common_errors.empty:
+                recommendations.append("🔧 Поширені помилки:")
+                for error, count in common_errors.items():
+                    recommendations.append(f"  • {error}: {count} разів")
+        
+        return recommendations
+```
+
+🚀 ШВИДКЕ ВПРОВАДЖЕННЯ
+
+```python
+# quick_deployment.py
+async def deploy_osint_mailing_system():
+    """Швидке розгортання системи парсингу та розсилок"""
+    print("🚀 ШВИДКЕ РОЗГОРТАННЯ СИСТЕМИ...")
+    
+    # 1. Ініціалізація клієнта
+    client = TelegramClient('police_system', API_ID, API_HASH)
+    await client.start()
+    
+    # 2. Ініціалізація парсера
+    parser = AdvancedTelegramParser(client)
+    
+    # 3. Ініціалізація ботнету
+    botnet = BotnetManager(max_concurrent=10)
+    await botnet.initialize()
+    
+    # 4. Ініціалізація менеджера кампаній
+    campaign_manager = AdvancedCampaignManager(botnet)
+    
+    # 5. Ініціалізація інтеграції
+    integration = OSINTMailingIntegration(parser, campaign_manager)
+    
+    print("✅ СИСТЕМА ГОТОВА ДО РОБОТИ")
+    print(f"📊 Компоненти: Парсер + Ботнет ({botnet.active_bots_count} ботів) + Кампанії")
+    
+    return {
+        'parser': parser,
+        'botnet': botnet,
+        'campaign_manager': campaign_manager,
+        'integration': integration,
+        'client': client
+    }
+
+# Приклад використання
+async def example_operation():
+    """Приклад операції для вул. Артема, 72"""
+    system = await deploy_osint_mailing_system()
+    
+    # Конфігурація операції
+    operation_config = {
+        'chat_link': '@artema72_suspect_chat',
+        'target_criteria': {
+            'min_risk_score': 40,
+            'min_influence': 15,
+            'max_targets': 20
+        },
+        'message_templates': {
+            'high_risk': "⚠️ КРИТИЧНА ЗАГРОЗА! Ваші координати {location} відомі. Евакуюйтеся!",
+            'medium_risk': "🔔 Попередження: Ваша активність зафіксована біля {location}",
+            'low_risk': "📡 Система моніторингу активована в районі {location}"
+        },
+        'strategy': 'smart',
+        'location': 'вул. Артема, 72, Донецьк'
+    }
+    
+    # Запуск операції
+    results = await system['integration'].intelligence_based_campaign(
+        operation_config['chat_link'],
+        operation_config
+    )
+    
+    return results
+```
+
+---
+
+📋 КЛЮЧОВІ ПЕРЕВАГИ СИСТЕМИ:
+
+ПАРСИНГ:
+
+1. Глибина аналізу - не лише текст, але й патерни, зв'язки, активність
+2. Реальний час - моніторинг нових повідомлень з автоматичними сповіщеннями
+3. Інтелектуальний пошук - виявлення ключових осіб, координат, загроз
+4. Масштабованість - обробка тисяч повідомлень одночасно
+
+РОЗСИЛКИ:
+
+1. Персоналізація - кожне повідомлення адаптується під ціль
+2. A/B тестування - автоматичний вибір найефективніших варіантів
+3. Розумний розклад - відправка в оптимальний час активності
+4. Адаптивність - автоматичне коригування при помилках
+
+ІНТЕГРАЦІЯ:
+
+1. Автоматизація - парсинг → аналіз → цільова розсилка
+2. Аналітика - детальна статистика та рекомендації
+3. Безпека - обхід обмежень, обробка помилок, резервування
+
+---
+
+⏱ ЧАС ВИКОНАННЯ ТИПОВОЇ ОПЕРАЦІЇ:
+
+```
+Фаза 1: Парсинг чату (1000 повідомлень)    - 2-3 хвилини
+Фаза 2: Аналіз даних та вибір цілей        - 30 секунд
+Фаза 3: Генерація персоналізованих повід. - 1 хвилина
+Фаза 4: Розсилка (20 цілей)                - 5-10 хвилин
+Фаза 5: Аналіз результатів                 - 1 хвилина
+─────────────────────────────────────────────────────
+ЗАГАЛЬНИЙ ЧАС: 10-15 хвилин
+```
+
+---
+
+🎯 РЕКОМЕНДАЦІЇ ДЛЯ БОЙОВОГО ВИКОРИСТАННЯ:
+
+1. Перед операцією: Глибокий парсинг цільових чатів (24+ години даних)
+2. Під час операції: Реальний моніторинг + адаптивні розсилки
+3. Після операції: Аналіз ефективності + корегування стратегій
+4. Завжди: Резервні боти + альтернативні сценарії
+

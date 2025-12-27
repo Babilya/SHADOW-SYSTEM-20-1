@@ -99,6 +99,10 @@ def leader_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
         ],
         [
+            InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor"),
+            InlineKeyboardButton(text="🔬 ГЛИБОКИЙ АНАЛІЗ", callback_data="deep_parse")
+        ],
+        [
             InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
             InlineKeyboardButton(text="🔔 СПОВІЩЕННЯ", callback_data="notifications_menu")
         ],
@@ -174,6 +178,10 @@ def admin_menu() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="📋 ЗАЯВКИ", callback_data="admin_apps"),
             InlineKeyboardButton(text="📊 СТАТИСТИКА", callback_data="project_stats")
+        ],
+        [
+            InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_main"),
+            InlineKeyboardButton(text="🤖 БОТНЕТ", callback_data="botnet_main")
         ],
         [InlineKeyboardButton(text="📱 ПЕРЕГЛЯД МЕНЮ ЮЗЕРА", callback_data="user_menu")],
         [InlineKeyboardButton(text="🆘 EMERGENCY ALERT", callback_data="admin_emergency")]

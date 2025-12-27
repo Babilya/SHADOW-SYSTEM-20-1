@@ -41,3 +41,32 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - **OpenAI (via Replit AI):** Provides AI capabilities.
 - **ReportLab:** For generating professional PDF reports.
 - **Jinja2:** Templating engine for various text and HTML generation needs.
+## Botnet Infrastructure (December 2025)
+
+### BotnetManager (core/botnet_manager.py)
+- Worker pool with async task queue
+- Bot selection strategies: round_robin, weighted, random, smart
+- Health monitoring loop (every 5 min)
+- Daily limit reset at midnight
+- Auto-recovery for flooded bots
+- Statistics: success_rate, health_score, usage_count
+
+### AntiDetect System (core/antidetect.py)
+- 9 device profiles (Samsung, Xiaomi, iPhone, Desktop)
+- 5 behavior patterns (casual, active, business, night_owl, early_bird)
+- Unique fingerprint generation per bot
+- Typing/thinking/pause emulation
+- Canvas/WebGL/Audio/Font hash generation
+
+### Recovery System (core/recovery_system.py)
+- 4-step auto-recovery process
+- Proxy pool with rotation
+- Session backup storage with versioning
+- Batch recovery operations
+- Proxy health monitoring
+
+### Session Importer (core/session_importer.py)
+- Multi-format import: Telethon, Pyrogram, StringSession, TData
+- 5-step validation process
+- Device fingerprint collection
+- Import/validation report generation

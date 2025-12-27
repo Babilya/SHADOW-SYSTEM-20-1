@@ -1,0 +1,1168 @@
+ДЕТАЛЬНИЙ ПРИНЦИП РОБОТИ БОТНЕТУ ДЛЯ КІБЕРПОЛІЦІЇ
+
+📊 ОСНОВНА АРХІТЕКТУРА
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         БОТНЕТ КІБЕРПОЛІЦІЇ                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                              КОНТРОЛЬНИЙ ЦЕНТР                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
+│  │   AI     │  │  МЕНЕДЖЕР │  │  АНАЛІТИКА│  │  МОНІТОР │             │
+│  │ АНАЛІЗ   │  │  КАМПАНІЙ │  │          │  │  ЗДОРОВ'Я│             │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘             │
+│        │             │             │             │                   │
+├────────┼─────────────┼─────────────┼─────────────┼───────────────────┤
+│                          КОМУНІКАЦІЙНИЙ ШАР                          │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │         ШИФРОВАНИЙ КАНАЛ (Telegram API / Власний сервер)     │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+│                                  │                                    │
+├──────────────────────────────────┼────────────────────────────────────┤
+│                         СІТКА БОТІВ (Bot Fleet)                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐│
+│  │  БОТ #1  │  │  БОТ #2  │  │  БОТ #3  │  │  БОТ #4  │  │  БОТ #N  ││
+│  │ Сесія А  │  │ Сесія Б  │  │ Сесія В  │  │ Сесія Г  │  │ Сесія ...││
+│  │  Проксі  │  │  Проксі  │  │  Проксі  │  │  Проксі  │  │  Проксі  ││
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘│
+│      │             │             │             │             │        │
+└──────┴─────────────┴─────────────┴─────────────┴─────────────┴────────┘
+                              ↓
+                    ЦІЛЬОВІ КАНАЛИ / КОРИСТУВАЧІ
+```
+
+🔧 ТЕХНІЧНА РЕАЛІЗАЦІЯ КОЖНОГО КОМПОНЕНТА
+
+1. СИСТЕМА ШИФРУВАННЯ ТА ЗБЕРЕЖЕННЯ СЕСІЙ
+
+```python
+# core/encryption.py
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+import base64
+import os
+
+class SessionEncryptor:
+    """
+    AES-256 шифрування сесій з унікальним ключем для кожного бота
+    """
+    
+    def __init__(self, master_password: str):
+        self.master_password = master_password.encode()
+        self.salt = b'cyberpolice_salt_donetsk'  # Статичний сіль
+        
+    def encrypt_session(self, session_data: str, bot_id: str) -> str:
+        """Шифрування сесії з унікальним ключем"""
+        # Генерація ключа з master password + bot_id
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.salt + bot_id.encode(),
+            iterations=100000,
+        )
+        key = kdf.derive(self.master_password + bot_id.encode())
+        
+        # AES-256-GCM для шифрування та автентифікації
+        iv = os.urandom(12)  # 96-біт IV для GCM
+        cipher = Cipher(algorithms.AES(key), modes.GCM(iv))
+        encryptor = cipher.encryptor()
+        
+        # Додаткові аутентифікаційні дані
+        encryptor.authenticate_additional_data(bot_id.encode())
+        
+        # Шифрування
+        ciphertext = encryptor.update(session_data.encode()) + encryptor.finalize()
+        
+        # Комбінування IV + tag + ciphertext
+        encrypted = iv + encryptor.tag + ciphertext
+        return base64.b64encode(encrypted).decode()
+    
+    def decrypt_session(self, encrypted_data: str, bot_id: str) -> str:
+        """Дешифрування сесії"""
+        # Декодування з base64
+        data = base64.b64decode(encrypted_data)
+        
+        # Розділення на компоненти
+        iv = data[:12]
+        tag = data[12:28]
+        ciphertext = data[28:]
+        
+        # Генерація ключа
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.salt + bot_id.encode(),
+            iterations=100000,
+        )
+        key = kdf.derive(self.master_password + bot_id.encode())
+        
+        # Дешифрування
+        cipher = Cipher(algorithms.AES(key), modes.GCM(iv, tag))
+        decryptor = cipher.decryptor()
+        
+        # Перевірка аутентифікації
+        decryptor.authenticate_additional_data(bot_id.encode())
+        
+        # Дешифрування
+        session_data = decryptor.update(ciphertext) + decryptor.finalize()
+        return session_data.decode()
+```
+
+2. ІМПОРТ ТА ВАЛІДАЦІЯ СЕСІЙ
+
+```python
+# core/session_importer.py
+import os
+import zipfile
+import json
+from datetime import datetime
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
+class SessionImporter:
+    """
+    Імпорт сесій з різних форматів:
+    - .session (Telethon)
+    - .json (Pyrogram)  
+    - .zip (TData копії)
+    - Ручне введення
+    """
+    
+    SUPPORTED_FORMATS = {
+        '.session': 'telethon_binary',
+        '.json': 'pyrogram_json',
+        '.txt': 'string_session',
+        '.zip': 'tdata_archive'
+    }
+    
+    async def import_session(self, file_path: str, password: str = None):
+        """Основний метод імпорту"""
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        if file_ext not in self.SUPPORTED_FORMATS:
+            raise ValueError(f"Непідтримуваний формат: {file_ext}")
+        
+        format_type = self.SUPPORTED_FORMATS[file_ext]
+        
+        if format_type == 'telethon_binary':
+            return await self.import_telethon_session(file_path)
+        elif format_type == 'pyrogram_json':
+            return await self.import_pyrogram_session(file_path)
+        elif format_type == 'tdata_archive':
+            return await self.import_tdata_archive(file_path, password)
+        elif format_type == 'string_session':
+            return await self.import_string_session(file_path)
+    
+    async def import_telethon_session(self, session_path: str):
+        """Імпорт бінарної сесії Telethon"""
+        try:
+            # Читання файлу сесії
+            with open(session_path, 'rb') as f:
+                session_data = f.read()
+            
+            # Перетворення в StringSession
+            string_session = StringSession.save(
+                self.convert_binary_to_string(session_data)
+            )
+            
+            # Валідація сесії
+            validation_result = await self.validate_session(string_session)
+            
+            return {
+                'type': 'telethon',
+                'session_string': string_session,
+                'phone': validation_result['phone'],
+                'user_id': validation_result['user_id'],
+                'valid': validation_result['valid'],
+                'device_info': validation_result['device_info']
+            }
+            
+        except Exception as e:
+            raise Exception(f"Помилка імпорту Telethon сесії: {e}")
+    
+    async def validate_session(self, session_string: str):
+        """Перевірка валідності сесії"""
+        client = None
+        try:
+            # Створення тимчасового клієнта
+            client = TelegramClient(
+                StringSession(session_string),
+                api_id=API_ID,
+                api_hash=API_HASH
+            )
+            
+            await client.connect()
+            
+            if await client.is_user_authorized():
+                # Отримання інформації про користувача
+                me = await client.get_me()
+                
+                # Перевірка обмежень
+                restrictions = await self.check_restrictions(client)
+                
+                # Тест відправки
+                can_send = await self.test_sending(client)
+                
+                # Збір device fingerprint
+                device_info = self.collect_device_fingerprint(client)
+                
+                return {
+                    'valid': True,
+                    'phone': me.phone,
+                    'user_id': me.id,
+                    'username': me.username,
+                    'first_name': me.first_name,
+                    'restrictions': restrictions,
+                    'can_send': can_send,
+                    'device_info': device_info,
+                    'premium': me.premium,
+                    'verified': me.verified
+                }
+            else:
+                return {'valid': False, 'error': 'Користувач не авторизований'}
+                
+        except Exception as e:
+            return {'valid': False, 'error': str(e)}
+            
+        finally:
+            if client:
+                await client.disconnect()
+    
+    def collect_device_fingerprint(self, client):
+        """Збір унікальних параметрів пристрою"""
+        session = client.session
+        
+        fingerprint = {
+            'device_model': getattr(session, 'device_model', 'Unknown'),
+            'system_version': getattr(session, 'system_version', 'Unknown'),
+            'app_version': getattr(session, 'app_version', 'Unknown'),
+            'lang_code': getattr(session, 'lang_code', 'Unknown'),
+            'system_lang_code': getattr(session, 'system_lang_code', 'Unknown'),
+            'ip': self.get_client_ip(client),
+            'connection_time': datetime.now().isoformat(),
+            'session_hash': hashlib.sha256(str(session).encode()).hexdigest()[:16]
+        }
+        
+        return fingerprint
+```
+
+3. МОДЕЛЬ БОТСЕСІЇ В БАЗІ ДАНИХ
+
+```python
+# database/models.py
+from sqlalchemy import Column, Integer, String, Text, JSON, DateTime, Boolean, Float
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
+from enum import Enum
+
+Base = declarative_base()
+
+class BotStatus(Enum):
+    """Статуси бота в системі"""
+    ACTIVE = "active"          # Активний та готовий до роботи
+    PAUSED = "paused"         # На паузі
+    BUSY = "busy"            # Виконує завдання
+    FLOOD_WAIT = "flood_wait" # Обмеження Telegram
+    BANNED = "banned"        # Заблокований
+    DEAD = "dead"            # Сесія не працює
+    TESTING = "testing"      # В режимі тестування
+
+class BotSession(Base):
+    """Основна модель бот-сесії"""
+    __tablename__ = 'bot_sessions'
+    
+    id = Column(Integer, primary_key=True)
+    
+    # Унікальний ідентифікатор
+    bot_id = Column(String(50), unique=True, nullable=False, 
+                   default=lambda: f"BOT-{hashlib.md5(str(uuid.uuid4()).encode()).hexdigest()[:8].upper()}")
+    
+    # Основна інформація
+    phone = Column(String(20), nullable=False, index=True)
+    session_string = Column(Text, nullable=False)  # Шифрована сесія
+    api_id = Column(Integer)
+    api_hash = Column(String(100))
+    
+    # Власник та групування
+    owner_id = Column(Integer, nullable=False)  # ID оператора
+    project_id = Column(Integer)                # Проект/операція
+    tags = Column(JSON, default=list)          # Теги для фільтрації
+    
+    # Статус та статистика
+    status = Column(String(20), default=BotStatus.ACTIVE.value)
+    last_active = Column(DateTime, default=func.now())
+    messages_sent = Column(Integer, default=0)
+    messages_failed = Column(Integer, default=0)
+    success_rate = Column(Float, default=100.0)
+    
+    # Обмеження Telegram
+    flood_wait_until = Column(DateTime, nullable=True)
+    last_flood_wait = Column(Integer, default=0)  # Тривалість останнього flood wait
+    
+    # Технічна інформація
+    device_fingerprint = Column(JSON, default=dict)
+    ip_address = Column(String(45))
+    user_agent = Column(Text)
+    app_version = Column(String(50))
+    
+    # Проксі налаштування
+    proxy_id = Column(Integer)
+    proxy_type = Column(String(20))  # socks5, http, mtproto
+    proxy_config = Column(JSON)      # {host, port, username, password}
+    proxy_last_checked = Column(DateTime)
+    proxy_speed = Column(Float)      # Затримка в мс
+    
+    # Антидетект
+    anti_detect_profile = Column(JSON, default=dict)
+    fingerprint_hash = Column(String(64))  # SHA-256 хеш fingerprint
+    
+    # Тимчасові обмеження
+    cooling_until = Column(DateTime, nullable=True)
+    daily_limit = Column(Integer, default=100)  # Денний ліміт повідомлень
+    messages_today = Column(Integer, default=0)
+    
+    # Моніторинг здоров'я
+    health_score = Column(Float, default=100.0)  # 0-100%
+    last_health_check = Column(DateTime)
+    consecutive_failures = Column(Integer, default=0)
+    
+    # Часові мітки
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Методи
+    def is_available(self):
+        """Перевірка доступності бота для роботи"""
+        now = datetime.now()
+        
+        # Базові перевірки
+        if self.status in [BotStatus.BANNED.value, BotStatus.DEAD.value]:
+            return False
+        
+        # Перевірка flood wait
+        if self.flood_wait_until and now < self.flood_wait_until:
+            return False
+        
+        # Перевірка cooling period
+        if self.cooling_until and now < self.cooling_until:
+            return False
+        
+        # Перевірка денного ліміту
+        if self.messages_today >= self.daily_limit:
+            return False
+        
+        # Перевірка health score
+        if self.health_score < 30.0:
+            return False
+        
+        # Перевірка success rate
+        if self.success_rate < 40.0:
+            return False
+        
+        # Перевірка часу з останньої активності
+        if self.last_active and (now - self.last_active).days > 7:
+            return False
+            
+        return True
+    
+    def update_statistics(self, success: bool, flood_wait: int = None):
+        """Оновлення статистики після дії"""
+        self.messages_sent += 1
+        self.messages_today += 1
+        
+        if not success:
+            self.messages_failed += 1
+            self.consecutive_failures += 1
+        else:
+            self.consecutive_failures = 0
+        
+        # Розрахунок success rate
+        total = self.messages_sent
+        if total > 0:
+            self.success_rate = ((total - self.messages_failed) / total) * 100
+        
+        # Оновлення flood wait
+        if flood_wait:
+            self.flood_wait_until = datetime.now() + timedelta(seconds=flood_wait)
+            self.last_flood_wait = flood_wait
+        
+        # Оновлення health score
+        self.update_health_score()
+        
+        self.last_active = datetime.now()
+    
+    def update_health_score(self):
+        """Розрахунок health score"""
+        factors = {
+            'success_rate': self.success_rate * 0.4,           # 40%
+            'consecutive_failures': max(0, 100 - (self.consecutive_failures * 10)),  # 30%
+            'recent_activity': 100 if (datetime.now() - self.last_active).seconds < 3600 else 50,  # 20%
+            'flood_history': 100 if not self.last_flood_wait else max(0, 100 - self.last_flood_wait)  # 10%
+        }
+        
+        self.health_score = sum(factors.values()) / len(factors)
+        self.last_health_check = datetime.now()
+```
+
+4. МЕНЕДЖЕР БОТНЕТУ - ОСНОВНА ЛОГІКА
+
+```python
+# core/botnet_manager.py
+import asyncio
+import random
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional
+from collections import deque
+
+class BotnetManager:
+    """
+    Основний менеджер ботнету:
+    - Управління пулом ботів
+    - Розподіл навантаження
+    - Обробка помилок
+    - Моніторинг здоров'я
+    """
+    
+    def __init__(self, max_concurrent: int = 50):
+        self.max_concurrent = max_concurrent
+        self.active_bots = {}           # Активні боти {bot_id: client}
+        self.bot_pool = deque()         # Черга доступних ботів
+        self.task_queue = asyncio.Queue()  # Черга завдань
+        self.worker_tasks = []          # Завдання воркерів
+        self.bot_statistics = {}        # Статистика по кожному боту
+        
+        # Алгоритми ротації
+        self.rotation_strategies = {
+            'round_robin': self.round_robin_selection,
+            'weighted': self.weighted_selection,
+            'random': self.random_selection,
+            'smart': self.smart_selection
+        }
+        
+        # Налаштування
+        self.settings = {
+            'default_delay': (3, 7),           # Мін/макс затримка між повідомленнями
+            'retry_attempts': 2,               # Кількість спроб повтору
+            'health_check_interval': 300,      # Секунди між перевірками здоров'я
+            'auto_recovery': True,             # Автоматичне відновлення ботів
+            'max_failures': 5,                 # Максимум помилок перед деактивацією
+        }
+    
+    async def initialize(self):
+        """Ініціалізація ботнету"""
+        # Завантаження ботів з бази даних
+        bots = await self.load_bots_from_database()
+        
+        # Ініціалізація кожного бота
+        for bot in bots:
+            if bot['status'] == 'active':
+                await self.add_bot_to_pool(bot)
+        
+        # Запуск воркерів для обробки завдань
+        for i in range(self.max_concurrent):
+            worker = asyncio.create_task(self.worker_loop(i))
+            self.worker_tasks.append(worker)
+        
+        # Запуск моніторингу здоров'я
+        asyncio.create_task(self.health_monitoring_loop())
+        
+        print(f"✅ Ботнет ініціалізовано: {len(self.bot_pool)} активних ботів")
+    
+    async def add_bot_to_pool(self, bot_data: Dict):
+        """Додавання бота до пулу"""
+        try:
+            # Дешифрування сесії
+            session_string = self.encryptor.decrypt_session(
+                bot_data['session_string'], 
+                bot_data['bot_id']
+            )
+            
+            # Створення клієнта Telethon
+            client = TelegramClient(
+                StringSession(session_string),
+                api_id=bot_data['api_id'],
+                api_hash=bot_data['api_hash']
+            )
+            
+            # Підключення
+            await client.connect()
+            
+            # Перевірка авторизації
+            if not await client.is_user_authorized():
+                print(f"❌ Бот {bot_data['bot_id']} не авторизований")
+                await client.disconnect()
+                return False
+            
+            # Збереження в активному пулі
+            self.active_bots[bot_data['bot_id']] = {
+                'client': client,
+                'data': bot_data,
+                'last_used': datetime.now(),
+                'usage_count': 0,
+                'success_count': 0,
+                'failure_count': 0
+            }
+            
+            # Додавання в чергу
+            self.bot_pool.append(bot_data['bot_id'])
+            
+            print(f"✅ Бот {bot_data['bot_id']} додано до пулу")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Помилка додавання бота {bot_data['bot_id']}: {e}")
+            return False
+    
+    async def worker_loop(self, worker_id: int):
+        """Цикл роботи воркера"""
+        print(f"👷 Воркер {worker_id} запущено")
+        
+        while True:
+            try:
+                # Очікування завдання з черги
+                task = await self.task_queue.get()
+                
+                # Вибір бота за стратегією
+                bot_id = await self.select_bot(task.get('strategy', 'smart'))
+                
+                if not bot_id:
+                    await asyncio.sleep(1)
+                    self.task_queue.task_done()
+                    continue
+                
+                # Виконання завдання
+                result = await self.execute_task(bot_id, task)
+                
+                # Оновлення статистики
+                await self.update_bot_statistics(bot_id, result)
+                
+                # Повернення бота в пул
+                self.return_bot_to_pool(bot_id)
+                
+                self.task_queue.task_done()
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"❌ Воркер {worker_id} помилка: {e}")
+                await asyncio.sleep(5)
+    
+    async def select_bot(self, strategy: str = 'smart') -> Optional[str]:
+        """Вибір бота за обраною стратегією"""
+        if not self.bot_pool:
+            return None
+        
+        selection_func = self.rotation_strategies.get(strategy, self.smart_selection)
+        
+        # Кілька спроб знайти доступного бота
+        for _ in range(len(self.bot_pool)):
+            bot_id = selection_func()
+            
+            bot_info = self.active_bots.get(bot_id)
+            if not bot_info:
+                continue
+            
+            # Перевірка доступності
+            if self.is_bot_available(bot_id):
+                # Видалення з черги та повернення в кінець після використання
+                self.bot_pool.remove(bot_id)
+                return bot_id
+        
+        return None
+    
+    def smart_selection(self) -> str:
+        """Розумний вибір бота на основі статистики"""
+        if not self.bot_pool:
+            return None
+        
+        # Розрахунок ваг для кожного бота
+        weights = []
+        for bot_id in list(self.bot_pool):
+            bot_info = self.active_bots.get(bot_id)
+            if not bot_info:
+                continue
+            
+            # Фактори для ваги:
+            # 1. Health score (40%)
+            # 2. Success rate (30%)
+            # 3. Time since last use (20%)
+            # 4. Usage count (10%)
+            
+            health = bot_info['data'].get('health_score', 100)
+            success = bot_info['data'].get('success_rate', 100)
+            
+            last_used = bot_info['last_used']
+            time_since_use = (datetime.now() - last_used).seconds
+            time_factor = min(1.0, time_since_use / 3600)  # Нормалізація до години
+            
+            usage = bot_info['usage_count']
+            usage_factor = max(0.1, 1.0 / (usage + 1))  # Менше використання = вища вага
+            
+            weight = (
+                health * 0.4 +
+                success * 0.3 +
+                time_factor * 100 * 0.2 +
+                usage_factor * 100 * 0.1
+            )
+            
+            weights.append((bot_id, weight))
+        
+        if not weights:
+            return None
+        
+        # Вибір за вагами
+        total_weight = sum(w for _, w in weights)
+        if total_weight == 0:
+            return random.choice(list(self.bot_pool))
+        
+        # Вибір з ймовірністю пропорційною вазі
+        r = random.uniform(0, total_weight)
+        cumulative = 0
+        
+        for bot_id, weight in weights:
+            cumulative += weight
+            if r <= cumulative:
+                return bot_id
+        
+        return weights[-1][0]  # Останній як запасний варіант
+    
+    async def execute_task(self, bot_id: str, task: Dict):
+        """Виконання завдання обраним ботом"""
+        bot_info = self.active_bots[bot_id]
+        client = bot_info['client']
+        
+        max_retries = self.settings['retry_attempts']
+        
+        for attempt in range(max_retries):
+            try:
+                # Випадкова затримка між спробами
+                if attempt > 0:
+                    delay = random.uniform(2, 5) * attempt
+                    await asyncio.sleep(delay)
+                
+                # Виконання конкретного типу завдання
+                if task['type'] == 'send_message':
+                    result = await self.send_message_task(client, task)
+                elif task['type'] == 'scrape_chat':
+                    result = await self.scrape_chat_task(client, task)
+                elif task['type'] == 'join_chat':
+                    result = await self.join_chat_task(client, task)
+                elif task['type'] == 'get_users':
+                    result = await self.get_users_task(client, task)
+                else:
+                    raise ValueError(f"Невідомий тип завдання: {task['type']}")
+                
+                # Успішне виконання
+                return {'success': True, 'result': result, 'attempts': attempt + 1}
+                
+            except FloodWaitError as e:
+                # Обробка flood wait
+                wait_time = e.seconds
+                print(f"⚠️ Бот {bot_id} flood wait: {wait_time} секунд")
+                
+                # Оновлення статусу бота
+                bot_info['data']['flood_wait_until'] = datetime.now() + timedelta(seconds=wait_time)
+                
+                if attempt == max_retries - 1:
+                    return {'success': False, 'error': f'Flood wait {wait_time}s', 'attempts': attempt + 1}
+                    
+            except PeerFloodError:
+                # Критична помилка - бот заблокований для спаму
+                print(f"🚨 Бот {bot_id} заблокований для спаму")
+                await self.deactivate_bot(bot_id, 'banned')
+                return {'success': False, 'error': 'Peer flood banned', 'attempts': attempt + 1}
+                
+            except UserPrivacyRestrictedError:
+                # Користувач обмежив приватність
+                return {'success': False, 'error': 'Privacy restricted', 'attempts': attempt + 1}
+                
+            except ChatWriteForbiddenError:
+                # Немає прав на запис у чат
+                return {'success': False, 'error': 'Write forbidden', 'attempts': attempt + 1}
+                
+            except Exception as e:
+                # Інші помилки
+                error_msg = str(e)
+                print(f"❌ Бот {bot_id} помилка: {error_msg}")
+                
+                if attempt == max_retries - 1:
+                    return {'success': False, 'error': error_msg, 'attempts': attempt + 1}
+        
+        return {'success': False, 'error': 'Max retries exceeded', 'attempts': max_retries}
+    
+    async def send_message_task(self, client, task: Dict):
+        """Завдання відправки повідомлення"""
+        # Випадкова затримка перед відправкою
+        delay_min, delay_max = self.settings['default_delay']
+        await asyncio.sleep(random.uniform(delay_min, delay_max))
+        
+        # Відправка повідомлення
+        result = await client.send_message(
+            entity=task['target'],
+            message=task['message'],
+            parse_mode='html' if task.get('html', False) else None,
+            link_preview=task.get('link_preview', False),
+            silent=task.get('silent', False)
+        )
+        
+        # Додаткові дії після відправки
+        if task.get('delete_after'):
+            await asyncio.sleep(task['delete_after'])
+            await result.delete()
+        
+        return {'message_id': result.id, 'date': result.date}
+    
+    async def health_monitoring_loop(self):
+        """Цикл моніторингу здоров'я ботів"""
+        while True:
+            try:
+                await asyncio.sleep(self.settings['health_check_interval'])
+                
+                for bot_id, bot_info in list(self.active_bots.items()):
+                    try:
+                        # Перевірка підключення
+                        await bot_info['client'].connect()
+                        
+                        # Проста перевірка - отримання інформації про себе
+                        me = await bot_info['client'].get_me()
+                        
+                        # Оновлення часу останньої перевірки
+                        bot_info['data']['last_health_check'] = datetime.now()
+                        bot_info['data']['health_score'] = 100  # Успішна перевірка
+                        
+                        # Оновлення статистики в базі даних
+                        await self.update_bot_in_database(bot_info['data'])
+                        
+                    except Exception as e:
+                        # Помилка перевірки здоров'я
+                        print(f"⚠️ Бот {bot_id} проблеми зі здоров'ям: {e}")
+                        
+                        bot_info['data']['health_score'] = max(
+                            0, bot_info['data'].get('health_score', 100) - 20
+                        )
+                        
+                        # Якщо health score дуже низький
+                        if bot_info['data']['health_score'] < 20:
+                            await self.deactivate_bot(bot_id, 'dead')
+                
+                # Автоматичне відновлення ботів зі статусом flood_wait
+                if self.settings['auto_recovery']:
+                    await self.recover_flooded_bots()
+                    
+            except Exception as e:
+                print(f"❌ Помилка моніторингу здоров'я: {e}")
+                await asyncio.sleep(60)
+```
+
+5. АЛГОРИТМИ РОЗПОДІЛУ НАВАНТАЖЕННЯ
+
+```python
+# core/load_balancer.py
+class LoadBalancer:
+    """
+    Алгоритми розподілу навантаження між ботами:
+    1. Round-Robin - по черзі
+    2. Weighted - з вагами на основі статистики
+    3. Smart - з урахуванням багатьох факторів
+    4. Geolocation - ближче до цілі
+    """
+    
+    def __init__(self, botnet_manager):
+        self.manager = botnet_manager
+        self.last_used = {}  # {bot_id: last_used_timestamp}
+        
+    def round_robin(self):
+        """Найпростіший алгоритм - по черзі"""
+        if not self.manager.bot_pool:
+            return None
+        
+        bot_id = self.manager.bot_pool[0]
+        self.manager.bot_pool.rotate(-1)  # Переміщення в кінець
+        
+        return bot_id
+    
+    def weighted_round_robin(self):
+        """Weighted Round-Robin з урахуванням статистики"""
+        if not self.manager.bot_pool:
+            return None
+        
+        # Розрахунок ваг
+        weights = []
+        total_weight = 0
+        
+        for bot_id in self.manager.bot_pool:
+            bot_info = self.manager.active_bots.get(bot_id)
+            if not bot_info:
+                continue
+            
+            # Вага = success_rate * health_score / (usage_count + 1)
+            success = bot_info['data'].get('success_rate', 100)
+            health = bot_info['data'].get('health_score', 100)
+            usage = bot_info.get('usage_count', 0)
+            
+            weight = (success * health) / (usage + 1)
+            weights.append((bot_id, weight))
+            total_weight += weight
+        
+        if not weights:
+            return None
+        
+        # Вибір з ймовірністю пропорційною вазі
+        r = random.uniform(0, total_weight)
+        cumulative = 0
+        
+        for bot_id, weight in weights:
+            cumulative += weight
+            if r <= cumulative:
+                # Видалення з початку черги
+                if bot_id in self.manager.bot_pool:
+                    self.manager.bot_pool.remove(bot_id)
+                return bot_id
+        
+        return weights[0][0]
+    
+    def geolocation_based(self, target_location=None):
+        """Вибір бота на основі геолокації"""
+        if not self.manager.bot_pool:
+            return None
+        
+        if not target_location:
+            # Якщо локація не вказана - використовуємо weighted
+            return self.weighted_round_robin()
+        
+        # Знаходження бота найближчого до цілі
+        best_bot = None
+        best_distance = float('inf')
+        
+        for bot_id in self.manager.bot_pool:
+            bot_info = self.manager.active_bots.get(bot_id)
+            if not bot_info:
+                continue
+            
+            bot_location = bot_info['data'].get('location')
+            if not bot_location:
+                continue
+            
+            # Розрахунок відстані (спрощено)
+            distance = self.calculate_distance(target_location, bot_location)
+            
+            # Врахування success rate
+            success = bot_info['data'].get('success_rate', 100)
+            adjusted_distance = distance * (100 / success)
+            
+            if adjusted_distance < best_distance:
+                best_distance = adjusted_distance
+                best_bot = bot_id
+        
+        if best_bot:
+            self.manager.bot_pool.remove(best_bot)
+            return best_bot
+        
+        return self.weighted_round_robin()
+```
+
+6. СИСТЕМА АНТИДЕТЕКТУ ТА МАСКУВАННЯ
+
+```python
+# core/antidetect.py
+class AntiDetectSystem:
+    """
+    Система уникнення виявлення:
+    - Маскування під різні пристрої
+    - Емуляція людської поведінки
+    - Ротація проксі
+    - Унікальні fingerprint для кожного бота
+    """
+    
+    DEVICE_PROFILES = {
+        'android_samsung': {
+            'device_model': 'SM-G950F',
+            'system_version': 'Android 9',
+            'app_version': '8.4.1',
+            'lang_code': 'en',
+            'system_lang_code': 'en-US',
+            'tz_offset': 7200
+        },
+        'iphone_ios': {
+            'device_model': 'iPhone 13 Pro',
+            'system_version': 'iOS 15.2',
+            'app_version': '8.4.1',
+            'lang_code': 'en',
+            'system_lang_code': 'en-US',
+            'tz_offset': 7200
+        },
+        'desktop_linux': {
+            'device_model': 'Linux Desktop',
+            'system_version': 'Linux 5.13',
+            'app_version': '2.8.1',
+            'lang_code': 'en',
+            'system_lang_code': 'en-US',
+            'tz_offset': 7200
+        }
+    }
+    
+    BEHAVIOR_PATTERNS = {
+        'casual_user': {
+            'typing_speed': (100, 300),  # мс на символ
+            'typing_variation': 0.3,      # варіація швидкості
+            'online_times': [(9, 12), (18, 22)],
+            'message_length': (10, 100),
+            'reaction_time': (2, 10)      # секунди на реакцію
+        },
+        'active_user': {
+            'typing_speed': (50, 150),
+            'typing_variation': 0.2,
+            'online_times': [(8, 23)],
+            'message_length': (5, 50),
+            'reaction_time': (1, 5)
+        },
+        'business_user': {
+            'typing_speed': (80, 200),
+            'typing_variation': 0.1,
+            'online_times': [(10, 18)],
+            'message_length': (20, 200),
+            'reaction_time': (5, 30)
+        }
+    }
+    
+    def generate_device_fingerprint(self, profile_type='android_samsung'):
+        """Генерація унікального fingerprint пристрою"""
+        profile = self.DEVICE_PROFILES[profile_type].copy()
+        
+        # Додавання унікальних варіацій
+        profile.update({
+            'device_id': f"{profile_type}_{hashlib.md5(str(uuid.uuid4()).encode()).hexdigest()[:8]}",
+            'app_build': random.randint(1000000, 9999999),
+            'created': datetime.now().isoformat(),
+            'session_id': str(uuid.uuid4()),
+            'screen_resolution': self.generate_screen_resolution(profile_type),
+            'browser_ua': self.generate_user_agent(profile_type),
+            'font_hash': self.generate_font_hash(),
+            'canvas_hash': self.generate_canvas_hash(),
+            'webgl_hash': self.generate_webgl_hash(),
+            'audio_hash': self.generate_audio_hash()
+        })
+        
+        return profile
+    
+    def emulate_human_behavior(self, bot_id, action_type):
+        """Емуляція людської поведінки"""
+        behavior = self.BEHAVIOR_PATTERNS.get(
+            self.manager.active_bots[bot_id]['data'].get('behavior_profile', 'casual_user'),
+            self.BEHAVIOR_PATTERNS['casual_user']
+        )
+        
+        if action_type == 'typing':
+            # Емуляція набору тексту
+            speed_min, speed_max = behavior['typing_speed']
+            variation = behavior['typing_variation']
+            
+            base_speed = random.uniform(speed_min, speed_max)
+            actual_speed = base_speed * random.uniform(1 - variation, 1 + variation)
+            
+            await asyncio.sleep(actual_speed / 1000)  # Конвертація в секунди
+            
+        elif action_type == 'thinking':
+            # Емуляції "думки" перед відповіддю
+            think_min, think_max = behavior['reaction_time']
+            think_time = random.uniform(think_min, think_max)
+            
+            await asyncio.sleep(think_time)
+            
+        elif action_type == 'online_schedule':
+            # Емуляція графіку онлайну
+            current_hour = datetime.now().hour
+            
+            for online_start, online_end in behavior['online_times']:
+                if online_start <= current_hour <= online_end:
+                    return True
+            
+            return False
+```
+
+7. СИСТЕМА ВІДНОВЛЕННЯ ТА РЕЗЕРВУВАННЯ
+
+```python
+# core/recovery_system.py
+class RecoverySystem:
+    """
+    Система відновлення ботнету:
+    - Автоматичне відновлення після падіння
+    - Ротація проксі
+    - Резервні копії сесій
+    - Failover механізми
+    """
+    
+    async def auto_recover_bot(self, bot_id: str):
+        """Автоматичне відновлення бота"""
+        bot_info = self.manager.active_bots.get(bot_id)
+        if not bot_info:
+            return False
+        
+        try:
+            # 1. Спробувати перепідключитися з тією ж сесією
+            await bot_info['client'].connect()
+            
+            if await bot_info['client'].is_user_authorized():
+                print(f"✅ Бот {bot_id} відновлено")
+                return True
+            
+            # 2. Якщо не вийшло - спробувати змінити проксі
+            if await self.rotate_proxy_and_retry(bot_id):
+                return True
+            
+            # 3. Якщо все ще не вийшло - відновити з резервної копії
+            if await self.restore_from_backup(bot_id):
+                return True
+            
+            # 4. Останній шанс - створити нову сесію
+            return await self.create_new_session(bot_id)
+            
+        except Exception as e:
+            print(f"❌ Не вдалося відновити бота {bot_id}: {e}")
+            return False
+    
+    async def rotate_proxy_and_retry(self, bot_id: str):
+        """Ротація проксі та повторна спроба"""
+        bot_info = self.manager.active_bots[bot_id]
+        
+        # Отримання нового проксі з пулу
+        new_proxy = await self.get_next_proxy()
+        
+        if not new_proxy:
+            return False
+        
+        try:
+            # Оновлення налаштувань проксі
+            bot_info['client'].session.set_proxy(new_proxy)
+            
+            # Перепідключення
+            await bot_info['client'].connect()
+            
+            if await bot_info['client'].is_user_authorized():
+                # Оновлення інформації про проксі
+                bot_info['data']['proxy_config'] = new_proxy
+                bot_info['data']['proxy_last_checked'] = datetime.now()
+                
+                print(f"✅ Бот {bot_id} відновлено з новим проксі")
+                return True
+                
+        except Exception as e:
+            print(f"❌ Помилка ротації проксі для {bot_id}: {e}")
+        
+        return False
+    
+    async def restore_from_backup(self, bot_id: str):
+        """Відновлення сесії з резервної копії"""
+        backup = await self.get_latest_backup(bot_id)
+        
+        if not backup:
+            return False
+        
+        try:
+            # Дешифрування резервної сесії
+            session_string = self.encryptor.decrypt_session(
+                backup['encrypted_session'],
+                bot_id
+            )
+            
+            # Створення нового клієнта
+            new_client = TelegramClient(
+                StringSession(session_string),
+                api_id=backup['api_id'],
+                api_hash=backup['api_hash']
+            )
+            
+            await new_client.connect()
+            
+            if await new_client.is_user_authorized():
+                # Заміна клієнта
+                old_client = self.manager.active_bots[bot_id]['client']
+                await old_client.disconnect()
+                
+                self.manager.active_bots[bot_id]['client'] = new_client
+                
+                print(f"✅ Бот {bot_id} відновлено з резервної копії")
+                return True
+                
+        except Exception as e:
+            print(f"❌ Помилка відновлення з бекопу {bot_id}: {e}")
+        
+        return False
+```
+
+🎯 ПРИНЦИП РОБОТИ БОТНЕТУ В БОЙОВИХ УМОВАХ
+
+ПОСЛІДОВНІСТЬ ДІЙ:
+
+1. Ініціалізація (30 секунд):
+   ```python
+   botnet = BotnetManager(max_concurrent=20)
+   await botnet.initialize()
+   ```
+2. Додавання завдань (безперервно):
+   ```python
+   await botnet.add_task({
+       'type': 'send_message',
+       'target': '@enemy_channel',
+       'message': '⚠️ Евакуюйте будівлю!',
+       'strategy': 'weighted'
+   })
+   ```
+3. Обробка черги (автоматично):
+   ```
+   Воркер 1: Бере завдання → Вибирає бота → Виконує → Повертає бота
+   Воркер 2: Бере завдання → Вибирає бота → Виконує → Повертає бота
+   Воркер N: ...
+   ```
+4. Моніторинг та відновлення (кожні 5 хвилин):
+   ```
+   Перевірка здоров'я → Відновлення ботів → Ротація проксі → Оновлення статистики
+   ```
+
+ОБРОБКА ПОМИЛОК:
+
+```
+ПОМИЛКА → АНАЛІЗ → ДІЯ
+───────────────────────
+FloodWaitError → Очікування X секунд → Пауза бота
+PeerFloodError → Блокування спаму → Деактивація бота
+ConnectionError → Проблеми мережі → Ротація проксі
+AuthError → Проблеми авторизації → Відновлення з backup
+UnknownError → Невідома помилка → Логування та повтор
+```
+
+ПЕРЕВАГИ ТАКОЇ АРХІТЕКТУРИ:
+
+1. Масштабованість: Додавання нових ботів без зупинки системи
+2. Відмовостійкість: Автоматичне відновлення при падінні
+3. Анонімність: Ротація проксі + унікальні fingerprint
+4. Ефективність: Оптимальний розподіл навантаження
+5. Контроль: Детальна статистика по кожному боту
+6. Безпека: Шифрування сесій + резервне копіювання
+
+ОБМЕЖЕННЯ ТА ЛІМІТИ TELEGRAM:
+
+```
+┌─────────────────┬──────────────┬────────────────────────────┐
+│     ЛІМІТ       │   ЗНАЧЕННЯ   │         ОБХІД              │
+├─────────────────┼──────────────┼────────────────────────────┤
+│ Повідомлень/день│   50-100     │ Ротація ботів              │
+│ Flood wait      │  До 24 годин │ Пауза + зміна проксі       │
+│ Нових чатів/день│     20-50    │ Поступове приєднання       │
+│ Закриття чатів  │   Обмежено   │ Використання існуючих      │
+└─────────────────┴──────────────┴────────────────────────────┘
+```
+
+РЕКОМЕНДАЦІЇ ДЛЯ БОЙОВОГО ВИКОРИСТАННЯ:
+
+1. Мінімум 10-20 ботів для стабільної роботи
+2. Різні проксі для кожного бота (SOCKS5 краще)
+3. Унікальні device fingerprint для кожного бота
+4. Денний ліміт 30-40 повідомлень на бота
+5. Регулярна ротація ботів (кожні 2-3 дні)
+6. Резервні копії сесій кожні 12 годин
+
+---
+

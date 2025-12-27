@@ -464,3 +464,40 @@ class ProjectStats(Base):
     active_bots = Column(Integer, default=0)
     campaigns_launched = Column(Integer, default=0)
     osint_reports = Column(Integer, default=0)
+
+class UIConfig(Base):
+    """Налаштування інтерфейсу"""
+    __tablename__ = "ui_config"
+    id = Column(Integer, primary_key=True)
+    menu_key = Column(String(50), unique=True, index=True)
+    title = Column(String(100))
+    description = Column(Text)
+    banner_text = Column(Text, nullable=True)
+    divider_style = Column(String(50), default="double")
+    is_active = Column(Boolean, default=True)
+    updated_by = Column(String)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class UIButton(Base):
+    """Кнопки меню"""
+    __tablename__ = "ui_buttons"
+    id = Column(Integer, primary_key=True)
+    menu_key = Column(String(50), index=True)
+    text = Column(String(100))
+    callback_data = Column(String(100))
+    row_order = Column(Integer, default=0)
+    col_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class UIStyle(Base):
+    """Глобальні стилі"""
+    __tablename__ = "ui_styles"
+    id = Column(Integer, primary_key=True)
+    style_key = Column(String(50), unique=True, index=True)
+    divider_char = Column(String(10), default="═")
+    divider_length = Column(Integer, default=26)
+    header_format = Column(String(200), default="{divider}\n{icon} <b>{title}</b>\n{divider}")
+    tree_prefix = Column(String(10), default="├")
+    tree_last = Column(String(10), default="└")
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

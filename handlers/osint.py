@@ -27,13 +27,11 @@ def osint_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🌐 DNS", callback_data="osint_dns"),
-            InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois")
+            InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois"),
+            InlineKeyboardButton(text="🌍 GEO", callback_data="osint_geoip")
         ],
         [
-            InlineKeyboardButton(text="🌍 GEO IP", callback_data="osint_geoip"),
-            InlineKeyboardButton(text="📧 EMAIL", callback_data="osint_email")
-        ],
-        [
+            InlineKeyboardButton(text="📧 EMAIL", callback_data="osint_email"),
             InlineKeyboardButton(text="👤 ЮЗЕРИ", callback_data="user_analysis"),
             InlineKeyboardButton(text="💬 ЧАТИ", callback_data="chat_analysis")
         ],
@@ -43,7 +41,7 @@ def osint_kb():
         ],
         [
             InlineKeyboardButton(text="📥 ЕКСПОРТ", callback_data="export_contacts"),
-            InlineKeyboardButton(text="📈 СТАТИСТИКА", callback_data="osint_stats")
+            InlineKeyboardButton(text="📈 СТАТИ", callback_data="osint_stats")
         ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])

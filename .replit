@@ -29,23 +29,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "shadow_bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Telegram Bot"
-
-[[workflows.workflow]]
-name = "shadow_bot"
-author = "agent"
-mode = "parallel"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "shadow_bot"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow]]
 name = "Telegram Bot"

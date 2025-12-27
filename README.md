@@ -409,6 +409,97 @@ Text analysis capabilities:
 
 Stop words: Ukrainian (200+), Russian (200+) built-in lists
 
+### 7. Botnet Manager
+**File:** `core/botnet_manager.py`
+
+Enterprise botnet management system:
+
+| Feature | Description |
+|---------|-------------|
+| Worker Pool | Async task queue with configurable workers |
+| Bot Selection | Round-robin, weighted, smart, geolocation strategies |
+| Health Monitoring | Automatic health checks every 5 minutes |
+| Auto Recovery | Automatic bot recovery after failures |
+| Daily Limits | Per-bot message limits with midnight reset |
+| Statistics | Real-time success rate, health score tracking |
+
+Bot statuses:
+- `ACTIVE` - Ready for tasks
+- `PAUSED` - Manually paused
+- `BUSY` - Executing task
+- `FLOOD_WAIT` - Telegram rate limited
+- `BANNED` - Account banned
+- `DEAD` - Session expired
+- `WARMING` - In warming phase
+- `COOLING` - In cooldown period
+
+### 8. AntiDetect System
+**File:** `core/antidetect.py`
+
+Device masking and behavior emulation:
+
+| Device Profiles | Description |
+|-----------------|-------------|
+| `android_samsung_s21` | Samsung Galaxy S21, Android 12 |
+| `android_samsung_a52` | Samsung Galaxy A52, Android 11 |
+| `android_xiaomi` | Redmi Note 10, Android 11 |
+| `android_pixel` | Pixel 6, Android 13 |
+| `iphone_13` | iPhone 13 Pro, iOS 16.2 |
+| `iphone_12` | iPhone 12, iOS 15.6 |
+| `desktop_windows` | Windows 10 Desktop |
+| `desktop_macos` | MacBook Pro, macOS 13.1 |
+| `desktop_linux` | Ubuntu 22.04 Desktop |
+
+Behavior patterns:
+- `casual_user` - Typical user, 9-12 & 18-23 online
+- `active_user` - High activity, 8-24 online
+- `business_user` - Office hours, formal communication
+- `night_owl` - Late night activity, 20-04
+- `early_bird` - Early morning, 5-10 & 19-22
+
+Fingerprint components:
+- Canvas hash, WebGL hash, Audio hash, Font hash
+- Screen resolution, Device ID, Session ID
+- Unique fingerprint hash per bot
+
+### 9. Recovery System
+**File:** `core/recovery_system.py`
+
+Automatic recovery and failover:
+
+| Feature | Description |
+|---------|-------------|
+| Auto Recovery | 5-step recovery process |
+| Proxy Rotation | Automatic proxy switching on failure |
+| Backup System | Session backups with versioning |
+| Health Checks | Proxy pool health monitoring |
+| Batch Recovery | Mass bot recovery operations |
+
+Recovery process:
+1. Try reconnection
+2. Rotate proxy and retry
+3. Restore from backup
+4. Mark as dead if all fail
+
+### 10. Session Importer
+**File:** `core/session_importer.py`
+
+Multi-format session import:
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| Telethon Binary | `.session` | SQLite database format |
+| Pyrogram JSON | `.json` | JSON with auth_key |
+| String Session | `.txt` | Base64 encoded string |
+| TData Archive | `.zip` | Telegram Desktop data |
+
+Validation tests:
+1. Connection test
+2. Authorization test
+3. Rate limit test
+4. Privacy test
+5. Functionality test
+
 ---
 
 ## Security & Encryption

@@ -42,13 +42,15 @@ class AIService:
             return self._fallback_sentiment(text)
         
         try:
+            # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
+            # do not change this unless explicitly requested by the user
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "Analyze the sentiment of the text. Return JSON with: sentiment (positive/negative/neutral), score (0-100), keywords (list of 5), summary (1 sentence in Ukrainian)."},
                     {"role": "user", "content": text}
                 ],
-                max_tokens=200
+                max_completion_tokens=200
             )
             
             import json
@@ -102,13 +104,15 @@ class AIService:
             
             prompt = f"{styles.get(style, styles['professional'])} українською мовою на тему: {topic}. Максимум 200 символів."
             
+            # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
+            # do not change this unless explicitly requested by the user
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "Ви - експерт з копірайтингу для Telegram маркетингу."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=100
+                max_completion_tokens=100
             )
             
             return response.choices[0].message.content
@@ -194,7 +198,7 @@ class AIService:
                     {"role": "system", "content": "Ти - експерт з OSINT аналізу. Надавай структуровані звіти українською."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=1000
+                max_completion_tokens=1000
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -235,7 +239,7 @@ class AIService:
                     {"role": "system", "content": f"Перепиши текст {style_desc}. Збережи головну думку. Українською мовою."},
                     {"role": "user", "content": text}
                 ],
-                max_tokens=500
+                max_completion_tokens=500
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -258,7 +262,7 @@ class AIService:
                     {"role": "system", "content": "Ти - експерт з маркетингових воронок. Генеруй контент для Telegram. Відповідай ТІЛЬКИ у форматі JSON."},
                     {"role": "user", "content": f"Створи крок #{step_number} для воронки '{funnel_name}' з метою: {goal}. Поверни JSON: {{\"content\": \"...\", \"button_text\": \"...\"}}"}
                 ],
-                max_tokens=300
+                max_completion_tokens=300
             )
             
             import json
@@ -285,7 +289,7 @@ class AIService:
                     {"role": "system", "content": "Проаналізуй історію чату. Відповідай ТІЛЬКИ у форматі JSON: {\"summary\": \"...\", \"topics\": [...], \"sentiment\": \"positive/negative/neutral\", \"key_insights\": [...]}"},
                     {"role": "user", "content": text}
                 ],
-                max_tokens=500
+                max_completion_tokens=500
             )
             
             import json
@@ -307,7 +311,7 @@ class AIService:
                     {"role": "system", "content": f"Згенеруй шаблон відповіді для Telegram бота. Тон: {tone}. Українською мовою. Коротко."},
                     {"role": "user", "content": f"Контекст: {context}"}
                 ],
-                max_tokens=200
+                max_completion_tokens=200
             )
             return response.choices[0].message.content
         except Exception as e:

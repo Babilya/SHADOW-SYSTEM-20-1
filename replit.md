@@ -1,7 +1,7 @@
 # Shadow System v2.0
 
 ## Overview
-SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. It provides comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization (no payment/balance system).
+SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. It provides comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, focusing on robust functionality over a payment/balance system.
 
 ## User Preferences
 - Concise, high-level summaries over granular details
@@ -11,306 +11,33 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 
 ## System Architecture
 
-### Directory Structure
-```
-├── bot.py                  # Main entry point
-├── config/                 # Configuration (settings, tariffs)
-├── core/                   # Core services
-│   ├── ai_service.py       # AI/GPT integration (GPT-5)
-│   ├── role_constants.py   # Single source of truth for UserRole
-│   ├── roles.py            # Permission system
-│   ├── rate_limiter.py     # Token bucket rate limiting
-│   ├── message_queue.py    # Async message queue (3 workers)
-│   ├── mailing_scheduler.py# Campaign scheduling
-│   ├── anti_fraud.py       # Behavioral analysis
-│   ├── segmentation.py     # User tagging
-│   └── alerts.py           # Notification system
-├── database/
-│   ├── models.py           # SQLAlchemy models (User, Funnel, FunnelStep, etc.)
-│   └── crud.py             # Database operations
-├── handlers/               # Telegram command handlers
-├── keyboards/              # Role-specific menus
-├── middlewares/            # Security, role checking
-├── services/               # Business logic (user_service, funnel_service)
-└── utils/                  # Database utilities
-```
-
 ### Core Architectural Decisions
-- **Unified Role System:** Single `UserRole` class in `core/role_constants.py` imported by all modules
-- **Centralized FSM States:** All FSM states defined in `core/states.py` (AdminStates, AuthStates, FunnelStates, etc.)
-- **Modular Admin Panel:** `handlers/admin/` package with separate modules (bans.py, roles.py, keys.py, stats.py, emergency.py, system.py)
-- **RBAC:** ROOT/ADMIN, LEADER, MANAGER, GUEST with hierarchical permissions
-- **FSM Navigation:** Proper state clearing on back navigation
-- **Async Operations:** aiogram 3.3 + asyncpg with optimized connection pool (pool_size=10, max_overflow=20)
-- **Background Tasks:** `core/background_tasks.py` for non-blocking OSINT and heavy operations
-- **Security-First:** SHADOW keys, AES-256-CBC encryption, Telegram ID binding, audit logging
-- **UI Components:** Reusable Paginator, ProgressBar, MenuBuilder in `core/ui_components.py`
-- **AI Integration:** Replit AI Integrations (OpenAI-compatible, GPT-5)
+- **Unified Role System:** Single `UserRole` class in `core/role_constants.py` imported by all modules, supporting RBAC (ROOT/ADMIN, LEADER, MANAGER, GUEST).
+- **Centralized FSM States:** All FSM states defined in `core/states.py` for consistent state management.
+- **Modular Design:** Clear separation of concerns with dedicated folders for configuration, core services, database, handlers, keyboards, middlewares, and utilities.
+- **Asynchronous Operations:** Utilizes `aiogram 3.3` and `asyncpg` with an optimized connection pool for high performance.
+- **Background Task Processing:** `core/background_tasks.py` handles non-blocking and heavy operations like OSINT.
+- **Security-First Approach:** Implements SHADOW keys, AES-256-CBC encryption, Telegram ID binding, and comprehensive audit logging. Includes rate limiting, anti-fraud, and session validation.
+- **Reusable UI Components:** Paginator, ProgressBar, and MenuBuilder in `core/ui_components.py` for consistent user experience.
+- **AI Integration:** Seamless integration with OpenAI-compatible models (e.g., GPT-5) via Replit AI for various AI-powered features.
+- **Advanced Campaign Management:** Features a worker pool with async queues, weighted round-robin bot selection, adaptive delay calculation, and A/B testing.
+- **Enhanced OSINT Engine:** Deep analysis capabilities including network graph building, threat assessment, pattern detection (phones, crypto, coordinates, emails), and evidence storage.
+- **Real-time Monitoring:** Telethon-based event listener for real-time threat detection, pattern matching, and auto-actions.
+- **Dynamic Alert Thresholds:** Configurable rules engine for various events with actions like logging, alerting, and escalation.
+- **Comprehensive Funnel System:** Full CRUD for funnels, integration with mailing templates, scheduling, OSINT analysis, and monitoring with trigger-based transitions.
+- **Advanced Tools:** Includes AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, and Keyword Analyzer.
 
-### Role Hierarchy
-| Role | Level | Access |
-|------|-------|--------|
-| GUEST | 0 | View tariffs, submit applications |
-| MANAGER | 1 | Mailings, OSINT, botnet |
-| LEADER | 2 | Team management, funnels, license generation |
-| ADMIN | 3 | Full system control |
-
-## Key Features
-
-### Implemented
-- **Bot Network:** Session import, encryption, warming cycles, proxy management
-- **Campaigns:** Broadcast, targeted, drip, sequential with A/B testing
-- **OSINT:** Telegram analysis, DNS/WHOIS, geo scanner, AI reports
-- **Funnels:** Full CRUD with photo support, tariff config, statistics
-- **AI Services:** Text generation, sentiment analysis, OSINT reports, message rewriting
-- **Security:** Rate limiting, anti-fraud, encrypted sessions, audit logs
-- **Team CRM:** Manager management, invite codes, referrals
-
-### Services (19 Active)
-1. RateLimiter (30 req/sec global)
-2. MessageQueue (3 workers)
-3. MailingScheduler
-4. AntiFraud
-5. Segmentation
-6. KeyNotifications
-7. SecurityCache
-8. AuditLogger
-9. EncryptionManager
-10. AIService
+### UI/UX Standards
+- Ukrainian language throughout the interface.
+- Consistent use of dividers (e.g., `═══════════════════════`).
+- Standardized button layouts (1/2/3 per row).
+- Rich HTML formatting (bold, italic, code) for messages.
+- Tree-like list structures (e.g., `├ └`).
 
 ## External Dependencies
-- **aiogram 3.3:** Telegram Bot API
-- **SQLAlchemy + asyncpg:** PostgreSQL database
-- **Telethon:** Session management
-- **OpenAI (via Replit AI):** AI features
-- **ReportLab:** PDF generation
-- **Jinja2:** HTML templates
-
-## Authorization
-- **Leaders:** SHADOW keys (unique, ID-bound)
-- **Managers:** INV codes (generated by Leaders)
-- No payment/balance system - pure license activation
-
-## UI/UX Standards
-- Ukrainian language throughout
-- Dividers: ═══════════════════════
-- Button layouts: 1/2/3 per row
-- HTML formatting: <b>, <i>, <code>
-- Lists: ├ └ tree structure
-
-## Recent Changes (December 2025)
-
-### Bug Fixes
-- Fixed "message is not modified" TelegramBadRequest errors with safe_edit_message helper
-- Fixed "query is too old" callback errors handling
-- Fixed missing logger import in role_middleware.py
-- Fixed RoleMiddleware to use correct set_user_role method
-
-### New Features
-- Added RoleMiddleware to dispatcher for automatic role injection
-- Registered funnels_router for funnel management
-- Added missing callback handlers:
-  - back_to_menu, profile_main, texting_main, settings_main
-  - warming_main, warming_start, warming_stop, support
-  - Full admin panel: admin_roles, admin_apps, admin_keys, admin_emergency
-  - System controls: system_restart, system_clear_cache
-  - Emergency: emergency_activate, emergency_broadcast, emergency_lockdown
-
-### Improvements
-- Enhanced error logging in safe_edit_message function
-- All admin panel buttons now have working handlers
-- Better navigation flow between menus
-
-### Registered Routers (December 2025)
-All feature routers now properly registered in main.py:
-- warming_router (account warming with profiles)
-- mailing_router (broadcast/targeted campaigns)
-- geo_router (geo scanner)
-- proxy_router (proxy management)
-- advanced_router (scheduler, A/B testing, auto-responder, segmentation)
-- osint_handler_router (OSINT commands)
-- texting_router (text creation/templates)
-- scheduler_router (campaign scheduling)
-
-### Warming Profiles Added
-- Conservative (~20 actions/day)
-- Standard (~50 actions/day)
-- Aggressive (100+ actions/day)
-- Custom (manual settings)
-
-## AI Integration Notes
-AI features require OpenAI API key. When key is missing, system operates in graceful degradation mode - all non-AI features remain fully functional.
-
-## Communication & Templates System (December 2025)
-
-### Mailing Templates (services/template_service.py)
-- **TemplateService**: CRUD operations for mailing templates
-- Categories: welcome, promo, news, reminder, alert, general
-- Variable support: {name}, {username}, {date}, {time}
-- Public/private templates with usage tracking
-- **SchedulerService**: Interval-based scheduling
-- Schedule types: once, interval, daily, weekly, monthly
-- Target by roles or specific user IDs
-
-### Support Ticket System (services/support_service.py)
-- **SupportService**: Full ticket lifecycle management
-- Categories: technical, billing, account, feature, bug, general
-- Priorities: low, normal, high, urgent
-- Statuses: open, in_progress, waiting, resolved, closed
-- Threaded messages with attachments
-- Admin assignment and rating system
-
-### Notification & Ban System (services/notification_service.py)
-- **NotificationService**: Role-based targeting
-- Target types: all, role, multi_role, personal, project
-- Types: info, warning, success, error, announcement, update, maintenance
-- Priority levels with read tracking
-- **BanService**: User ban management
-- Ban types: temporary, permanent, warning
-- Appeal system with admin review
-- Auto-expiry for temporary bans
-- **ProjectStatsService**: Per-project analytics
-
-### UI Keyboards
-- keyboards/templates_kb.py: Template management UI
-- keyboards/support_kb.py: Ticket system UI
-- keyboards/notifications_kb.py: Notifications, bans, stats UI
-
-### Registered Handlers
-- templates_router: Template CRUD, scheduling
-- support_router: Ticket creation, responses, status
-- notifications_router: Notifications, bans, statistics
-
-## ТЗ Compliance (December 2025)
-
-### Security & Encryption
-- **EncryptionManager**: AES-256-CBC + HKDF key derivation (core/encryption.py)
-- Separate keys for sessions, proxies, data
-- Fallback XOR encryption when cryptography unavailable
-
-### Session Management
-- **SessionValidator**: Full validation with 5 tests (core/session_validator.py)
-  - Connection test
-  - Authorization test
-  - Rate limit test
-  - Privacy test
-  - Functionality test
-- Supports: Telethon .session, Pyrogram JSON, TData archives, StringSession
-
-### BotSession Model (Extended)
-20+ fields including:
-- Device fingerprint, anti-detect profile
-- Proxy configuration (type, config JSON)
-- Warming phase & profile tracking
-- Flood wait timestamps
-- Success rate & message statistics
-- Tags for filtering
-
-### Campaign Manager (Advanced)
-- **AdvancedCampaignManager**: Worker pool with async queues (core/advanced_campaign_manager.py)
-- Weighted round-robin bot selection
-- Adaptive delay calculation based on success rate
-- Real-time statistics with lock-safe updates
-- A/B testing support
-- Dynamic delay adjustment
-
-### OSINT Engine (Extended)
-- **AdvancedOSINTEngine**: Deep analysis system (core/advanced_osint_engine.py)
-- Network graph building with influence scores
-- Threat assessment with risk scoring
-- Pattern detection (phones, crypto wallets, coordinates, emails)
-- Suspicious keyword detection (UK/RU/EN)
-- Evidence storage with hash verification
-
-### Real-Time Monitor
-- **RealTimeMonitor**: Telethon events listener (core/realtime_monitor.py)
-- NewMessage, ChatAction, MessageEdited handlers
-- Pattern matching: coordinates (decimal, DMS, MGRS), phones, crypto, frequencies
-- Threat keywords by level (critical/high/medium/low)
-- Auto-actions: block_user, log_evidence, alert_admins
-- Configurable thresholds per metric
-
-### Rapid OSINT Parser
-- **RapidOSINTParser**: Fast channel scanning (core/rapid_osint.py)
-- Multi-channel parallel scanning
-- Pattern extraction: coordinates, phones (UA/RU), crypto (BTC/ETH/USDT), frequencies
-- Threat scoring system with keyword detection
-- JSON report generation with evidence
-- User lookup functionality
-
-### Mass Sender & PsyOps
-- **MassSender**: Telegram mass messaging (core/mass_sender.py)
-- Batch sending with adaptive delays
-- FloodWait handling with retry logic
-- Progress callbacks and statistics
-- **PsyOpsCampaign**: Psychological operations templates
-- Alert/disinformation/panic message types
-- Personalized messaging support
-
-### Alert Thresholds System
-- **AlertThresholdsSystem**: Dynamic rules engine (core/alert_thresholds.py)
-- Rule types: MESSAGE_FREQUENCY, KEYWORD_DETECTION, COORDINATE_LEAK, etc.
-- Actions: LOG, ALERT, BLOCK_USER, NOTIFY_ADMIN, ESCALATE
-- Cooldown and priority settings
-- Violation tracking with evidence
-- Metrics recording and cleanup
-
-## Funnel Integration System
-
-### Воронки ↔ Шаблони
-- Вибір шаблону для воронки: `funnel_templates_{funnel_id}`
-- Застосування шаблону як нового кроку: `apply_tpl:{funnel_id}:{template_id}`
-- Створення шаблону з контексту воронки: `tpl_for_funnel:{funnel_id}`
-
-### Воронки ↔ Планування
-- ScheduledMailing model має `funnel_id` для прив'язки
-- Типи розкладу: interval (60/240 хв), daily (1440 хв), weekly (10080 хв)
-- Callback: `funnel_schedule_{funnel_id}`, `funnel_sched_set_{id}_{interval}`
-
-### Воронки ↔ Розсилки
-- Меню: `funnel_mailing:{funnel_id}:menu`
-- Вибір кроку для розсилки: `funnel_mailing:{funnel_id}:send_step`
-- Створення task з кроку воронки: `send_funnel_step:{funnel_id}:{step_id}`
-
-### Воронки ↔ OSINT
-- Меню: `funnel_osint:{funnel_id}:menu`
-- Аналіз учасників/реакцій/звітів
-- Інтеграція з osint_service (DNS, WHOIS, GeoIP, Email)
-
-### Воронки ↔ Моніторинг
-- Меню: `funnel_monitor:{funnel_id}:menu`
-- Моніторинг реакцій, нових користувачів
-- Тригери переходу: message/button/time/keyword
-- Звіти активності з конверсіями
-
-### OSINT Callback Handlers
-- `osint_dns` → DNS Lookup з FSM
-- `osint_whois` → WHOIS Lookup
-- `osint_geoip` → IP Geolocation
-- `osint_email` → Email Verify
-- `user_analysis` → Аналіз профілю
-- `chat_analysis` → Парсинг чату
-- `export_contacts` → Експорт JSON/CSV
-
-### Campaigns Handler
-- `campaigns_main` → Центр кампаній з статистикою
-- Інтеграція з mailing_engine
-- Моніторинг груп через monitoring_engine
-
-### Admin Panel Handlers (Full Coverage)
-- `bans_menu` → Управління банами (ban_user, active_bans, ban_history)
-- `project_stats` → Статистика проекту з експортом (stats_export_pdf, stats_export_csv)
-- `user_menu` → Перегляд меню гостя для тестування
-- `admin_roles` → Управління ролями (admin_set_role, admin_users_list)
-- `admin_apps` → Управління заявками (admin_new_apps, admin_approved_apps, admin_rejected_apps)
-- `admin_keys` → Ліцензійний центр (admin_gen_key, admin_active_keys, admin_revoke_key)
-- `admin_emergency` → Екстрений центр (emergency_activate, emergency_broadcast, emergency_lockdown)
-
-### Registered Routers (Full List)
-All routers properly registered in main.py:
-- start_router, auth_router, subs_router, tickets_router, admin_router
-- osint_router, botnet_router, campaigns_router, team_router, analytics_router
-- config_router, help_router, funnels_router, warming_router, mailing_router
-- geo_router, proxy_router, advanced_router, osint_handler_router
-- texting_router, scheduler_router, templates_router
-- support_router, notifications_router, missing_router
+- **aiogram 3.3:** Telegram Bot API interaction.
+- **SQLAlchemy + asyncpg:** Object Relational Mapper (ORM) and asynchronous PostgreSQL driver.
+- **Telethon:** For Telegram session management and interaction.
+- **OpenAI (via Replit AI):** Provides AI capabilities.
+- **ReportLab:** For generating professional PDF reports.
+- **Jinja2:** Templating engine for various text and HTML generation needs.

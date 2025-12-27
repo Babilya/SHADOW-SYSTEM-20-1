@@ -110,6 +110,7 @@ def leader_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warming_main"),
             InlineKeyboardButton(text="⚙️ КОНФІГУРАЦІЯ", callback_data="settings_main")
         ],
+        [InlineKeyboardButton(text="🛠 РОЗШИРЕНІ ІНСТРУМЕНТИ", callback_data="advanced_tools")],
         [
             InlineKeyboardButton(text="📖 ДОВІДКА", callback_data="help_main"),
             InlineKeyboardButton(text="👤 ПРОФІЛЬ", callback_data="profile_main")

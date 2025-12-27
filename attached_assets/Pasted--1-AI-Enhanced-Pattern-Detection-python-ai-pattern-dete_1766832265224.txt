@@ -1,0 +1,1874 @@
+
+1. AI-Enhanced Pattern Detection - Розширений аналіз
+
+```python
+# ai_pattern_detection.py
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import re
+
+class AIThreatDetector:
+    """AI модель для виявлення прихованих загроз"""
+    
+    def __init__(self):
+        # Завантаження моделей
+        self.coord_model = self.load_model("coordinates_detector")
+        self.code_model = self.load_model("code_breaker")
+        self.threat_model = self.load_model("threat_classifier")
+        
+    def detect_hidden_coordinates(self, text: str):
+        """Виявлення прихованих координат"""
+        patterns = [
+            # Координати в тексті
+            (r'(\d{2})[°◦](\d{2})[\'\′](\d{2})[″\"]\s*[NS]\s*(\d{2})[°◦](\d{2})[\'\′](\d{2})[″\"]\s*[EW]', 'DMS'),
+            # GPS в URL
+            (r'maps\.google\.com.*@(-?\d+\.\d+),(-?\d+\.\d+)', 'Google Maps'),
+            # Шифрировані координати
+            (r'[A-Z]{2}\d{4}[A-Z]{2}', 'Military Grid'),
+            # Base64 координати
+            (r'[A-Za-z0-9+/]{20,}={0,2}', 'Base64 Encoded'),
+        ]
+        
+        found = []
+        for pattern, name in patterns:
+            matches = re.findall(pattern, text)
+            if matches:
+                found.append({'type': name, 'matches': matches})
+        
+        return found
+    
+    def analyze_with_gpt(self, text: str):
+        """Аналіз з використанням AI"""
+        # Імітація роботи GPT-5
+        analysis_prompts = {
+            'жаргон': "Проаналізуй текст на наявність військового жаргону",
+            'шифри': "Знайди приховані коди та шифри",
+            'погрози': "Вияви прямі та непрямі погрози",
+            'координати': "Витягни географічні координати",
+        }
+        
+        results = {}
+        for category, prompt in analysis_prompts.items():
+            # Тут буде реальна інтеграція з GPT API
+            results[category] = self.mock_gpt_analysis(text, prompt)
+        
+        return results
+```
+
+2. Multi-Source Aggregation - Агрегація джерел
+
+```python
+# multi_source_aggregator.py
+import asyncio
+from telethon import TelegramClient
+import vk_api
+import facebook
+
+class MultiSourceIntelligence:
+    """Збір даних з різних джерел"""
+    
+    async def collect_all_sources(self, target: str):
+        """Збір даних з Telegram, VK, Facebook"""
+        sources = {
+            'telegram': await self.scan_telegram(target),
+            'vk': self.scan_vk(target),
+            'facebook': self.scan_facebook(target),
+            'twitter': self.scan_twitter(target),
+        }
+        
+        # Об'єднання результатів
+        unified_data = self.unify_data(sources)
+        
+        # Аналіз зв'язків
+        network_graph = self.build_network_graph(unified_data)
+        
+        return {
+            'raw_data': sources,
+            'unified': unified_data,
+            'network': network_graph
+        }
+    
+    async def scan_telegram(self, target):
+        """Сканування Telegram"""
+        client = TelegramClient('session', API_ID, API_HASH)
+        await client.start()
+        
+        data = {
+            'profile': await client.get_entity(target),
+            'messages': await client.get_messages(target, limit=100),
+            'photos': await self.download_profile_photos(target),
+            'groups': await self.find_common_groups(target)
+        }
+        
+        await client.disconnect()
+        return data
+    
+    def scan_vk(self, target):
+        """Сканування VK"""
+        vk_session = vk_api.VkApi(token=VK_TOKEN)
+        vk = vk_session.get_api()
+        
+        return {
+            'profile': vk.users.get(user_ids=target, fields='photo_200,contacts'),
+            'friends': vk.friends.get(user_id=target),
+            'wall': vk.wall.get(owner_id=target, count=100),
+            'groups': vk.groups.get(user_id=target, extended=1)
+        }
+```
+
+3. Real-Time Threat Map - Мапа загроз
+
+```python
+# threat_map.py
+import folium
+from folium.plugins import HeatMap
+import pandas as pd
+
+class ThreatVisualization:
+    """Візуалізація загроз на карті"""
+    
+    def create_threat_map(self, threats_data):
+        """Створення інтерактивної карти загроз"""
+        # Створення базової карти
+        threat_map = folium.Map(
+            location=[48.0159, 37.8028],  # вул. Артема, 72
+            zoom_start=15,
+            tiles='CartoDB dark_matter'
+        )
+        
+        # Додавання теплової карти
+        heat_data = []
+        for threat in threats_data:
+            if 'coordinates' in threat:
+                lat, lon = threat['coordinates']
+                weight = threat.get('severity', 1)
+                heat_data.append([lat, lon, weight])
+        
+        HeatMap(heat_data, radius=15, blur=10).add_to(threat_map)
+        
+        # Маркери для конкретних загроз
+        for threat in threats_data:
+            if 'coordinates' in threat:
+                popup_html = f"""
+                <div style="width: 300px;">
+                    <h4>🚨 Загроза</h4>
+                    <p><b>Тип:</b> {threat.get('type', 'Невідомо')}</p>
+                    <p><b>Рівень:</b> {threat.get('severity', 'Невідомо')}</p>
+                    <p><b>Час:</b> {threat.get('timestamp', 'Невідомо')}</p>
+                    <p><b>Деталі:</b> {threat.get('details', '')}</p>
+                </div>
+                """
+                
+                folium.Marker(
+                    location=threat['coordinates'],
+                    popup=folium.Popup(popup_html, max_width=300),
+                    icon=folium.Icon(color='red', icon='warning-sign')
+                ).add_to(threat_map)
+        
+        # Збереження карти
+        threat_map.save('threat_map.html')
+        
+        # WebSocket для реального оновлення
+        self.setup_websocket_updates(threat_map)
+        
+        return threat_map
+```
+
+4. Voice/Audio Analysis - Аналіз аудіо
+
+```python
+# audio_intelligence.py
+import speech_recognition as sr
+from pydub import AudioSegment
+import whisper
+
+class AudioIntelligence:
+    """Аналіз голосових повідомлень"""
+    
+    def __init__(self):
+        self.whisper_model = whisper.load_model("base")
+        self.keyword_detector = KeywordDetector()
+        
+    async def analyze_voice_message(self, audio_path):
+        """Аналіз голосового повідомлення"""
+        # Конвертація в WAV
+        audio = AudioSegment.from_file(audio_path)
+        audio.export("temp.wav", format="wav")
+        
+        # Розпізнавання мови
+        r = sr.Recognizer()
+        with sr.AudioFile("temp.wav") as source:
+            audio_data = r.record(source)
+            
+            try:
+                # Українська та російська
+                text_ua = r.recognize_google(audio_data, language="uk-UA")
+                text_ru = r.recognize_google(audio_data, language="ru-RU")
+                
+            except:
+                # Використання Whisper для важких випадків
+                result = self.whisper_model.transcribe("temp.wav")
+                text = result["text"]
+        
+        # Детекція ключових слів
+        keywords = self.keyword_detector.detect_threats(text)
+        
+        # Аналіз тону та емоцій
+        emotions = self.analyze_emotions(audio_path)
+        
+        # Витяг метаданих
+        metadata = self.extract_audio_metadata(audio_path)
+        
+        return {
+            'transcript': text,
+            'keywords': keywords,
+            'emotions': emotions,
+            'metadata': metadata
+        }
+```
+
+5. Image EXIF Deep Dive - Глибокий аналіз фото
+
+```python
+# image_forensics.py
+from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
+import face_recognition
+import hashlib
+
+class ImageForensics:
+    """Форезик аналіз зображень"""
+    
+    def analyze_image(self, image_path):
+        """Повний аналіз зображення"""
+        results = {
+            'exif': {},
+            'faces': [],
+            'metadata': {},
+            'forensic': {}
+        }
+        
+        # EXIF дані
+        with Image.open(image_path) as img:
+            exif_data = img._getexif()
+            
+            if exif_data:
+                for tag_id, value in exif_data.items():
+                    tag = TAGS.get(tag_id, tag_id)
+                    
+                    # GPS дані
+                    if tag == "GPSInfo":
+                        gps_data = {}
+                        for gps_tag in value:
+                            sub_tag = GPSTAGS.get(gps_tag, gps_tag)
+                            gps_data[sub_tag] = value[gps_tag]
+                        
+                        # Конвертація координат
+                        if gps_data:
+                            results['gps'] = self.convert_gps(gps_data)
+                    
+                    results['exif'][tag] = value
+        
+        # Розпізнавання облич
+        faces = face_recognition.load_image_file(image_path)
+        face_locations = face_recognition.face_locations(faces)
+        
+        if face_locations:
+            results['faces'] = {
+                'count': len(face_locations),
+                'locations': face_locations,
+                'encodings': face_recognition.face_encodings(faces, face_locations)
+            }
+            
+            # Порівняння з базою злочинців
+            matches = self.compare_with_database(results['faces']['encodings'])
+            results['matches'] = matches
+        
+        # Аналіз метаданих
+        results['metadata'] = {
+            'size': img.size,
+            'format': img.format,
+            'mode': img.mode,
+            'hash': self.calculate_hash(image_path)
+        }
+        
+        # Форезик аналіз
+        results['forensic'] = {
+            'ela': self.error_level_analysis(image_path),
+            'noise': self.noise_analysis(image_path),
+            'tampering': self.detect_tampering(image_path)
+        }
+        
+        return results
+```
+
+6. Network Graph Visualization - Візуалізація мереж
+
+```python
+# network_analyzer.py
+import networkx as nx
+import plotly.graph_objects as go
+from pyvis.network import Network
+
+class SocialNetworkAnalyzer:
+    """Аналіз соціальних мереж"""
+    
+    def build_interactive_graph(self, users_data):
+        """Побудова інтерактивного графа"""
+        G = nx.Graph()
+        
+        # Додавання нод та ребер
+        for user in users_data:
+            G.add_node(
+                user['id'],
+                label=user.get('username', str(user['id'])),
+                group=user.get('risk_level', 1),
+                title=self.create_node_tooltip(user),
+                size=user.get('activity_score', 10)
+            )
+            
+            # Зв'язки
+            for connection in user.get('connections', []):
+                G.add_edge(user['id'], connection['id'], weight=connection.get('strength', 1))
+        
+        # Аналіз мережі
+        analysis = {
+            'centrality': nx.degree_centrality(G),
+            'clusters': list(nx.find_cliques(G)),
+            'bridges': list(nx.bridges(G)),
+            'density': nx.density(G)
+        }
+        
+        # Візуалізація з pyvis
+        net = Network(height='750px', width='100%', bgcolor='#222222', font_color='white')
+        net.from_nx(G)
+        
+        # Налаштування відображення
+        net.show_buttons(filter_=['physics'])
+        net.save_graph('network.html')
+        
+        return {
+            'graph': G,
+            'analysis': analysis,
+            'html_path': 'network.html'
+        }
+```
+
+7. Automated PDF Reports - Автоматичні звіти
+
+```python
+# report_generator.py
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Image
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class PoliceReportGenerator:
+    """Генератор професійних звітів"""
+    
+    def generate_case_report(self, case_data):
+        """Генерація звіту по справі"""
+        filename = f"case_{case_data['id']}.pdf"
+        doc = SimpleDocTemplate(filename, pagesize=A4)
+        
+        # Стилі
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Заголовок
+        title_style = styles['Title']
+        title_style.textColor = colors.HexColor('#1a237e')  # Темно-синій
+        story.append(Paragraph("ЗВІТ КІБЕРПОЛІЦІЇ", title_style))
+        story.append(Spacer(1, 12))
+        
+        # Деталі справи
+        details = [
+            ["Номер справи:", case_data['id']],
+            ["Дата:", case_data['date']],
+            ["Місце:", case_data['location']],
+            ["Офіцер:", case_data['officer']],
+            ["Статус:", case_data['status']]
+        ]
+        
+        details_table = Table(details, colWidths=[150, 300])
+        details_table.setStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3f51b5')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ])
+        
+        story.append(details_table)
+        story.append(Spacer(1, 24))
+        
+        # Графіки
+        if case_data.get('charts'):
+            for chart_data in case_data['charts']:
+                # Генерація графіка
+                fig = self.create_chart(chart_data)
+                fig_path = f"chart_{chart_data['type']}.png"
+                fig.savefig(fig_path, dpi=300, bbox_inches='tight')
+                
+                # Додавання до PDF
+                story.append(Image(fig_path, width=400, height=300))
+                story.append(Spacer(1, 12))
+        
+        # Докази
+        story.append(Paragraph("ДОКАЗИ", styles['Heading2']))
+        
+        evidence_table_data = [["Тип", "Опис", "Хеш", "Час"]]
+        for evidence in case_data.get('evidence', []):
+            evidence_table_data.append([
+                evidence['type'],
+                evidence['description'][:50],
+                evidence['hash'][:16],
+                evidence['timestamp']
+            ])
+        
+        evidence_table = Table(evidence_table_data, colWidths=[80, 200, 120, 100])
+        story.append(evidence_table)
+        
+        # AI висновки
+        if case_data.get('ai_analysis'):
+            story.append(Paragraph("AI АНАЛІЗ", styles['Heading2']))
+            story.append(Paragraph(case_data['ai_analysis'], styles['Normal']))
+        
+        # Генерація PDF
+        doc.build(story)
+        
+        return filename
+```
+
+8. Historical Data Tracking - Історія активності
+
+```python
+# timeline_analyzer.py
+from datetime import datetime, timedelta
+import plotly.express as px
+
+class ActivityTimeline:
+    """Аналіз історичної активності"""
+    
+    def build_user_timeline(self, user_id):
+        """Побудова часової шкали активності"""
+        activities = self.get_user_activities(user_id)
+        
+        timeline_data = []
+        for activity in activities:
+            timeline_data.append({
+                'timestamp': activity['timestamp'],
+                'type': activity['type'],
+                'platform': activity['platform'],
+                'details': activity.get('details', ''),
+                'risk_score': activity.get('risk_score', 0)
+            })
+        
+        # Створення інтерактивної шкали
+        df = pd.DataFrame(timeline_data)
+        fig = px.timeline(
+            df, 
+            x_start="timestamp",
+            x_end=lambda row: row['timestamp'] + timedelta(hours=1),
+            y="type",
+            color="risk_score",
+            hover_data=["platform", "details"],
+            title=f"Активність користувача {user_id}"
+        )
+        
+        fig.update_layout(
+            plot_bgcolor='black',
+            paper_bgcolor='black',
+            font_color='white'
+        )
+        
+        fig.write_html("timeline.html")
+        
+        # Аналіз паттернів
+        patterns = self.analyze_patterns(timeline_data)
+        
+        return {
+            'timeline': timeline_data,
+            'patterns': patterns,
+            'visualization': 'timeline.html'
+        }
+    
+    def analyze_patterns(self, timeline_data):
+        """Аналіз паттернів активності"""
+        patterns = {
+            'sleep_schedule': self.detect_sleep_schedule(timeline_data),
+            'peak_hours': self.find_peak_activity(timeline_data),
+            'behavior_change': self.detect_behavior_change(timeline_data),
+            'routine': self.identify_routine(timeline_data)
+        }
+        
+        return patterns
+```
+
+9. Cross-Reference Database - Міжджерельна база
+
+```python
+# intelligence_database.py
+import sqlite3
+from sqlite3 import Connection
+import json
+
+class IntelligenceDB:
+    """База розвідданих"""
+    
+    def __init__(self, db_path='intelligence.db'):
+        self.conn = sqlite3.connect(db_path)
+        self.create_tables()
+    
+    def create_tables(self):
+        """Створення таблиць"""
+        cursor = self.conn.cursor()
+        
+        # Таблиця користувачів
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT,
+                phone TEXT,
+                email TEXT,
+                telegram_id INTEGER,
+                vk_id INTEGER,
+                facebook_id INTEGER,
+                risk_score INTEGER,
+                first_seen TIMESTAMP,
+                last_seen TIMESTAMP,
+                metadata JSON
+            )
+        ''')
+        
+        # Таблиця зв'язків
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS connections (
+                user_id INTEGER,
+                connected_to INTEGER,
+                platform TEXT,
+                strength INTEGER,
+                first_interaction TIMESTAMP,
+                last_interaction TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (connected_to) REFERENCES users (id)
+            )
+        ''')
+        
+        # Таблиця активності
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activities (
+                user_id INTEGER,
+                platform TEXT,
+                action TEXT,
+                timestamp TIMESTAMP,
+                details TEXT,
+                location TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
+        # Індекси для швидкого пошуку
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_phone ON users(phone)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_username ON users(username)')
+        
+        self.conn.commit()
+    
+    def cross_reference(self, identifier):
+        """Міжджерельна перевірка"""
+        results = {}
+        
+        # Пошук по телефону
+        if identifier.startswith('+'):
+            results['by_phone'] = self.search_by_phone(identifier)
+        
+        # Пошук по юзернейму
+        elif identifier.startswith('@'):
+            results['by_username'] = self.search_by_username(identifier)
+        
+        # Пошук по ID
+        elif identifier.isdigit():
+            results['by_id'] = self.search_by_id(int(identifier))
+        
+        # Об'єднання результатів
+        unified_profile = self.unify_results(results)
+        
+        return unified_profile
+    
+    def global_search(self, query):
+        """Глобальний пошук по всіх полях"""
+        cursor = self.conn.cursor()
+        
+        # Пошук у всіх текстових полях
+        cursor.execute('''
+            SELECT * FROM users 
+            WHERE username LIKE ? 
+               OR phone LIKE ? 
+               OR email LIKE ?
+            LIMIT 100
+        ''', (f'%{query}%', f'%{query}%', f'%{query}%'))
+        
+        return cursor.fetchall()
+```
+
+10. Threat Intelligence Feed - Потік інформації про загрози
+
+```python
+# threat_intelligence.py
+import requests
+from bs4 import BeautifulSoup
+import feedparser
+
+class ThreatIntelligence:
+    """Інтеграція з OSINT feeds"""
+    
+    def __init__(self):
+        self.feeds = [
+            'https://www.us-cert.gov/ncas/alerts.xml',
+            'https://www.cisa.gov/uscert/ncas/alerts.xml',
+            'https://feeds.feedburner.com/TheHackersNews',
+            'https://krebsonsecurity.com/feed/',
+            'https://www.bleepingcomputer.com/feed/'
+        ]
+        
+        # Ключові слова для нашого регіону
+        self.keywords = [
+            'Ukraine', 'Russia', 'Donetsk', 'cyber attack',
+            'telegram', 'drone', 'explosive', 'warfare'
+        ]
+    
+    def fetch_threat_feeds(self):
+        """Отримання даних з feeds"""
+        all_threats = []
+        
+        for feed_url in self.feeds:
+            try:
+                feed = feedparser.parse(feed_url)
+                
+                for entry in feed.entries:
+                    threat_data = {
+                        'title': entry.title,
+                        'link': entry.link,
+                        'published': entry.published,
+                        'summary': entry.summary,
+                        'relevance': self.calculate_relevance(entry)
+                    }
+                    
+                    # Фільтрація за релевантністю
+                    if threat_data['relevance'] > 50:
+                        all_threats.append(threat_data)
+                        
+            except Exception as e:
+                print(f"Помилка отримання {feed_url}: {e}")
+        
+        # Сортування за релевантністю
+        all_threats.sort(key=lambda x: x['relevance'], reverse=True)
+        
+        return all_threats
+    
+    def auto_flagging(self, target_data):
+        """Автоматична маркування відомих загроз"""
+        threats = self.fetch_threat_feeds()
+        
+        flags = []
+        for threat in threats:
+            # Перевірка збігів
+            if self.check_match(target_data, threat):
+                flags.append({
+                    'threat': threat['title'],
+                    'match_reason': self.get_match_reason(target_data, threat),
+                    'confidence': self.calculate_confidence(target_data, threat)
+                })
+        
+        return flags
+```
+
+📧 MAILING МОДУЛЬ (10 ідей)
+
+11. AI Content Generator - Генератор контенту
+
+```python
+# ai_content_generator.py
+import openai
+from transformers import pipeline
+
+class AIContentGenerator:
+    """AI генерація контенту для розсилок"""
+    
+    def __init__(self):
+        self.gpt = pipeline('text-generation', model='gpt2-large')
+        self.classifier = pipeline('sentiment-analysis')
+        
+    def generate_personalized_message(self, target_profile, template_type):
+        """Генерація персоналізованого повідомлення"""
+        context = f"""
+        Ціль: {target_profile.get('username', 'Unknown')}
+        Інтереси: {target_profile.get('interests', [])}
+        Активність: {target_profile.get('activity_level', 'medium')}
+        Мова: {target_profile.get('language', 'ukrainian')}
+        
+        Тип повідомлення: {template_type}
+        """
+        
+        # Генерація варіантів
+        variants = []
+        for i in range(3):
+            prompt = f"{context}\n\nГенеруй повідомлення:"
+            message = self.gpt(prompt, max_length=200, num_return_sequences=1)[0]['generated_text']
+            variants.append(message)
+        
+        # A/B тестування
+        ab_variants = self.create_ab_variants(variants)
+        
+        return {
+            'variants': variants,
+            'ab_testing': ab_variants,
+            'recommendation': self.recommend_best_variant(variants)
+        }
+```
+
+12. Smart Scheduling - Розумне планування
+
+```python
+# smart_scheduler.py
+from sklearn.ensemble import RandomForestClassifier
+import pandas as pd
+from datetime import datetime
+
+class SmartScheduler:
+    """Розумне планування розсилок"""
+    
+    def __init__(self):
+        self.model = RandomForestClassifier()
+        self.load_training_data()
+        
+    def predict_best_time(self, target_profile):
+        """Прогноз найкращого часу відправки"""
+        features = self.extract_features(target_profile)
+        
+        # Прогнозування
+        predicted_hour = self.model.predict([features])[0]
+        confidence = self.model.predict_proba([features]).max()
+        
+        # Виявлення часового поясу
+        timezone = self.detect_timezone(target_profile)
+        
+        # Розрахунок оптимального часу
+        optimal_time = self.calculate_optimal_time(predicted_hour, timezone)
+        
+        return {
+            'predicted_hour': predicted_hour,
+            'confidence': confidence,
+            'timezone': timezone,
+            'optimal_time': optimal_time,
+            'schedule': self.generate_schedule(optimal_time)
+        }
+    
+    def detect_timezone(self, profile):
+        """Виявлення часового поясу"""
+        # Аналіз активності
+        activity_patterns = profile.get('activity_patterns', [])
+        
+        if activity_patterns:
+            # Аналіз піків активності
+            peak_hours = self.find_peak_hours(activity_patterns)
+            
+            # Визначення часового поясу
+            if 2 <= peak_hours[0] <= 6:  # Нічний паттерн
+                return 'Europe/Kyiv'
+            elif 9 <= peak_hours[0] <= 13:  # Ранковий паттерн
+                return 'Europe/Moscow'
+        
+        # Запасний варіант
+        return 'Europe/Kyiv'
+```
+
+13. Interactive Messages - Інтерактивні повідомлення
+
+```python
+# interactive_messages.py
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import json
+
+class InteractiveCampaign:
+    """Інтерактивні кампанії з аналітикою"""
+    
+    def create_poll_message(self, question, options):
+        """Створення опитування"""
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        
+        for option in options:
+            callback_data = json.dumps({
+                'type': 'poll_answer',
+                'question_id': question['id'],
+                'option': option['id']
+            })
+            
+            keyboard.add(InlineKeyboardButton(
+                text=option['text'],
+                callback_data=callback_data
+            ))
+        
+        # Додаткова кнопка "Детальніше"
+        keyboard.add(InlineKeyboardButton(
+            text="📊 Детальніше",
+            callback_data='show_details'
+        ))
+        
+        return {
+            'text': f"📊 {question['text']}",
+            'reply_markup': keyboard,
+            'analytics': {
+                'question_id': question['id'],
+                'options': options,
+                'track_clicks': True,
+                'store_responses': True
+            }
+        }
+    
+    def track_interactions(self, callback_data):
+        """Відстеження взаємодій"""
+        data = json.loads(callback_data)
+        
+        # Збереження відповіді
+        self.save_response(data)
+        
+        # Аналіз у реальному часі
+        analytics = self.update_analytics(data)
+        
+        # Автоматичне коригування кампанії
+        if analytics['response_rate'] < 30:
+            self.adjust_campaign_strategy()
+        
+        return analytics
+```
+
+14. Drip Campaigns - Каскадні кампанії
+
+```python
+# drip_campaigns.py
+from datetime import datetime, timedelta
+
+class DripCampaignManager:
+    """Управління каскадними кампаніями"""
+    
+    def create_drip_sequence(self, target_list, sequence_config):
+        """Створення послідовності повідомлень"""
+        sequence = []
+        
+        for step in sequence_config['steps']:
+            step_data = {
+                'delay': step['delay'],  # години до наступного кроку
+                'message': self.generate_step_message(step),
+                'conditions': step.get('conditions', []),
+                'triggers': step.get('triggers', [])
+            }
+            sequence.append(step_data)
+        
+        # Запуск послідовності
+        campaign_id = self.start_sequence(sequence, target_list)
+        
+        return {
+            'campaign_id': campaign_id,
+            'sequence': sequence,
+            'target_count': len(target_list),
+            'estimated_duration': self.calculate_duration(sequence)
+        }
+    
+    def trigger_based_flows(self, user_action):
+        """Тригерні потоки на основі дій"""
+        triggers = {
+            'message_opened': self.on_message_opened,
+            'link_clicked': self.on_link_clicked,
+            'no_response': self.on_no_response,
+            'positive_response': self.on_positive_response,
+            'negative_response': self.on_negative_response
+        }
+        
+        if user_action in triggers:
+            next_step = triggers[user_action]()
+            self.execute_next_step(next_step)
+```
+
+15. Spam Score Checker - Перевірка спаму
+
+```python
+# spam_checker.py
+import re
+from collections import Counter
+
+class SpamAnalyzer:
+    """Аналіз тексту на спам"""
+    
+    def calculate_spam_score(self, message_text):
+        """Розрахунок спам-рейтингу"""
+        scores = {
+            'caps_ratio': self.check_caps_ratio(message_text),
+            'link_density': self.check_link_density(message_text),
+            'keyword_density': self.check_keyword_density(message_text),
+            'length_score': self.check_length(message_text),
+            'readability': self.check_readability(message_text)
+        }
+        
+        # Загальний бал
+        total_score = sum(scores.values()) / len(scores)
+        
+        # Рекомендації
+        recommendations = []
+        if scores['caps_ratio'] > 0.3:
+            recommendations.append("Зменшіть кількість CAPS")
+        if scores['link_density'] > 0.2:
+            recommendations.append("Зменшіть кількість посилань")
+        
+        return {
+            'score': total_score,
+            'breakdown': scores,
+            'recommendations': recommendations,
+            'risk_level': self.get_risk_level(total_score)
+        }
+    
+    def pre_send_analysis(self, campaign_data):
+        """Аналіз перед відправкою"""
+        warnings = []
+        
+        # Перевірка тексту
+        for message in campaign_data['messages']:
+            spam_score = self.calculate_spam_score(message['text'])
+            
+            if spam_score['risk_level'] == 'HIGH':
+                warnings.append({
+                    'message_id': message['id'],
+                    'issue': 'Високий ризик спаму',
+                    'score': spam_score['score'],
+                    'suggestions': spam_score['recommendations']
+                })
+        
+        # Перевірка частотності
+        if campaign_data['sending_frequency'] > 10:  # повідомлень за годину
+            warnings.append({
+                'issue': 'Занадто висока частота відправки',
+                'suggestion': 'Зменшити до 5 повідомлень на годину'
+            })
+        
+        return warnings
+```
+
+16. Delivery Tracking - Відстеження доставки
+
+```python
+# delivery_tracker.py
+import hashlib
+
+class DeliveryTracker:
+    """Відстеження доставки та взаємодій"""
+    
+    def track_message(self, message_id, recipient_id):
+        """Відстеження повідомлення"""
+        tracking_data = {
+            'message_id': message_id,
+            'recipient_id': recipient_id,
+            'sent_at': datetime.now(),
+            'status': 'sent',
+            'unique_id': self.generate_unique_id(message_id, recipient_id)
+        }
+        
+        # Збереження для подальшого відстеження
+        self.save_tracking(tracking_data)
+        
+        return tracking_data
+    
+    def track_interactions(self, tracking_id, interaction_type):
+        """Відстеження взаємодій"""
+        if interaction_type == 'read':
+            self.mark_as_read(tracking_id)
+            
+        elif interaction_type == 'link_click':
+            clicked_link = self.get_clicked_link()
+            self.record_link_click(tracking_id, clicked_link)
+            
+        elif interaction_type == 'reply':
+            reply_content = self.get_reply_content()
+            self.record_reply(tracking_id, reply_content)
+        
+        # Оновлення статистики в реальному часі
+        self.update_real_time_stats(tracking_id)
+    
+    def generate_reports(self, campaign_id):
+        """Генерація звітів про доставку"""
+        stats = self.get_campaign_stats(campaign_id)
+        
+        report = {
+            'campaign_id': campaign_id,
+            'summary': {
+                'sent': stats['sent'],
+                'delivered': stats['delivered'],
+                'read': stats['read'],
+                'clicked': stats['clicked'],
+                'replied': stats['replied']
+            },
+            'delivery_rate': (stats['delivered'] / stats['sent']) * 100,
+            'engagement_rate': (stats['engaged'] / stats['delivered']) * 100,
+            'heatmap': self.generate_engagement_heatmap(stats),
+            'recommendations': self.generate_recommendations(stats)
+        }
+        
+        return report
+```
+
+17. Contact Segmentation Advanced - Розширена сегментація
+
+```python
+# advanced_segmentation.py
+from sklearn.cluster import KMeans
+import pandas as pd
+
+class AdvancedSegmentation:
+    """Розширена сегментація контактів"""
+    
+    def rfm_analysis(self, contacts_data):
+        """RFM аналіз (Recency, Frequency, Monetary)"""
+        df = pd.DataFrame(contacts_data)
+        
+        # Розрахунок RFM
+        df['recency'] = self.calculate_recency(df['last_interaction'])
+        df['frequency'] = df['interaction_count']
+        df['monetary'] = df.get('value_score', 0)  # Оцінка цінності
+        
+        # Кластеризація
+        kmeans = KMeans(n_clusters=4)
+        df['segment'] = kmeans.fit_predict(df[['recency', 'frequency', 'monetary']])
+        
+        # Визначення сегментів
+        segments = {
+            0: 'Чемпіони',
+            1: 'Лояльні',
+            2: 'Потенційні',
+            3: 'Неактивні'
+        }
+        
+        df['segment_name'] = df['segment'].map(segments)
+        
+        # Рекомендації для кожного сегменту
+        recommendations = {
+            'Чемпіони': 'VIP обслуговування, ранній доступ',
+            'Лояльні': 'Програми лояльності, ексклюзиви',
+            'Потенційні': 'Залучення, спеціальні пропозиції',
+            'Неактивні': 'Реактивація, знижки'
+        }
+        
+        return {
+            'segments': df.to_dict('records'),
+            'cluster_centers': kmeans.cluster_centers_.tolist(),
+            'recommendations': recommendations,
+            'segment_stats': df.groupby('segment_name').size().to_dict()
+        }
+```
+
+18. Templates Marketplace - Маркетплейс шаблонів
+
+```python
+# template_marketplace.py
+import json
+
+class TemplateMarketplace:
+    """Маркетплейс шаблонів повідомлень"""
+    
+    def __init__(self):
+        self.templates = self.load_templates()
+        self.categories = [
+            'security', 'psychology', 'emergency',
+            'information', 'warning', 'alert'
+        ]
+    
+    def get_templates_by_category(self, category, filters=None):
+        """Отримання шаблонів за категорією"""
+        category_templates = [
+            t for t in self.templates 
+            if t['category'] == category and self.match_filters(t, filters)
+        ]
+        
+        # Сортування за рейтингом
+        category_templates.sort(key=lambda x: x.get('rating', 0), reverse=True)
+        
+        return category_templates
+    
+    def community_share_template(self, template_data):
+        """Спільне використання шаблонів"""
+        # Валідація шаблону
+        if self.validate_template(template_data):
+            # Додавання до спільної бази
+            template_id = self.add_to_community(template_data)
+            
+            # Нагородження автору
+            self.reward_author(template_data['author_id'])
+            
+            return {
+                'success': True,
+                'template_id': template_id,
+                'reward': '100 points added to your account'
+            }
+        
+        return {'success': False, 'error': 'Invalid template'}
+    
+    def ai_template_generator(self, requirements):
+        """AI генерація шаблонів"""
+        prompt = f"""
+        Requirements: {requirements}
+        
+        Generate 3 message templates for law enforcement operations:
+        1. Urgent warning
+        2. Psychological operation  
+        3. Information gathering
+        
+        Format: JSON with fields: title, text, category, tags
+        """
+        
+        # Виклик GPT API
+        generated = self.call_gpt_api(prompt)
+        
+        return json.loads(generated)
+```
+
+19. Multi-Language Support - Багатомовна підтримка
+
+```python
+# multilingual_support.py
+from googletrans import Translator
+from langdetect import detect
+
+class MultilingualSystem:
+    """Багатомовна підтримка системи"""
+    
+    def __init__(self):
+        self.translator = Translator()
+        self.supported_languages = ['uk', 'ru', 'en', 'pl', 'de']
+    
+    def auto_translate_message(self, message, target_language=None):
+        """Автоматичний переклад повідомлення"""
+        # Виявлення мови
+        source_lang = detect(message)
+        
+        # Переклад якщо потрібно
+        if target_language and source_lang != target_language:
+            translation = self.translator.translate(
+                message, 
+                src=source_lang, 
+                dest=target_language
+            )
+            translated = translation.text
+            
+            # Перевірка якості перекладу
+            quality_score = self.check_translation_quality(message, translated)
+            
+            return {
+                'original': message,
+                'translated': translated,
+                'source_lang': source_lang,
+                'target_lang': target_language,
+                'quality_score': quality_score
+            }
+        
+        return {'original': message, 'translation_needed': False}
+    
+    def language_detection_advanced(self, text):
+        """Розширене виявлення мови"""
+        # Основний детект
+        primary_lang = detect(text)
+        
+        # Перевірка на змішані мови
+        mixed_languages = self.detect_mixed_languages(text)
+        
+        # Діалекти та регіональні особливості
+        dialect = self.identify_dialect(text, primary_lang)
+        
+        # Спеціальні терміни
+        special_terms = self.extract_special_terms(text)
+        
+        return {
+            'primary': primary_lang,
+            'mixed': mixed_languages,
+            'dialect': dialect,
+            'special_terms': special_terms,
+            'confidence': self.calculate_confidence(text, primary_lang)
+        }
+```
+
+20. Compliance Tools - Інструменти відповідності
+
+```python
+# compliance_manager.py
+from datetime import datetime, timedelta
+
+class ComplianceManager:
+    """Управління відповідністю законодавству"""
+    
+    def gdpr_consent_tracking(self, user_id):
+        """Відстеження згоди GDPR"""
+        consent_data = self.get_user_consent(user_id)
+        
+        requirements = {
+            'data_processing': consent_data.get('data_processing', False),
+            'marketing': consent_data.get('marketing', False),
+            'profiling': consent_data.get('profiling', False),
+            'third_party': consent_data.get('third_party', False)
+        }
+        
+        # Перевірка дійсності
+        valid_until = consent_data.get('valid_until')
+        if valid_until and datetime.now() > valid_until:
+            requirements['valid'] = False
+        else:
+            requirements['valid'] = True
+        
+        # Логування змін
+        self.log_consent_changes(user_id, consent_data)
+        
+        return {
+            'user_id': user_id,
+            'requirements': requirements,
+            'status': 'compliant' if all(requirements.values()) else 'non_compliant',
+            'actions_required': self.get_required_actions(requirements)
+        }
+    
+    def unsubscribe_management(self, user_id, reason=None):
+        """Управління відписками"""
+        # Додавання до списку відписок
+        self.add_to_unsubscribe_list(user_id)
+        
+        # Збереження причини
+        if reason:
+            self.store_unsubscribe_reason(user_id, reason)
+        
+        # Оновлення преференцій
+        self.update_user_preferences(user_id, {'subscribed': False})
+        
+        # Автоматична відповідь
+        confirmation = self.send_unsubscribe_confirmation(user_id)
+        
+        return {
+            'unsubscribed': True,
+            'timestamp': datetime.now(),
+            'reason': reason,
+            'confirmation_sent': confirmation
+        }
+```
+
+🌍 GEO SCANNER МОДУЛЬ (5 ідей)
+
+21. Radius Heatmap - Теплова карта радіусу
+
+```python
+# radius_heatmap.py
+import folium
+from folium.plugins import HeatMap
+import numpy as np
+
+class RadiusHeatmap:
+    """Теплові карти радіусу"""
+    
+    def create_radius_heatmap(self, center_coords, radius_km, chat_data):
+        """Створення теплової карти радіусу"""
+        # Створення карти
+        m = folium.Map(location=center_coords, zoom_start=12)
+        
+        # Додавання круга радіусу
+        folium.Circle(
+            location=center_coords,
+            radius=radius_km * 1000,
+            color='red',
+            fill=True,
+            fill_opacity=0.2
+        ).add_to(m)
+        
+        # Підготовка даних для теплової карти
+        heat_data = []
+        for chat in chat_data:
+            if 'coordinates' in chat:
+                intensity = chat.get('activity_level', 1)
+                heat_data.append([chat['coordinates'][0], chat['coordinates'][1], intensity])
+        
+        # Додавання теплової карти
+        HeatMap(heat_data, radius=15, blur=10).add_to(m)
+        
+        # Overlay з Google Maps
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            attr='Google',
+            name='Google Maps'
+        ).add_to(m)
+        
+        folium.LayerControl().add_to(m)
+        
+        # Збереження
+        m.save(f'heatmap_radius_{radius_km}km.html')
+        
+        return m
+```
+
+22. Route Optimizer - Оптимізатор маршрутів
+
+```python
+# route_optimizer.py
+import networkx as nx
+from ortools.constraint_solver import routing_enums_pb2
+from ortools.constraint_solver import pywrapcp
+
+class RouteOptimizer:
+    """Оптимізація маршрутів сканування"""
+    
+    def optimize_scanning_route(self, points_of_interest):
+        """Оптимізація маршруту для максимального покриття"""
+        # Створення графа
+        G = nx.Graph()
+        
+        # Додавання точок
+        for i, poi in enumerate(points_of_interest):
+            G.add_node(i, pos=poi['coordinates'], weight=poi['priority'])
+        
+        # Розрахунок відстаней
+        for i in range(len(points_of_interest)):
+            for j in range(i+1, len(points_of_interest)):
+                dist = self.calculate_distance(
+                    points_of_interest[i]['coordinates'],
+                    points_of_interest[j]['coordinates']
+                )
+                G.add_edge(i, j, weight=dist)
+        
+        # Задача комівояжера
+        manager = pywrapcp.RoutingIndexManager(
+            len(points_of_interest), 1, 0
+        )
+        routing = pywrapcp.RoutingModel(manager)
+        
+        def distance_callback(from_index, to_index):
+            from_node = manager.IndexToNode(from_index)
+            to_node = manager.IndexToNode(to_index)
+            return G[from_node][to_node]['weight']
+        
+        transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+        routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+        
+        # Пошук оптимального маршруту
+        search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+        search_parameters.first_solution_strategy = (
+            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+        )
+        
+        solution = routing.SolveWithParameters(search_parameters)
+        
+        # Отримання маршруту
+        if solution:
+            route = []
+            index = routing.Start(0)
+            while not routing.IsEnd(index):
+                node_index = manager.IndexToNode(index)
+                route.append(points_of_interest[node_index])
+                index = solution.Value(routing.NextVar(index))
+            
+            return {
+                'route': route,
+                'total_distance': solution.ObjectiveValue(),
+                'efficiency': self.calculate_efficiency(route)
+            }
+```
+
+23. POI Database - База точок інтересу
+
+```python
+# poi_database.py
+import geopandas as gpd
+from shapely.geometry import Point
+
+class POIDatabase:
+    """База точок інтересу"""
+    
+    def __init__(self):
+        self.poi_categories = {
+            'military': ['казарми', 'полігони', 'склади'],
+            'government': ['адміністрації', 'поліція', 'сбу'],
+            'critical': ['електростанції', 'мости', 'заводи'],
+            'transport': ['аеропорти', 'вокзали', 'порти']
+        }
+        
+        self.load_poi_data()
+    
+    def auto_scan_popular_locations(self, city_name):
+        """Автоматичне сканування популярних локацій"""
+        locations = []
+        
+        for category, keywords in self.poi_categories.items():
+            for keyword in keywords:
+                # Пошук у Telegram
+                telegram_results = self.search_telegram_pois(city_name, keyword)
+                
+                # Пошук у відкритих даних
+                open_data_results = self.search_open_data(city_name, keyword)
+                
+                locations.extend(telegram_results + open_data_results)
+        
+        # Дедуплікація
+        unique_locations = self.deduplicate_locations(locations)
+        
+        # Сортування за активністю
+        unique_locations.sort(key=lambda x: x.get('activity_score', 0), reverse=True)
+        
+        return {
+            'city': city_name,
+            'total_locations': len(unique_locations),
+            'locations': unique_locations,
+            'heatmap': self.create_poi_heatmap(unique_locations)
+        }
+    
+    def detect_suspicious_activity_near_poi(self, poi_coords, radius_km=2):
+        """Виявлення підозрілої активності біля POI"""
+        nearby_chats = self.find_chats_in_radius(poi_coords, radius_km)
+        
+        suspicious_activity = []
+        for chat in nearby_chats:
+            activity_score = self.calculate_activity_score(chat)
+            
+            if activity_score > 50:  # Поріг підозрілості
+                suspicious_activity.append({
+                    'chat': chat,
+                    'distance_km': self.calculate_distance(poi_coords, chat['coordinates']),
+                    'activity_score': activity_score,
+                    'threat_level': self.assess_threat_level(chat)
+                })
+        
+        return suspicious_activity
+```
+
+24. Historical Scan Comparison - Порівняння сканів
+
+```python
+# historical_comparison.py
+import pandas as pd
+from datetime import datetime, timedelta
+
+class HistoricalAnalyzer:
+    """Порівняльний аналіз історичних сканів"""
+    
+    def compare_scans(self, date1, date2, location):
+        """Порівняння сканів за різні дати"""
+        scan1 = self.get_scan_data(date1, location)
+        scan2 = self.get_scan_data(date2, location)
+        
+        comparison = {
+            'dates': {'scan1': date1, 'scan2': date2},
+            'location': location,
+            'summary': self.compare_summary(scan1, scan2),
+            'changes': self.detect_changes(scan1, scan2),
+            'trends': self.analyze_trends([scan1, scan2])
+        }
+        
+        # Візуалізація
+        visualization = self.create_comparison_visualization(comparison)
+        
+        return {
+            'comparison': comparison,
+            'visualization': visualization,
+            'alerts': self.generate_alerts(comparison['changes'])
+        }
+    
+    def trend_analysis(self, scan_data):
+        """Аналіз трендів"""
+        df = pd.DataFrame(scan_data)
+        
+        trends = {
+            'activity_trend': self.calculate_trend(df, 'activity_level'),
+            'user_growth': self.calculate_trend(df, 'user_count'),
+            'threat_trend': self.calculate_trend(df, 'threat_score'),
+            'seasonality': self.detect_seasonality(df)
+        }
+        
+        # Прогнозування
+        forecast = self.forecast_next_period(trends)
+        
+        return {
+            'historical_trends': trends,
+            'forecast': forecast,
+            'recommendations': self.generate_recommendations(trends)
+        }
+```
+
+25. Alert Zones - Зони сповіщень
+
+```python
+# alert_zones.py
+import geopy.distance
+
+class AlertZoneManager:
+    """Управління зонами сповіщень"""
+    
+    def setup_geofencing(self, zones_config):
+        """Налаштування гео-заборон"""
+        zones = []
+        
+        for zone in zones_config:
+            zone_data = {
+                'id': zone['id'],
+                'name': zone['name'],
+                'coordinates': zone['coordinates'],
+                'radius_m': zone['radius_m'],
+                'alert_types': zone.get('alert_types', ['new_chat', 'high_activity']),
+                'recipients': zone.get('recipients', [])
+            }
+            
+            zones.append(zone_data)
+        
+        # Збереження зон
+        self.save_zones(zones)
+        
+        # Запуск моніторингу
+        self.start_zone_monitoring(zones)
+        
+        return {
+            'zones_created': len(zones),
+            'total_area_km2': self.calculate_total_area(zones),
+            'monitoring_status': 'active'
+        }
+    
+    def check_new_chat_in_zone(self, chat_data):
+        """Перевірка нового чату в зоні"""
+        chat_coords = chat_data.get('coordinates')
+        
+        if not chat_coords:
+            return None
+        
+        # Перевірка кожної зони
+        for zone in self.active_zones:
+            distance = geopy.distance.distance(
+                chat_coords, 
+                zone['coordinates']
+            ).meters
+            
+            if distance <= zone['radius_m']:
+                # Тригер сповіщення
+                alert = {
+                    'type': 'new_chat_in_zone',
+                    'zone_id': zone['id'],
+                    'zone_name': zone['name'],
+                    'chat': chat_data,
+                    'distance_m': distance,
+                    'timestamp': datetime.now()
+                }
+                
+                self.trigger_alert(alert)
+                
+                # Push notification
+                self.send_push_notification(alert)
+                
+                return alert
+        
+        return None
+```
+
+🕵️ PARSING МОДУЛЬ (5 ідей)
+
+26. Incremental Parsing - Інкрементальний парсинг
+
+```python
+# incremental_parser.py
+from datetime import datetime
+
+class IncrementalParser:
+    """Інкрементальний парсинг лише нових даних"""
+    
+    def __init__(self):
+        self.last_scan_time = {}
+        self.delta_queue = []
+    
+    def parse_only_new_messages(self, chat_id):
+        """Парсинг лише нових повідомлень"""
+        last_time = self.last_scan_time.get(chat_id)
+        
+        if last_time:
+            # Отримання лише нових повідомлень
+            messages = self.get_messages_since(chat_id, last_time)
+        else:
+            # Перший повний парсинг
+            messages = self.get_all_messages(chat_id, limit=1000)
+        
+        if messages:
+            # Оновлення часу останнього сканування
+            self.last_scan_time[chat_id] = datetime.now()
+            
+            # Дельта аналіз
+            delta_analysis = self.analyze_delta(messages, last_time)
+            
+            return {
+                'chat_id': chat_id,
+                'new_messages': len(messages),
+                'delta_analysis': delta_analysis,
+                'storage_size': self.calculate_storage_gain(last_time)
+            }
+        
+        return {'chat_id': chat_id, 'new_messages': 0}
+    
+    def delta_updates_optimization(self):
+        """Оптимізація оновлень дельти"""
+        optimization = {
+            'compression': self.compress_delta_data(),
+            'batch_processing': self.process_in_batches(),
+            'smart_caching': self.implement_smart_cache(),
+            'incremental_indexing': self.update_indexes_incrementally()
+        }
+        
+        return optimization
+```
+
+27. Keyword Cloud - Хмара ключових слів
+
+```python
+# keyword_cloud.py
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from collections import Counter
+
+class KeywordAnalyzer:
+    """Аналіз та візуалізація ключових слів"""
+    
+    def create_keyword_cloud(self, messages_data):
+        """Створення хмари ключових слів"""
+        all_text = ' '.join([msg.get('text', '') for msg in messages_data])
+        
+        # Підрахунок слів
+        word_counts = Counter(all_text.split())
+        
+        # Фільтрація стоп-слів
+        filtered_words = {
+            word: count for word, count in word_counts.items() 
+            if word not in self.stop_words and len(word) > 3
+        }
+        
+        # Створення хмари
+        wordcloud = WordCloud(
+            width=800, 
+            height=400,
+            background_color='black',
+            colormap='RdYlGn_r'
+        ).generate_from_frequencies(filtered_words)
+        
+        # Збереження
+        plt.figure(figsize=(10, 5))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.savefig('keyword_cloud.png', dpi=300, bbox_inches='tight')
+        
+        # Аналіз сентименту по словах
+        sentiment_by_word = self.analyze_word_sentiment(filtered_words)
+        
+        return {
+            'wordcloud_path': 'keyword_cloud.png',
+            'top_keywords': dict(list(filtered_words.items())[:20]),
+            'sentiment_analysis': sentiment_by_word,
+            'trending_words': self.identify_trending_words(filtered_words)
+        }
+```
+
+28. User Behavior Profiles - Профілі поведінки
+
+```python
+# behavior_profiler.py
+from datetime import datetime, timedelta
+import numpy as np
+
+class BehaviorProfiler:
+    """Аналіз поведінкових профілів користувачів"""
+    
+    def analyze_activity_patterns(self, user_id):
+        """Аналіз паттернів активності"""
+        activities = self.get_user_activities(user_id)
+        
+        patterns = {
+            'daily_rhythm': self.calculate_daily_rhythm(activities),
+            'sleep_schedule': self.estimate_sleep_schedule(activities),
+            'peak_hours': self.find_peak_activity_hours(activities),
+            'response_time': self.calculate_avg_response_time(activities),
+            'activity_consistency': self.measure_consistency(activities)
+        }
+        
+        # Класифікація типу користувача
+        user_type = self.classify_user_type(patterns)
+        
+        return {
+            'user_id': user_id,
+            'patterns': patterns,
+            'user_type': user_type,
+            'anomalies': self.detect_anomalies(patterns),
+            'predictions': self.predict_future_activity(patterns)
+        }
+    
+    def estimate_sleep_schedule(self, activities):
+        """Оцінка графіку сну"""
+        activity_times = [a['timestamp'].hour for a in activities]
+        
+        if not activity_times:
+            return {'sleep_start': None, 'sleep_end': None}
+        
+        # Знаходження періоду найменшої активності
+        hour_counts = {hour: 0 for hour in range(24)}
+        for hour in activity_times:
+            hour_counts[hour] += 1
+        
+        # Період 4 години з найменшою активністю
+        min_activity_window = self.find_min_activity_window(hour_counts)
+        
+        return {
+            'sleep_start': min_activity_window[0],
+            'sleep_end': min_activity_window[1],
+            'confidence': self.calculate_sleep_confidence(hour_counts, min_activity_window)
+        }
+```
+
+29. Media Downloader - Завантажувач медіа
+
+```python
+# media_downloader.py
+import aiohttp
+import asyncio
+from pathlib import Path
+
+class MediaDownloader:
+    """Масове завантаження медіа"""
+    
+    async def bulk_download_media(self, messages_with_media):
+        """Масове завантаження фото/відео"""
+        download_tasks = []
+        
+        for message in messages_with_media:
+            if message.get('media'):
+                task = self.download_single_media(message)
+                download_tasks.append(task)
+        
+        # Паралельне завантаження
+        results = await asyncio.gather(*download_tasks, return_exceptions=True)
+        
+        # Автоматична категоризація
+        categorized = self.auto_categorize_media(results)
+        
+        return {
+            'total_downloaded': len([r for r in results if r]),
+            'failed': len([r for r in results if isinstance(r, Exception)]),
+            'categories': categorized,
+            'total_size_mb': self.calculate_total_size(results) / 1024 / 1024
+        }
+    
+    def auto_categorize_media(self, media_files):
+        """Автоматична категоризація медіа"""
+        categories = {
+            'documents': [],
+            'photos': [],
+            'videos': [],
+            'audio': [],
+            'other': []
+        }
+        
+        for media in media_files:
+            if not media or isinstance(media, Exception):
+                continue
+            
+            file_type = self.detect_file_type(media['path'])
+            
+            if file_type in ['pdf', 'doc', 'txt']:
+                categories['documents'].append(media)
+            elif file_type in ['jpg', 'png', 'gif']:
+                categories['photos'].append(media)
+            elif file_type in ['mp4', 'avi', 'mov']:
+                categories['videos'].append(media)
+            elif file_type in ['mp3', 'wav']:
+                categories['audio'].append(media)
+            else:
+                categories['other'].append(media)
+        
+        return categories
+```
+
+30. Export Formats - Формати експорту
+
+```python
+# export_manager.py
+import pandas as pd
+import json
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+
+class ExportManager:
+    """Менеджер експорту даних"""
+    
+    def export_to_excel_with_charts(self, data, filename):
+        """Експорт в Excel з графіками"""
+        # Створення Excel файлу
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Data"
+        
+        # Конвертація даних
+        df = pd.DataFrame(data)
+        
+        # Запис даних
+        for r_idx, row in enumerate(df.iterrows(), start=1):
+            for c_idx, value in enumerate(row[1], start=1):
+                ws.cell(row=r_idx, column=c_idx, value=value)
+        
+        # Додавання графіків
+        if len(df) > 1:
+            chart = BarChart()
+            data_ref = Reference(ws, min_col=2, min_row=1, max_row=len(df)+1, max_col=3)
+            chart.add_data(data_ref, titles_from_data=True)
+            ws.add_chart(chart, "E5")
+        
+        # Збереження
+        wb.save(filename)
+        
+        return {
+            'format': 'excel',
+            'filename': filename,
+            'sheets': wb.sheetnames,
+            'charts_count': len(ws._charts)
+        }
+    
+    def export_to_notion_database(self, data, database_id):
+        """Експорт в Notion database"""
+        notion_data = []
+        
+        for item in data:
+            notion_item = {
+                'parent': {'database_id': database_id},
+                'properties': self.map_to_notion_properties(item)
+            }
+            notion_data.append(notion_item)
+        
+        # Масове додавання
+        results = self.batch_create_notion_pages(notion_data)
+        
+        return {
+            'format': 'notion',
+            'database_id': database_id,
+            'items_added': len(results['success']),
+            'failed': len(results['failed'])
+        }
+    
+    def create_api_endpoint(self, data, endpoint_name):
+        """Створення API ендпоінту для JSON"""
+        api_structure = {
+            'endpoint': f'/api/{endpoint_name}',
+            'methods': ['GET', 'POST'],
+            'data_format': 'JSON',
+            'documentation': self.generate_swagger_docs(data),
+            'rate_limits': {'requests_per_minute': 100}
+        }
+        
+        # Генерація коду API
+        api_code = self.generate_fastapi_code(data, endpoint_name)
+        
+        return {
+            'api': api_structure,
+            'code': api_code,
+            'example_request': self.create_example_request(endpoint_name)
+        }
+```
+
+
+

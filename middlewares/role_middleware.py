@@ -29,7 +29,8 @@ class RoleMiddleware(BaseMiddleware):
             db_user = user_service.get_or_create_user(telegram_id, username, first_name)
             if db_user:
                 from config.settings import ADMIN_ID
-                if telegram_id == ADMIN_ID and db_user.role != UserRole.ADMIN:
+                # Convert both to string for reliable comparison
+                if str(telegram_id) == str(ADMIN_ID) and db_user.role != UserRole.ADMIN:
                     db_user.role = UserRole.ADMIN
                     user_service.update_user(db_user)
                 

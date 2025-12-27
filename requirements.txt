@@ -19,3 +19,14 @@ beautifulsoup4==4.12.3
 qrcode==7.4.2
 uvicorn==0.29.0
 fastapi==0.109.2
+aiogram
+aiohttp
+asyncpg
+cryptography
+dnspython
+jinja2
+openai
+python-dotenv
+reportlab
+sqlalchemy
+telethon

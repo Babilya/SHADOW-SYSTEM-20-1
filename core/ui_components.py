@@ -8,6 +8,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from typing import List, Callable, Any, Optional
 import math
 
+DIVIDER = "───────────────"
 
 class Paginator:
     """Universal pagination component for any list data"""
@@ -46,18 +47,18 @@ class Paginator:
         
         if self.has_prev:
             buttons.append(InlineKeyboardButton(
-                text="◀️ Назад", 
+                text="◀️", 
                 callback_data=f"{self.callback_prefix}:{self.page - 1}"
             ))
         
         buttons.append(InlineKeyboardButton(
-            text=f"📄 {self.page}/{self.total_pages}",
+            text=f"{self.page}/{self.total_pages}",
             callback_data="page_info"
         ))
         
         if self.has_next:
             buttons.append(InlineKeyboardButton(
-                text="Вперед ▶️",
+                text="▶️",
                 callback_data=f"{self.callback_prefix}:{self.page + 1}"
             ))
         
@@ -67,45 +68,58 @@ class Paginator:
         """Get pagination info text"""
         start = (self.page - 1) * self.per_page + 1
         end = min(self.page * self.per_page, len(self.items))
-        return f"📊 Показано {start}-{end} з {len(self.items)}"
+        return f"📊 {start}-{end} з {len(self.items)}"
 
 
 class ProgressBar:
-    """Visual progress indicator"""
-    
-    FILLED = "█"
-    EMPTY = "░"
+    """Native collab-style progress indicator"""
     
     @staticmethod
-    def render(progress: int, width: int = 10) -> str:
-        """Render a text-based progress bar"""
+    def render(progress: int, width: int = 8) -> str:
+        """Render native collab progress bar"""
         progress = max(0, min(100, progress))
         filled = int(width * progress / 100)
         empty = width - filled
-        bar = ProgressBar.FILLED * filled + ProgressBar.EMPTY * empty
-        return f"[{bar}] {progress}%"
+        bar = "●" * filled + "○" * empty
+        return f"{bar} {progress}%"
     
     @staticmethod
     def render_emoji(progress: int) -> str:
-        """Render an emoji-based progress bar"""
+        """Render emoji-based progress"""
         progress = max(0, min(100, progress))
         
         if progress == 100:
-            return "✅ Завершено"
+            return "●●●●●●●● 100%"
+        elif progress >= 87:
+            return "●●●●●●●○ 87%"
         elif progress >= 75:
-            return "🟢🟢🟢⚪ 75%"
+            return "●●●●●●○○ 75%"
+        elif progress >= 62:
+            return "●●●●●○○○ 62%"
         elif progress >= 50:
-            return "🟢🟢⚪⚪ 50%"
+            return "●●●●○○○○ 50%"
+        elif progress >= 37:
+            return "●●●○○○○○ 37%"
         elif progress >= 25:
-            return "🟢⚪⚪⚪ 25%"
+            return "●●○○○○○○ 25%"
+        elif progress >= 12:
+            return "●○○○○○○○ 12%"
         else:
-            return "⚪⚪⚪⚪ 0%"
+            return "○○○○○○○○ 0%"
     
     @staticmethod
     def render_detailed(progress: int, label: str = "Прогрес") -> str:
         """Render detailed progress with label"""
         bar = ProgressBar.render(progress)
         return f"<b>{label}:</b> {bar}"
+    
+    @staticmethod
+    def render_steps(current: int, total: int) -> str:
+        """Render step-based progress"""
+        filled = min(current, total)
+        empty = max(0, total - current)
+        bar = "●" * filled + "○" * empty
+        return f"{bar} ({current}/{total})"
 
 
 class InlineSearchBuilder:
@@ -180,12 +194,6 @@ class MenuBuilder:
         return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def format_divider(style: str = "double") -> str:
-    """Generate consistent dividers"""
-    styles = {
-        "double": "═══════════════════════",
-        "single": "───────────────────────",
-        "dots": "• • • • • • • • • • • •",
-        "dashes": "━━━━━━━━━━━━━━━━━━━━━━━"
-    }
-    return styles.get(style, styles["double"])
+def format_divider() -> str:
+    """Generate consistent divider - 15 chars single line"""
+    return DIVIDER

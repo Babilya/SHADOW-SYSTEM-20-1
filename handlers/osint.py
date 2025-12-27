@@ -7,6 +7,7 @@ import logging
 
 from core.advanced_parser import advanced_parser
 from core.realtime_parser import realtime_parser
+from core.ui_components import ProgressBar
 
 logger = logging.getLogger(__name__)
 osint_router = Router()
@@ -25,40 +26,39 @@ class OSINTStates(StatesGroup):
 def osint_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🌐 DNS ПОШУК", callback_data="osint_dns"),
-            InlineKeyboardButton(text="📋 WHOIS ІНФО", callback_data="osint_whois")
+            InlineKeyboardButton(text="🌐 DNS", callback_data="osint_dns"),
+            InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois")
         ],
         [
-            InlineKeyboardButton(text="🌍 ГЕОЛОКАЦІЯ IP", callback_data="osint_geoip"),
-            InlineKeyboardButton(text="📧 ПЕРЕВІРКА EMAIL", callback_data="osint_email")
+            InlineKeyboardButton(text="🌍 GEO IP", callback_data="osint_geoip"),
+            InlineKeyboardButton(text="📧 EMAIL", callback_data="osint_email")
         ],
         [
-            InlineKeyboardButton(text="👤 АНАЛІЗ ЮЗЕРІВ", callback_data="user_analysis"),
-            InlineKeyboardButton(text="💬 ПАРСИНГ ЧАТІВ", callback_data="chat_analysis")
+            InlineKeyboardButton(text="👤 ЮЗЕРИ", callback_data="user_analysis"),
+            InlineKeyboardButton(text="💬 ЧАТИ", callback_data="chat_analysis")
         ],
         [
-            InlineKeyboardButton(text="🔬 ГЛИБОКИЙ АНАЛІЗ", callback_data="deep_parse"),
+            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse"),
             InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor")
         ],
         [
-            InlineKeyboardButton(text="📥 ЕКСПОРТ ДАНИХ", callback_data="export_contacts"),
+            InlineKeyboardButton(text="📥 ЕКСПОРТ", callback_data="export_contacts"),
             InlineKeyboardButton(text="📈 СТАТИСТИКА", callback_data="osint_stats")
         ],
-        [InlineKeyboardButton(text="◀️ НАЗАД", callback_data="user_menu")]
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
 
 def osint_description() -> str:
-    return """══════════════════════════
-🔍 <b>OSINT & ПАРСИНГ</b>
-══════════════════════════
+    return """🔍 <b>OSINT & ПАРСИНГ</b>
+<i>Розвідка та збір даних</i>
+───────────────
 <b>📊 Запитів:</b> 1,245 / 5,000
 
-<b>🔧 ФУНКЦІЇ:</b>
+<b>🔧 Функції:</b>
 ├ 📍 Геосканування
 ├ 👤 Аналіз юзерів
 ├ 💬 Аналіз чатів
-├ 📥 Експорт контактів
-├ 📊 Лог видалень
+├ 📥 Експорт
 └ 📈 Статистика"""
 
 @osint_router.message(Command("osint"))
@@ -76,18 +76,17 @@ async def osint_stats(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
-    await query.message.edit_text("""══════════════════════════
-📈 <b>СТАТИСТИКА OSINT</b>
-══════════════════════════
-<b>🔧 ФУНКЦІЇ:</b>
+    await query.message.edit_text("""📈 <b>СТАТИСТИКА OSINT</b>
+───────────────
+<b>🔧 Функції:</b>
 ├ 🌐 DNS Пошук
 ├ 📋 WHOIS Інфо
-├ 🌍 Геолокація IP
-└ 📧 Перевірка Email
+├ 🌍 Геолокація
+└ 📧 Email
 
-<b>📊 ЦЬОГО МІСЯЦЯ:</b>
+<b>📊 Цього місяця:</b>
 ├ Запитів: активно
-└ Ліміт: необмежено""", reply_markup=kb, parse_mode="HTML")
+└ Ліміт: безліміт""", reply_markup=kb, parse_mode="HTML")
 
 @osint_router.callback_query(F.data == "osint_dns")
 async def osint_dns(query: CallbackQuery, state: FSMContext):
@@ -97,9 +96,8 @@ async def osint_dns(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
         "🌐 <b>DNS ПОШУК</b>\n"
-        "══════════════════════════\n"
+        "───────────────\n"
         "Введіть домен:\n"
         "<i>Наприклад: example.com</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -113,14 +111,14 @@ async def osint_dns_process(message: Message, state: FSMContext):
     result = await osint_service.dns_lookup(domain)
     
     if result.get('records'):
-        text = f"🌐 <b>DNS записи для {domain}:</b>\n\n"
+        text = f"🌐 <b>DNS для {domain}:</b>\n───────────────\n"
         for rec_type, values in result['records'].items():
             text += f"<b>{rec_type}:</b>\n"
             for v in values[:5]:
-                text += f"  └ <code>{v}</code>\n"
+                text += f"└ <code>{v}</code>\n"
         await message.answer(text, parse_mode="HTML")
     else:
-        await message.answer(f"❌ Не вдалося отримати DNS записи: {result.get('error', 'невідома помилка')}")
+        await message.answer(f"❌ Помилка: {result.get('error', 'невідома')}")
     await state.clear()
 
 @osint_router.callback_query(F.data == "osint_whois")
@@ -131,9 +129,8 @@ async def osint_whois(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
-        "📋 <b>WHOIS ІНФОРМАЦІЯ</b>\n"
-        "══════════════════════════\n"
+        "📋 <b>WHOIS ІНФО</b>\n"
+        "───────────────\n"
         "Введіть домен:\n"
         "<i>Наприклад: google.com</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -143,11 +140,11 @@ async def osint_whois(query: CallbackQuery, state: FSMContext):
 async def osint_whois_process(message: Message, state: FSMContext):
     from core.osint_service import osint_service
     domain = message.text.strip() if message.text else ""
-    await message.answer(f"⏳ Отримую WHOIS для {domain}...")
+    await message.answer(f"⏳ WHOIS для {domain}...")
     result = await osint_service.whois_lookup(domain)
     
     if result.get('registrar') or result.get('creation_date'):
-        text = f"📋 <b>WHOIS для {domain}:</b>\n\n"
+        text = f"📋 <b>WHOIS {domain}:</b>\n───────────────\n"
         text += f"├ Реєстратор: {result.get('registrar', 'N/A')}\n"
         text += f"├ Створено: {result.get('creation_date', 'N/A')}\n"
         text += f"├ Оновлено: {result.get('updated_date', 'N/A')}\n"
@@ -155,7 +152,7 @@ async def osint_whois_process(message: Message, state: FSMContext):
         text += f"└ Статус: {result.get('status', 'N/A')}"
         await message.answer(text, parse_mode="HTML")
     else:
-        await message.answer(f"❌ Не вдалося отримати WHOIS: {result.get('error', 'невідома помилка')}")
+        await message.answer(f"❌ Помилка: {result.get('error', 'невідома')}")
     await state.clear()
 
 @osint_router.callback_query(F.data == "osint_geoip")
@@ -166,10 +163,9 @@ async def osint_geoip(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
         "🌍 <b>ГЕОЛОКАЦІЯ IP</b>\n"
-        "══════════════════════════\n"
-        "Введіть IP адресу:\n"
+        "───────────────\n"
+        "Введіть IP:\n"
         "<i>Наприклад: 8.8.8.8</i>",
         reply_markup=kb, parse_mode="HTML"
     )
@@ -178,18 +174,18 @@ async def osint_geoip(query: CallbackQuery, state: FSMContext):
 async def osint_geoip_process(message: Message, state: FSMContext):
     from core.osint_service import osint_service
     ip = message.text.strip() if message.text else ""
-    await message.answer(f"⏳ Визначаю геолокацію {ip}...")
+    await message.answer(f"⏳ Геолокація {ip}...")
     result = await osint_service.ip_geolocation(ip)
     
     if result.get('status') == 'success':
-        text = f"🌍 <b>Геолокація IP {ip}:</b>\n\n"
+        text = f"🌍 <b>GEO {ip}:</b>\n───────────────\n"
         text += f"├ Країна: {result.get('country', 'N/A')}\n"
         text += f"├ Місто: {result.get('city', 'N/A')}\n"
         text += f"├ ISP: {result.get('isp', 'N/A')}\n"
         text += f"└ Координати: {result.get('lat', 'N/A')}, {result.get('lon', 'N/A')}"
         await message.answer(text, parse_mode="HTML")
     else:
-        await message.answer(f"❌ Помилка: {result.get('message', 'невідома помилка')}")
+        await message.answer(f"❌ Помилка: {result.get('message', 'невідома')}")
     await state.clear()
 
 @osint_router.callback_query(F.data == "osint_email")
@@ -200,11 +196,10 @@ async def osint_email(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
         "📧 <b>ПЕРЕВІРКА EMAIL</b>\n"
-        "══════════════════════════\n"
+        "───────────────\n"
         "Введіть email:\n"
-        "<i>Наприклад: test@example.com</i>",
+        "<i>Наприклад: test@mail.com</i>",
         reply_markup=kb, parse_mode="HTML"
     )
 
@@ -212,15 +207,15 @@ async def osint_email(query: CallbackQuery, state: FSMContext):
 async def osint_email_process(message: Message, state: FSMContext):
     from core.osint_service import osint_service
     email = message.text.strip() if message.text else ""
-    await message.answer(f"⏳ Перевіряю email {email}...")
+    await message.answer(f"⏳ Перевіряю {email}...")
     result = await osint_service.email_verify(email)
     
     valid_icon = "✅" if result.get('format_valid') else "❌"
     mx_icon = "✅" if result.get('has_mx') else "❌"
-    text = f"📧 <b>Результати перевірки {email}:</b>\n\n"
+    text = f"📧 <b>Email {email}:</b>\n───────────────\n"
     text += f"├ Формат: {valid_icon}\n"
-    text += f"├ MX записи: {mx_icon}\n"
-    text += f"├ Кількість MX: {len(result.get('mx_records', []))}\n"
+    text += f"├ MX: {mx_icon}\n"
+    text += f"├ MX записів: {len(result.get('mx_records', []))}\n"
     text += f"└ Домен: {result.get('domain', 'N/A')}"
     await message.answer(text, parse_mode="HTML")
     await state.clear()
@@ -233,32 +228,29 @@ async def user_analysis(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
-        "👤 <b>АНАЛІЗ КОРИСТУВАЧА</b>\n"
-        "══════════════════════════\n"
+        "👤 <b>АНАЛІЗ ЮЗЕРА</b>\n"
+        "───────────────\n"
         "Введіть @username або ID:\n"
-        "<i>Наприклад: @user або 123456789</i>",
+        "<i>Наприклад: @user</i>",
         reply_markup=kb, parse_mode="HTML"
     )
 
 @osint_router.message(OSINTStates.waiting_keyword)
 async def user_analysis_process(message: Message, state: FSMContext):
     target = message.text.strip() if message.text else ""
-    await message.answer(f"⏳ Аналізую профіль {target}...")
+    await message.answer(f"⏳ Аналізую {target}...")
     
-    text = f"""👤 <b>Аналіз профілю {target}</b>
-
-<b>Базова інформація:</b>
+    text = f"""👤 <b>Профіль {target}</b>
+───────────────
+<b>Інфо:</b>
 ├ Статус: Активний
 ├ Останній вхід: Недавно
-└ Тип акаунту: Звичайний
+└ Тип: Звичайний
 
 <b>Активність:</b>
 ├ Спільних чатів: 0
-├ Спільних контактів: 0
-└ Рівень ризику: Низький
-
-<i>Для детального аналізу використовуйте /scan_chat</i>"""
+├ Контактів: 0
+└ Ризик: Низький"""
     await message.answer(text, parse_mode="HTML")
     await state.clear()
 
@@ -270,28 +262,25 @@ async def chat_analysis(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "══════════════════════════\n"
         "💬 <b>ПАРСИНГ ЧАТУ</b>\n"
-        "══════════════════════════\n"
+        "───────────────\n"
         "Введіть @username або ID:\n"
-        "<i>Наприклад: @channel_name</i>",
+        "<i>Наприклад: @channel</i>",
         reply_markup=kb, parse_mode="HTML"
     )
 
 @osint_router.message(OSINTStates.waiting_chat)
 async def chat_analysis_process(message: Message, state: FSMContext):
     target = message.text.strip() if message.text else ""
-    await message.answer(f"⏳ Аналізую чат {target}...")
+    await message.answer(f"⏳ Парсинг {target}...")
     
-    text = f"""💬 <b>Результати парсингу {target}</b>
-
-<b>Інформація:</b>
+    text = f"""💬 <b>Чат {target}</b>
+───────────────
+<b>Інфо:</b>
 ├ Тип: Канал/Група
-├ Учасників: Аналізується...
-├ Повідомлень: Аналізується...
-└ Створено: Аналізується...
-
-<i>Для повного звіту використовуйте /scan_chat {target}</i>"""
+├ Учасників: ...
+├ Повідомлень: ...
+└ Створено: ..."""
     await message.answer(text, parse_mode="HTML")
     await state.clear()
 
@@ -306,17 +295,18 @@ async def export_contacts(query: CallbackQuery):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "📥 <b>ЕКСПОРТ ДАНИХ</b>\n\n"
-        "Виберіть формат експорту:\n"
-        "├ JSON — структуровані дані\n"
-        "└ CSV — для Excel/таблиць",
+        "📥 <b>ЕКСПОРТ</b>\n"
+        "───────────────\n"
+        "Виберіть формат:\n"
+        "├ JSON — структура\n"
+        "└ CSV — таблиці",
         reply_markup=kb, parse_mode="HTML"
     )
 
 @osint_router.callback_query(F.data.startswith("export_"))
 async def export_format(query: CallbackQuery):
     fmt = query.data.split("_")[1]
-    await query.answer(f"Експорт у {fmt.upper()} буде доступний найближчим часом")
+    await query.answer(f"Експорт {fmt.upper()} скоро...")
 
 @osint_router.callback_query(F.data.startswith("funnel_osint:"))
 async def funnel_osint_action(query: CallbackQuery):
@@ -326,23 +316,21 @@ async def funnel_osint_action(query: CallbackQuery):
     
     if action == "menu":
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔍 Аналіз учасників", callback_data=f"funnel_osint:{funnel_id}:users")],
-            [InlineKeyboardButton(text="💬 Парсинг реакцій", callback_data=f"funnel_osint:{funnel_id}:reactions")],
-            [InlineKeyboardButton(text="📊 Звіт активності", callback_data=f"funnel_osint:{funnel_id}:report")],
-            [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+            [InlineKeyboardButton(text="🔍 Учасники", callback_data=f"funnel_osint:{funnel_id}:users")],
+            [InlineKeyboardButton(text="💬 Реакції", callback_data=f"funnel_osint:{funnel_id}:reactions")],
+            [InlineKeyboardButton(text="📊 Звіт", callback_data=f"funnel_osint:{funnel_id}:report")],
+            [InlineKeyboardButton(text="◀️ Воронка", callback_data=f"funnel_view_{funnel_id}")]
         ])
         await query.message.edit_text(
-            f"🔍 <b>OSINT ДЛЯ ВОРОНКИ #{funnel_id}</b>\n\n"
-            "Виберіть тип аналізу:",
+            f"🔍 <b>OSINT #{funnel_id}</b>\n───────────────\nВиберіть аналіз:",
             reply_markup=kb, parse_mode="HTML"
         )
     else:
-        await query.answer(f"Запущено {action} аналіз для воронки", show_alert=True)
+        await query.answer(f"Запущено {action}", show_alert=True)
 
 
 @osint_router.callback_query(F.data == "deep_parse")
 async def deep_parse_menu(query: CallbackQuery, state: FSMContext):
-    """Меню глибокого парсингу"""
     await query.answer()
     await state.set_state(OSINTStates.waiting_deep_parse)
     stats = advanced_parser.get_statistics()
@@ -350,42 +338,41 @@ async def deep_parse_menu(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "<b>🔬 ГЛИБОКИЙ АНАЛІЗ ЧАТУ</b>\n"
-        "═══════════════════════\n\n"
+        f"🔬 <b>ГЛИБОКИЙ АНАЛІЗ</b>\n"
+        f"───────────────\n"
         f"<b>📊 Статистика:</b>\n"
-        f"├ Проаналізовано чатів: {stats['parsed_chats']}\n"
-        f"├ Знайдено користувачів: {stats['parsed_users']}\n"
+        f"├ Чатів: {stats['parsed_chats']}\n"
+        f"├ Юзерів: {stats['parsed_users']}\n"
         f"├ Повідомлень: {stats['parsed_messages']}\n"
-        f"└ Загрозливих: {stats['high_threat_messages']}\n\n"
-        "<b>📝 Введіть @username або ID чату:</b>\n"
-        "<i>Наприклад: @channel_name або -100123456789</i>",
+        f"└ Загроз: {stats['high_threat_messages']}\n\n"
+        f"<b>📝 Введіть @chat або ID:</b>",
         reply_markup=kb, parse_mode="HTML"
     )
 
 
 @osint_router.message(OSINTStates.waiting_deep_parse)
 async def process_deep_parse(message: Message, state: FSMContext):
-    """Обробка глибокого парсингу"""
     target = message.text.strip() if message.text else ""
     await state.clear()
     
-    await message.answer(f"⏳ Запускаю глибокий аналіз {target}...\nЦе може зайняти кілька хвилин.")
+    await message.answer(f"⏳ Глибокий аналіз {target}...\nЦе може зайняти час.")
     
     if advanced_parser.client:
         result = await advanced_parser.parse_chat_deep(target, limit=1000)
         report = advanced_parser.format_analysis_report(result)
     else:
         report = (
-            "<b>⚠️ Telethon клієнт не налаштовано</b>\n\n"
-            "Для глибокого парсингу потрібно:\n"
-            "├ Налаштувати TELEGRAM_API_ID\n"
-            "├ Налаштувати TELEGRAM_API_HASH\n"
-            "└ Авторизувати сесію\n\n"
+            "⚠️ <b>Telethon не налаштовано</b>\n"
+            "───────────────\n"
+            "Потрібно:\n"
+            "├ TELEGRAM_API_ID\n"
+            "├ TELEGRAM_API_HASH\n"
+            "└ Авторизація\n\n"
             f"<i>Запит: {target}</i>"
         )
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔄 Новий аналіз", callback_data="deep_parse")],
+        [InlineKeyboardButton(text="🔄 Новий", callback_data="deep_parse")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
     await message.answer(report, reply_markup=kb, parse_mode="HTML")
@@ -393,55 +380,61 @@ async def process_deep_parse(message: Message, state: FSMContext):
 
 @osint_router.callback_query(F.data == "realtime_monitor")
 async def realtime_monitor_menu(query: CallbackQuery):
-    """Меню реалтайм моніторингу"""
     await query.answer()
     status = realtime_parser.get_monitoring_status()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="🛑 ЗУПИНИТИ" if status['is_active'] else "▶️ ЗАПУСТИТИ",
+            text="🛑 СТОП" if status['is_active'] else "▶️ СТАРТ",
             callback_data="toggle_monitoring"
         )],
-        [InlineKeyboardButton(text="➕ Додати чати", callback_data="add_monitor_chats")],
+        [InlineKeyboardButton(text="➕ Чати", callback_data="add_monitor_chats")],
         [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="monitor_settings")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
     ])
     
-    report = realtime_parser.format_status_report()
-    await query.message.edit_text(report, reply_markup=kb, parse_mode="HTML")
+    status_icon = "🟢" if status['is_active'] else "🔴"
+    text = f"""📡 <b>РЕАЛТАЙМ МОНІТОРИНГ</b>
+───────────────
+<b>Статус:</b> {status_icon} {'Активний' if status['is_active'] else 'Неактивний'}
+
+<b>📊 Параметри:</b>
+├ Чатів: {status['monitored_chats']}
+├ Інтервал: {status['check_interval']}с
+└ Поріг: {status['threat_threshold']}
+
+<b>Прогрес:</b> {ProgressBar.render(status.get('progress', 0))}"""
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 
 @osint_router.callback_query(F.data == "toggle_monitoring")
 async def toggle_monitoring(query: CallbackQuery):
-    """Перемикання моніторингу"""
     if realtime_parser.is_monitoring:
         await realtime_parser.stop_monitoring()
-        await query.answer("⏹️ Моніторинг зупинено", show_alert=True)
+        await query.answer("⏹️ Зупинено", show_alert=True)
     else:
         if realtime_parser.monitored_chats:
             await realtime_parser.start_realtime_monitoring(realtime_parser.monitored_chats)
-            await query.answer("▶️ Моніторинг запущено", show_alert=True)
+            await query.answer("▶️ Запущено", show_alert=True)
         else:
-            await query.answer("❌ Спочатку додайте чати для моніторингу", show_alert=True)
+            await query.answer("❌ Додайте чати", show_alert=True)
     
     await realtime_monitor_menu(query)
 
 
 @osint_router.callback_query(F.data == "add_monitor_chats")
 async def add_monitor_chats(query: CallbackQuery, state: FSMContext):
-    """Додавання чатів для моніторингу"""
     await query.answer()
     await state.set_state(OSINTStates.waiting_monitor_chats)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="realtime_monitor")]
     ])
     await query.message.edit_text(
-        "<b>➕ ДОДАВАННЯ ЧАТІВ</b>\n"
-        "═══════════════════════\n\n"
-        "Введіть чати для моніторингу\n"
-        "(по одному на рядок):\n\n"
-        "<i>Приклад:\n"
-        "@channel1\n"
+        "➕ <b>ДОДАТИ ЧАТИ</b>\n"
+        "───────────────\n"
+        "Введіть чати (по рядку):\n\n"
+        "<i>@channel1\n"
         "@channel2\n"
         "-100123456789</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -450,7 +443,6 @@ async def add_monitor_chats(query: CallbackQuery, state: FSMContext):
 
 @osint_router.message(OSINTStates.waiting_monitor_chats)
 async def process_monitor_chats(message: Message, state: FSMContext):
-    """Обробка додавання чатів"""
     await state.clear()
     
     lines = message.text.strip().split('\n') if message.text else []
@@ -458,46 +450,41 @@ async def process_monitor_chats(message: Message, state: FSMContext):
     
     if chats:
         realtime_parser.monitored_chats.extend(chats)
-        await message.answer(
-            f"✅ Додано {len(chats)} чатів для моніторингу",
-            parse_mode="HTML"
-        )
+        await message.answer(f"✅ Додано {len(chats)} чатів")
     else:
-        await message.answer("❌ Не вказано жодного чату")
+        await message.answer("❌ Не вказано чатів")
 
 
 @osint_router.callback_query(F.data == "monitor_settings")
 async def monitor_settings(query: CallbackQuery):
-    """Налаштування моніторингу"""
     await query.answer()
     settings = realtime_parser.settings
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="⏱️ Інтервал -", callback_data="monitor_interval_down"),
+            InlineKeyboardButton(text="⏱️ -", callback_data="monitor_interval_down"),
             InlineKeyboardButton(text=f"{settings['check_interval']}с", callback_data="noop"),
-            InlineKeyboardButton(text="⏱️ Інтервал +", callback_data="monitor_interval_up")
+            InlineKeyboardButton(text="⏱️ +", callback_data="monitor_interval_up")
         ],
         [
-            InlineKeyboardButton(text="🚨 Поріг -", callback_data="monitor_threshold_down"),
+            InlineKeyboardButton(text="🚨 -", callback_data="monitor_threshold_down"),
             InlineKeyboardButton(text=f"{settings['threat_threshold']}", callback_data="noop"),
-            InlineKeyboardButton(text="🚨 Поріг +", callback_data="monitor_threshold_up")
+            InlineKeyboardButton(text="🚨 +", callback_data="monitor_threshold_up")
         ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="realtime_monitor")]
     ])
     await query.message.edit_text(
-        "<b>⚙️ НАЛАШТУВАННЯ МОНІТОРИНГУ</b>\n"
-        "═══════════════════════\n\n"
-        f"<b>⏱️ Інтервал перевірки:</b> {settings['check_interval']} сек\n"
-        f"<b>🚨 Поріг загрози:</b> {settings['threat_threshold']}\n"
-        f"<b>📦 Розмір пакету:</b> {settings['batch_size']}\n"
-        f"<b>💾 Кеш хешів:</b> {settings['max_hash_cache']}",
+        f"⚙️ <b>НАЛАШТУВАННЯ</b>\n"
+        f"───────────────\n"
+        f"<b>⏱️ Інтервал:</b> {settings['check_interval']} сек\n"
+        f"<b>🚨 Поріг:</b> {settings['threat_threshold']}\n"
+        f"<b>📦 Пакет:</b> {settings['batch_size']}\n"
+        f"<b>💾 Кеш:</b> {settings['max_hash_cache']}",
         reply_markup=kb, parse_mode="HTML"
     )
 
 
 @osint_router.callback_query(F.data.startswith("monitor_"))
 async def adjust_monitor_settings(query: CallbackQuery):
-    """Зміна налаштувань моніторингу"""
     action = query.data.replace("monitor_", "")
     
     if action == "interval_up":

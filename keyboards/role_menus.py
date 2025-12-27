@@ -3,40 +3,38 @@ from core.roles import UserRole
 
 def guest_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📦 Тарифи та плани", callback_data="subscription_main")],
+        [InlineKeyboardButton(text="📦 Тарифи", callback_data="subscription_main")],
         [
-            InlineKeyboardButton(text="🔑 Активувати ключ", callback_data="enter_key"),
+            InlineKeyboardButton(text="🔑 Ключ", callback_data="enter_key"),
             InlineKeyboardButton(text="💬 Підтримка", callback_data="support")
         ],
-        [InlineKeyboardButton(text="📖 Довідковий центр", callback_data="help_main")]
+        [InlineKeyboardButton(text="📖 Довідка", callback_data="help_main")]
     ])
 
 def guest_description() -> str:
-    return """══════════════════════════
-🌐 <b>SHADOW SYSTEM iO v2.0</b>
-══════════════════════════
+    return """🌐 <b>SHADOW SYSTEM iO v2.0</b>
 <i>Telegram-маркетинг платформа</i>
+───────────────
+<b>🔒 Статус:</b> Гостьовий доступ
 
-<b>🔒 СТАТУС:</b> Гостьовий доступ
-
-<b>🚀 ЩО ВИ ОТРИМАЄТЕ:</b>
-├ 🤖 Управління 1000+ ботами
-├ 🔍 OSINT-аналітика та розвідка
-├ 📊 Статистика кампаній
-├ 👥 CRM для команди
-└ 🛡️ Захист від блокувань
-
-<b>📋 ЯК ПОЧАТИ:</b>
-├ 1. Оберіть тариф
-├ 2. Заповніть заявку
-├ 3. Отримайте SHADOW-ключ
-└ 4. Активуйте доступ
-
-<b>💎 ТАРИФИ:</b>
-├ 📦 <b>БАЗОВИЙ</b> — старт
-├ ⭐ <b>СТАНДАРТ</b> — агенції
-├ 👑 <b>ПРЕМІУМ</b> — максимум
-└ 💎 <b>ЕНТЕРПРАЙЗ</b> — корпоративи"""
+<b>🚀 Можливості:</b>
+├ 🤖 1000+ ботів
+├ 🔍 OSINT-розвідка
+├ 📊 Аналітика
+├ 👥 CRM команди
+└ 🛡️ Анти-бан
+───────────────
+<b>📋 Як почати:</b>
+├ Оберіть тариф
+├ Заповніть заявку
+├ Отримайте ключ
+└ Активуйте доступ
+───────────────
+<b>💎 Тарифи:</b>
+├ 📦 БАЗОВИЙ
+├ ⭐ СТАНДАРТ
+├ 👑 ПРЕМІУМ
+└ 💎 ЕНТЕРПРАЙЗ"""
 
 def manager_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -57,35 +55,33 @@ def manager_menu() -> InlineKeyboardMarkup:
     ])
 
 def manager_description() -> str:
-    return """══════════════════════════
-🌟 <b>SHADOW SYSTEM iO v2.0</b>
-══════════════════════════
-<i>Центр управління менеджера</i>
+    return """🌟 <b>SHADOW SYSTEM iO v2.0</b>
+<i>Центр менеджера</i>
+───────────────
+<b>📋 Статус:</b> 👤 Менеджер
 
-<b>📋 СТАТУС:</b> 👤 Менеджер
-
-<b>🚀 КАМПАНІЇ:</b>
+<b>🚀 Кампанії:</b>
 ├ Запуск розсилок
-├ Таргетинг аудиторії
-└ Моніторинг статусу
-
-<b>🤖 БОТНЕТ:</b>
+├ Таргетинг
+└ Моніторинг
+───────────────
+<b>🤖 Ботнет:</b>
 ├ Контроль ботів
 └ Логи активності
 
-<b>📊 АНАЛІТИКА:</b>
-├ CTR та конверсія
-└ Ефективність кампаній
+<b>📊 Аналітика:</b>
+├ CTR / конверсія
+└ Ефективність
 
-<b>✍️ ТЕКСТОВКИ:</b>
-├ Бібліотека шаблонів
-└ AI-редагування
-──────────────────────────
-<b>💡</b> Розширення прав — до Лідера"""
+<b>✍️ Текстовки:</b>
+├ Шаблони
+└ AI-редактор
+───────────────
+<b>💡</b> Підвищення → Лідер"""
 
 def leader_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🤖 УПРАВЛІННЯ БОТАМИ", callback_data="botnet_main")],
+        [InlineKeyboardButton(text="🤖 БОТИ", callback_data="botnet_main")],
         [
             InlineKeyboardButton(text="🔍 OSINT", callback_data="osint_main"),
             InlineKeyboardButton(text="🚀 КАМПАНІЇ", callback_data="campaigns_main")
@@ -96,7 +92,7 @@ def leader_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor"),
-            InlineKeyboardButton(text="🔬 ГЛИБОКИЙ АНАЛІЗ", callback_data="deep_parse")
+            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse")
         ],
         [
             InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
@@ -108,9 +104,9 @@ def leader_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warming_main"),
-            InlineKeyboardButton(text="⚙️ КОНФІГУРАЦІЯ", callback_data="settings_main")
+            InlineKeyboardButton(text="⚙️ КОНФІГ", callback_data="settings_main")
         ],
-        [InlineKeyboardButton(text="🛠 РОЗШИРЕНІ ІНСТРУМЕНТИ", callback_data="advanced_tools")],
+        [InlineKeyboardButton(text="🛠 ІНСТРУМЕНТИ", callback_data="advanced_tools")],
         [
             InlineKeyboardButton(text="📖 ДОВІДКА", callback_data="help_main"),
             InlineKeyboardButton(text="👤 ПРОФІЛЬ", callback_data="profile_main")
@@ -118,45 +114,38 @@ def leader_menu() -> InlineKeyboardMarkup:
     ])
 
 def leader_description() -> str:
-    return """══════════════════════════
-👑 <b>SHADOW SYSTEM iO v2.0</b>
-══════════════════════════
+    return """👑 <b>SHADOW SYSTEM iO v2.0</b>
 <i>Командний центр лідера</i>
+───────────────
+<b>💼 Статус:</b> 🔑 Leader
 
-<b>💼 СТАТУС:</b> 🔑 Leader
+<b>🤖 Botnet:</b>
+├ Імпорт сесій
+├ Проксі-ротація
+└ Прогрів
+───────────────
+<b>🔍 OSINT:</b>
+├ Розвідка
+├ Аналіз юзерів
+└ Експорт баз
 
-<b>🤖 BOTNET & PROXY:</b>
-├ Імпорт ботів/сесій
-├ Проксі та ротація IP
-└ Цикли прогріву
+<b>🚀 Кампанії:</b>
+├ A/B тести
+├ Планування
+└ Автоворонки
 
-<b>🔍 OSINT & ПАРСИНГ:</b>
-├ Розвідка аудиторії
-├ Аналіз користувачів
-└ Експорт баз даних
-
-<b>🚀 КАМПАНІЇ & ВОРОНКИ:</b>
-├ A/B тестування
-├ Планування розсилок
-└ Автоматизація воронок
-
-<b>📝 ШАБЛОНИ:</b>
-├ Бібліотека шаблонів
-├ Планування розкладу
-└ Тікет-система
-
-<b>👥 КОМАНДА:</b>
-├ INV-коди менеджерів
+<b>👥 Команда:</b>
+├ INV-коди
 └ Контроль KPI
-──────────────────────────
-<b>📈 МОНІТОРИНГ:</b>
-├ 🤖 Боти: <code>активно</code>
-├ 👥 Команда: <code>онлайн</code>
-└ 🛡️ Анти-бан: <b>ОК</b>"""
+───────────────
+<b>📈 Моніторинг:</b>
+├ 🤖 Боти: <code>OK</code>
+├ 👥 Команда: <code>ON</code>
+└ 🛡️ Захист: <code>OK</code>"""
 
 def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ УПРАВЛІННЯ СИСТЕМОЮ", callback_data="admin_system")],
+        [InlineKeyboardButton(text="⚙️ СИСТЕМА", callback_data="admin_system")],
         [
             InlineKeyboardButton(text="🚫 БАНИ", callback_data="bans_menu"),
             InlineKeyboardButton(text="🔄 РОЛІ", callback_data="admin_roles")
@@ -178,43 +167,40 @@ def admin_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🤖 БОТНЕТ", callback_data="botnet_main")
         ],
         [InlineKeyboardButton(text="🎨 РЕДАКТОР UI", callback_data="ui_editor")],
-        [InlineKeyboardButton(text="📱 ПЕРЕГЛЯД МЕНЮ ЮЗЕРА", callback_data="user_menu")],
-        [InlineKeyboardButton(text="🆘 EMERGENCY ALERT", callback_data="admin_emergency")]
+        [InlineKeyboardButton(text="📱 МЕНЮ ЮЗЕРА", callback_data="user_menu")],
+        [InlineKeyboardButton(text="🆘 EMERGENCY", callback_data="admin_emergency")]
     ])
 
 def admin_description() -> str:
-    return """══════════════════════════
-🛡️ <b>SHADOW SYSTEM iO v2.0</b>
-══════════════════════════
-<i>Центральний пульт адміністратора</i>
+    return """🛡️ <b>SHADOW SYSTEM iO v2.0</b>
+<i>Панель адміністратора</i>
+───────────────
+<b>💎 Статус:</b> 👑 Admin
 
-<b>💎 СТАТУС:</b> 👑 SuperAdmin / Owner
-<b>🔧 ГЛОБАЛЬНЕ АДМІНІСТРУВАННЯ:</b>
+<b>⚙️ Система:</b>
+├ Моніторинг
+├ Оновлення
+└ Бекапи
+───────────────
+<b>👥 Користувачі:</b>
+├ Зміна ролей
+├ Бани
+└ Блокування
 
-<b>⚙️ СИСТЕМА & ЯДРО:</b>
-├ Моніторинг серверів
-├ Оновлення та патчі
-└ Резервне копіювання
+<b>📢 Комунікації:</b>
+├ Сповіщення
+├ Тікети
+├ Шаблони
+└ Статистика
 
-<b>👥 КЕРУВАННЯ КОРИСТУВАЧАМИ:</b>
-├ Зміна ролей (Guest/Manager/Leader)
-├ Бани (тимчасові/постійні)
-└ Блокування порушників
-
-<b>📢 КОМУНІКАЦІЙНИЙ ЦЕНТР:</b>
-├ Сповіщення за ролями
-├ Тікети підтримки
-├ Шаблони розсилок
-└ Статистика проектів
-
-<b>🔑 ЛІЦЕНЗІЙНИЙ ЦЕНТР:</b>
-├ Генерація SHADOW-ключів
-└ Валідація підписок
-──────────────────────────
-<b>📊 ГЛОБАЛЬНА СТАТИСТИКА:</b>
-├ 🌐 Проектів: <code>аналіз...</code>
-├ 🤖 Ботів: <code>синхронізація...</code>
-└ 📢 Розсилок: <code>готово</code>"""
+<b>🔑 Ліцензії:</b>
+├ Генерація
+└ Валідація
+───────────────
+<b>📊 Статистика:</b>
+├ 🌐 Проекти: <code>OK</code>
+├ 🤖 Боти: <code>OK</code>
+└ 📢 Розсилки: <code>OK</code>"""
 
 def get_menu_by_role(role: str) -> InlineKeyboardMarkup:
     if role == UserRole.ADMIN:

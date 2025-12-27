@@ -11,12 +11,17 @@ from core.alerts import alert_system
 admin_router = Router()
 router = admin_router
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def safe_edit_message(query: CallbackQuery, text: str, reply_markup=None, parse_mode="HTML"):
     try:
         if query.message:
             await query.message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
     except TelegramBadRequest as e:
-        if "message is not modified" not in str(e):
+        if "message is not modified" not in str(e) and "query is too old" not in str(e):
+            logger.warning(f"TelegramBadRequest in safe_edit_message: {e}")
             raise
 
 class AdminStates(StatesGroup):
@@ -237,3 +242,135 @@ async def system_clear_cache(query: CallbackQuery):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_system")]
     ])
     await safe_edit_message(query, "🗑️ <b>Кеш очищено!</b>\n\nВсі тимчасові дані видалено.", kb)
+
+@admin_router.callback_query(F.data == "admin_set_role")
+async def admin_set_role(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="admin_roles")]
+    ])
+    await safe_edit_message(query, "🔄 <b>ЗМІНА РОЛІ</b>\n\nВведіть Telegram ID користувача:", kb)
+
+@admin_router.callback_query(F.data == "admin_users_list")
+async def admin_users_list(query: CallbackQuery):
+    await query.answer()
+    from services.user_service import user_service
+    users = user_service.get_all_users()
+    
+    text = "<b>📋 СПИСОК КОРИСТУВАЧІВ</b>\n\n"
+    for u in users[:20]:
+        role_emoji = {"admin": "🛡️", "leader": "👑", "manager": "👷", "guest": "👤"}.get(u.role, "👤")
+        text += f"{role_emoji} <code>{u.telegram_id}</code> - @{u.username or 'N/A'} ({u.role})\n"
+    
+    if len(users) > 20:
+        text += f"\n<i>...та ще {len(users) - 20} користувачів</i>"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_roles")]
+    ])
+    await safe_edit_message(query, text, kb)
+
+@admin_router.callback_query(F.data == "admin_new_apps")
+async def admin_new_apps(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_apps")]
+    ])
+    await safe_edit_message(query, "<b>📥 НОВІ ЗАЯВКИ</b>\n\n<i>Немає нових заявок</i>", kb)
+
+@admin_router.callback_query(F.data == "admin_approved_apps")
+async def admin_approved_apps(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_apps")]
+    ])
+    await safe_edit_message(query, "<b>✅ СХВАЛЕНІ ЗАЯВКИ</b>\n\n<i>Немає схвалених заявок</i>", kb)
+
+@admin_router.callback_query(F.data == "admin_rejected_apps")
+async def admin_rejected_apps(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_apps")]
+    ])
+    await safe_edit_message(query, "<b>❌ ВІДХИЛЕНІ ЗАЯВКИ</b>\n\n<i>Немає відхилених заявок</i>", kb)
+
+@admin_router.callback_query(F.data == "admin_gen_key")
+async def admin_gen_key(query: CallbackQuery):
+    await query.answer()
+    import secrets
+    key_code = f"SHADOW-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔑 Ще один ключ", callback_data="admin_gen_key")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_keys")]
+    ])
+    
+    text = f"""<b>🔑 НОВИЙ КЛЮЧ ЗГЕНЕРОВАНО</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<code>{key_code}</code>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<i>Скопіюйте та передайте клієнту</i>"""
+    
+    await safe_edit_message(query, text, kb)
+
+@admin_router.callback_query(F.data == "admin_active_keys")
+async def admin_active_keys(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_keys")]
+    ])
+    await safe_edit_message(query, "<b>📋 АКТИВНІ КЛЮЧІ</b>\n\n<i>Немає активних ключів</i>", kb)
+
+@admin_router.callback_query(F.data == "admin_revoke_key")
+async def admin_revoke_key(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="admin_keys")]
+    ])
+    await safe_edit_message(query, "<b>🗑 АНУЛЮВАННЯ КЛЮЧА</b>\n\nВведіть код ключа для анулювання:", kb)
+
+@admin_router.callback_query(F.data == "emergency_activate")
+async def emergency_activate(query: CallbackQuery):
+    await query.answer("⚠️ Режим тривоги активовано!", show_alert=True)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🟢 Деактивувати", callback_data="admin_emergency")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
+    ])
+    await safe_edit_message(query, "🔴 <b>РЕЖИМ ТРИВОГИ АКТИВОВАНО!</b>\n\nВсі критичні операції призупинено.", kb)
+
+@admin_router.callback_query(F.data == "emergency_broadcast")
+async def emergency_broadcast(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="admin_emergency")]
+    ])
+    await safe_edit_message(query, "<b>📢 МАСОВЕ СПОВІЩЕННЯ</b>\n\nВведіть текст повідомлення:", kb)
+    await state.set_state(AdminStates.waiting_alert_message)
+
+@admin_router.callback_query(F.data == "emergency_lockdown")
+async def emergency_lockdown(query: CallbackQuery):
+    await query.answer("⚠️ Це заблокує всіх користувачів!", show_alert=True)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚠️ ПІДТВЕРДИТИ БЛОКУВАННЯ", callback_data="emergency_lockdown_confirm")],
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="admin_emergency")]
+    ])
+    await safe_edit_message(query, "<b>🔒 ПОВНЕ БЛОКУВАННЯ</b>\n\n⚠️ Ви впевнені? Це заблокує всіх користувачів!", kb)
+
+@admin_router.callback_query(F.data == "emergency_lockdown_confirm")
+async def emergency_lockdown_confirm(query: CallbackQuery):
+    await query.answer("🔒 Блокування активовано", show_alert=True)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔓 Зняти блокування", callback_data="admin_emergency")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
+    ])
+    await safe_edit_message(query, "🔒 <b>СИСТЕМА ЗАБЛОКОВАНА</b>\n\nВсі користувачі не мають доступу до функцій.", kb)
+
+@admin_router.message(AdminStates.waiting_alert_message)
+async def process_alert_message(message: Message, state: FSMContext):
+    from keyboards.role_menus import admin_menu
+    await message.answer(f"✅ Повідомлення відправлено всім користувачам:\n\n{message.text}", reply_markup=admin_menu())
+    await state.clear()

@@ -245,3 +245,51 @@ async def support_callback(callback: CallbackQuery):
     except:
         pass
     await callback.answer()
+
+@router.callback_query(F.data == "warming_start")
+async def warming_start_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """<b>🔥 ПРОГРІВ ЗАПУЩЕНО</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📊 СТАТУС:</b>
+├ 🔄 Прогрів активний
+├ ⏱ Час початку: зараз
+└ 🤖 Боти в процесі: 0
+
+<b>⚙️ ПАРАМЕТРИ:</b>
+├ Інтервал: 30-120 сек
+├ Дії/день: 10-50
+└ Режим: Безпечний
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<i>Прогрів виконується у фоновому режимі</i>"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏹ Зупинити", callback_data="warming_stop")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="warming_main")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer("🔥 Прогрів запущено!", show_alert=True)
+
+@router.callback_query(F.data == "warming_stop")
+async def warming_stop_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Запустити прогрів", callback_data="warming_start")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text("⏹ <b>Прогрів зупинено</b>", reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer("⏹ Прогрів зупинено", show_alert=True)

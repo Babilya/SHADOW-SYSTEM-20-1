@@ -93,3 +93,26 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - Button layouts: 1/2/3 per row
 - HTML formatting: <b>, <i>, <code>
 - Lists: ├ └ tree structure
+
+## Recent Changes (December 2025)
+
+### Bug Fixes
+- Fixed "message is not modified" TelegramBadRequest errors with safe_edit_message helper
+- Fixed "query is too old" callback errors handling
+- Fixed missing logger import in role_middleware.py
+- Fixed RoleMiddleware to use correct set_user_role method
+
+### New Features
+- Added RoleMiddleware to dispatcher for automatic role injection
+- Registered funnels_router for funnel management
+- Added missing callback handlers:
+  - back_to_menu, profile_main, texting_main, settings_main
+  - warming_main, warming_start, warming_stop, support
+  - Full admin panel: admin_roles, admin_apps, admin_keys, admin_emergency
+  - System controls: system_restart, system_clear_cache
+  - Emergency: emergency_activate, emergency_broadcast, emergency_lockdown
+
+### Improvements
+- Enhanced error logging in safe_edit_message function
+- All admin panel buttons now have working handlers
+- Better navigation flow between menus

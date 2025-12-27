@@ -95,18 +95,17 @@ async def profile_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
     
-    text = f"""<b>👤 ВАШ ПРОФІЛЬ</b>
+    text = f"""══════════════════════════════════════
+            👤 ВАШ ПРОФІЛЬ
+══════════════════════════════════════
 
-━━━━━━━━━━━━━━━━━━━━━━━
-
-<b>📋 ІНФОРМАЦІЯ:</b>
+<b>📋 ІНФОРМАЦІЯ ОБЛІКОВОГО ЗАПИСУ:</b>
 ├ 🆔 ID: <code>{callback.from_user.id}</code>
 ├ 👤 Username: @{callback.from_user.username or 'не вказано'}
 ├ 📝 Ім'я: {callback.from_user.first_name or 'Не вказано'}
 ├ 🎭 Роль: <b>{user.role.upper() if user else 'GUEST'}</b>
 └ 📅 Реєстрація: {user.created_at.strftime('%d.%m.%Y') if user and user.created_at else 'N/A'}
-
-━━━━━━━━━━━━━━━━━━━━━━━"""
+══════════════════════════════════════"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад до меню", callback_data="back_to_menu")]

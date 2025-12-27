@@ -37,10 +37,14 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 
 ### Core Architectural Decisions
 - **Unified Role System:** Single `UserRole` class in `core/role_constants.py` imported by all modules
+- **Centralized FSM States:** All FSM states defined in `core/states.py` (AdminStates, AuthStates, FunnelStates, etc.)
+- **Modular Admin Panel:** `handlers/admin/` package with separate modules (bans.py, roles.py, keys.py, stats.py, emergency.py, system.py)
 - **RBAC:** ROOT/ADMIN, LEADER, MANAGER, GUEST with hierarchical permissions
 - **FSM Navigation:** Proper state clearing on back navigation
-- **Async Operations:** aiogram 3.3 + asyncpg for non-blocking I/O
-- **Security-First:** SHADOW keys, Telegram ID binding, IP whitelists, audit logging
+- **Async Operations:** aiogram 3.3 + asyncpg with optimized connection pool (pool_size=10, max_overflow=20)
+- **Background Tasks:** `core/background_tasks.py` for non-blocking OSINT and heavy operations
+- **Security-First:** SHADOW keys, AES-256-CBC encryption, Telegram ID binding, audit logging
+- **UI Components:** Reusable Paginator, ProgressBar, MenuBuilder in `core/ui_components.py`
 - **AI Integration:** Replit AI Integrations (OpenAI-compatible, GPT-5)
 
 ### Role Hierarchy

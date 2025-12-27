@@ -3,6 +3,7 @@ AI-Enhanced Pattern Detection - Розширений аналіз загроз
 Виявлення координат, кодів, шифрів та загроз з AI
 """
 import re
+import os
 import base64
 import logging
 from typing import Dict, List, Any, Optional
@@ -66,7 +67,11 @@ class AIPatternDetector:
         self.client = None
         if OPENAI_AVAILABLE:
             try:
-                self.client = OpenAI()
+                api_key = os.getenv("AI_INTEGRATIONS_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+                base_url = os.getenv("AI_INTEGRATIONS_OPENAI_BASE_URL")
+                if api_key:
+                    self.client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
+                    logger.info("OpenAI client initialized for AI pattern detection")
             except Exception as e:
                 logger.warning(f"Failed to init OpenAI client: {e}")
     

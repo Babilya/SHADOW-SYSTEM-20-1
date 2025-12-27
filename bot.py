@@ -14,7 +14,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 try:
-    from config import BOT_TOKEN, ADMIN_IDS
+    from config.settings import BOT_TOKEN, ADMIN_ID
+    # Use ADMIN_ID from config as the list for backward compatibility
+    ADMIN_IDS = [int(ADMIN_ID)]
+    from handlers.start import router as start_router
     from handlers.user import user_router
     from handlers.admin import admin_router
     from handlers.botnet import botnet_router
@@ -59,14 +62,34 @@ dp.callback_query.middleware(SecurityMiddleware())
 dp.message.middleware(RoleMiddleware())
 dp.callback_query.middleware(RoleMiddleware())
 
+# Register routers - ORDER MATTERS for command precedence
 routers = [
-    user_router, admin_router, botnet_router,
-    osint_router, analytics_router, team_router, subscriptions_router,
-    funnels_router, help_router, texting_router, applications_router,
-    emergency_router, configurator_router, security_router, 
-    tickets_router, referral_router, mailing_router, missing_router,
-    proxy_router, export_router, warming_router, scheduler_router, geo_router,
-    auth_router, advanced_router
+    start_router,  # Place start router first
+    admin_router,
+    user_router,
+    botnet_router,
+    osint_router,
+    analytics_router,
+    team_router,
+    subscriptions_router,
+    funnels_router,
+    help_router,
+    texting_router,
+    applications_router,
+    emergency_router,
+    configurator_router,
+    security_router,
+    tickets_router,
+    referral_router,
+    mailing_router,
+    missing_router,
+    proxy_router,
+    export_router,
+    warming_router,
+    scheduler_router,
+    geo_router,
+    auth_router,
+    advanced_router
 ]
 
 for r in routers:

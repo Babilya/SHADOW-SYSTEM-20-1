@@ -12,24 +12,36 @@ from utils.db import async_session
 router = Router()
 
 @router.message(Command("start"))
-async def start_handler(message: Message):
-    user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+async def start_handler(message: Message, user_role: str = UserRole.GUEST):
+    # Log the role we received from middleware for debugging
+    logger.info(f"Start handler called. User: {message.from_user.id}, Middleware role: {user_role}")
     
-    async with async_session() as session:
-        project = await ProjectCRUD.get_by_leader_async(str(message.from_user.id))
-    
-    if project and user.role == UserRole.GUEST:
-        user_service.set_user_role(message.from_user.id, UserRole.LEADER)
-        user.role = UserRole.LEADER
+    # Check if user is the admin from config
+    from config.settings import ADMIN_ID
+    if str(message.from_user.id) == str(ADMIN_ID):
+        role = UserRole.ADMIN
+        # Ensure database is updated if needed
+        db_user = user_service.get_user_by_telegram_id(message.from_user.id)
+        if not db_user or db_user.role != UserRole.ADMIN:
+            user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+            user_service.set_user_role(message.from_user.id, UserRole.ADMIN)
+            logger.info(f"Forced ADMIN role for owner {message.from_user.id}")
+    else:
+        user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+        role = user.role
+        async with async_session() as session:
+            project = await ProjectCRUD.get_by_leader_async(str(message.from_user.id))
+        
+        if project and role == UserRole.GUEST:
+            user_service.set_user_role(message.from_user.id, UserRole.LEADER)
+            role = UserRole.LEADER
 
     await audit_logger.log_auth(
         user_id=message.from_user.id,
         action="user_start",
         username=message.from_user.username,
-        details={"has_project": project is not None, "role": user.role}
+        details={"role": role}
     )
-    
-    role = user.role if user else UserRole.GUEST
     
     await message.answer(
         get_description_by_role(role),

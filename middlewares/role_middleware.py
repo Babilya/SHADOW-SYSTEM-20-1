@@ -48,4 +48,5 @@ class RoleMiddleware(BaseMiddleware):
             data['user_role'] = UserRole.GUEST
             data['db_user'] = None
         
+        # Check if the event is already handled by middleware and has data
         return await handler(event, data)

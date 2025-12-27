@@ -1,8 +1,11 @@
+import logging
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
 from services.user_service import user_service
 from database.models import UserRole
+
+logger = logging.getLogger(__name__)
 
 class RoleMiddleware(BaseMiddleware):
     async def __call__(

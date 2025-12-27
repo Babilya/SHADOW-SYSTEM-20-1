@@ -55,16 +55,193 @@ async def start_handler(message: Message, user_role: str = UserRole.GUEST):
 
 @router.callback_query(F.data == "user_menu")
 async def user_menu_callback(callback: CallbackQuery):
+    from aiogram.exceptions import TelegramBadRequest
     user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
     role = user.role if user else UserRole.GUEST
     
     new_text = get_description_by_role(role)
     new_markup = get_menu_by_role(role)
     
-    if callback.message.text != new_text or callback.message.reply_markup != new_markup:
+    try:
         await callback.message.edit_text(
             new_text,
             reply_markup=new_markup,
             parse_mode="HTML"
         )
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
+    await callback.answer()
+
+@router.callback_query(F.data == "back_to_menu")
+async def back_to_menu_callback(callback: CallbackQuery):
+    from aiogram.exceptions import TelegramBadRequest
+    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    role = user.role if user else UserRole.GUEST
+    
+    try:
+        await callback.message.edit_text(
+            get_description_by_role(role),
+            reply_markup=get_menu_by_role(role),
+            parse_mode="HTML"
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
+    await callback.answer()
+
+@router.callback_query(F.data == "profile_main")
+async def profile_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    
+    text = f"""<b>👤 ВАШ ПРОФІЛЬ</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📋 ІНФОРМАЦІЯ:</b>
+├ 🆔 ID: <code>{callback.from_user.id}</code>
+├ 👤 Username: @{callback.from_user.username or 'не вказано'}
+├ 📝 Ім'я: {callback.from_user.first_name or 'Не вказано'}
+├ 🎭 Роль: <b>{user.role.upper() if user else 'GUEST'}</b>
+└ 📅 Реєстрація: {user.created_at.strftime('%d.%m.%Y') if user and user.created_at else 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад до меню", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer()
+
+@router.callback_query(F.data == "texting_main")
+async def texting_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """<b>✍️ ТЕКСТОВКИ</b>
+<i>Бібліотека шаблонів повідомлень</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📚 КАТЕГОРІЇ:</b>
+├ 💼 Бізнес-пропозиції
+├ 🎁 Акції та знижки
+├ 📢 Інформаційні
+└ 🔥 Гарячі оффери
+
+<b>🤖 AI-РЕДАКТОР:</b>
+Автоматичний рерайт для обходу спам-фільтрів
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<i>Розділ у розробці...</i>"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer()
+
+@router.callback_query(F.data == "settings_main")
+async def settings_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """<b>⚙️ НАЛАШТУВАННЯ ПРОЕКТУ</b>
+<i>Конфігурація вашого проекту</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🔧 ДОСТУПНІ ОПЦІЇ:</b>
+├ 📊 Інтервали розсилок
+├ 🔔 Сповіщення
+├ 🛡️ Безпека
+└ 🤖 Налаштування ботів
+
+━━━━━━━━━━━━━━━━━━━━━━━"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer()
+
+@router.callback_query(F.data == "warming_main")
+async def warming_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """<b>🔥 ПРОГРІВ АКАУНТІВ</b>
+<i>Автоматичний прогрів ботів</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📊 СТАТУС ПРОГРІВУ:</b>
+├ 🤖 Боти в процесі: <b>0</b>
+├ ✅ Прогріто: <b>0</b>
+├ ⏳ В черзі: <b>0</b>
+└ 🛡️ Режим: <b>Безпечний</b>
+
+<b>⚙️ НАЛАШТУВАННЯ:</b>
+├ Інтервал дій: 30-120 сек
+├ Дій на день: 10-50
+└ Тип активності: Чати + Канали
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<i>Запустіть прогрів для підвищення живучості ботів</i>"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Запустити прогрів", callback_data="warming_start")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
+    await callback.answer()
+
+@router.callback_query(F.data == "support")
+async def support_callback(callback: CallbackQuery):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    text = """<b>💬 ПІДТРИМКА</b>
+<i>Служба технічної підтримки</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📞 СПОСОБИ ЗВ'ЯЗКУ:</b>
+├ 💬 Telegram: @support
+├ 📧 Email: support@shadow.io
+└ 🎫 Тікет-система
+
+<b>⏰ ГОДИНИ РОБОТИ:</b>
+├ Пн-Пт: 09:00 - 21:00
+└ Сб-Нд: 10:00 - 18:00
+
+<b>⚡ ТЕРМІНОВІ ПИТАННЯ:</b>
+Середній час відповіді: 15 хвилин
+
+━━━━━━━━━━━━━━━━━━━━━━━"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎫 Створити тікет", callback_data="ticket_create")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+    ])
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except:
+        pass
     await callback.answer()

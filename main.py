@@ -20,6 +20,7 @@ from handlers.team import router as team_router
 from handlers.analytics import router as analytics_router
 from handlers.configurator import router as config_router
 from handlers.help import router as help_router
+from handlers.funnels import funnels_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ async def main():
     dp.include_router(analytics_router)
     dp.include_router(config_router)
     dp.include_router(help_router)
+    dp.include_router(funnels_router)
 
     from utils.db import init_db
     await init_db()

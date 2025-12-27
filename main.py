@@ -42,6 +42,7 @@ from handlers.referral import referral_router
 from handlers.user import user_router
 from handlers.users_handler import users_router
 from handlers.admin_notifications import router as admin_notifications_router
+from handlers.forensics import forensics_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -92,6 +93,7 @@ async def main():
     dp.include_router(user_router)
     dp.include_router(users_router)
     dp.include_router(admin_notifications_router)
+    dp.include_router(forensics_router)
     dp.include_router(missing_router)
 
     from utils.db import init_db

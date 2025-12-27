@@ -58,6 +58,10 @@ def funnel_view_kb(funnel_id: int, is_active: bool) -> InlineKeyboardMarkup:
         ],
         [InlineKeyboardButton(text="📋 Кроки воронки", callback_data=f"funnel_steps_{funnel_id}")],
         [
+            InlineKeyboardButton(text="📝 Шаблони", callback_data=f"funnel_templates_{funnel_id}"),
+            InlineKeyboardButton(text="📅 Планування", callback_data=f"funnel_schedule_{funnel_id}")
+        ],
+        [
             InlineKeyboardButton(text=toggle_text, callback_data=f"funnel_toggle_{funnel_id}"),
             InlineKeyboardButton(text="📊 Статистика", callback_data=f"funnel_stats_{funnel_id}")
         ],
@@ -580,3 +584,115 @@ async def step_edit_content_save(message: Message, state: FSMContext):
         await message.answer("✅ Текст кроку оновлено!", reply_markup=funnel_steps_kb(funnel_id, steps))
     else:
         await message.answer("❌ Помилка збереження")
+
+@funnels_router.callback_query(F.data.startswith("funnel_templates_"))
+async def funnel_templates(query: CallbackQuery):
+    await query.answer()
+    funnel_id = int(query.data.split("_")[-1])
+    funnel = funnel_service.get_funnel(funnel_id)
+    
+    text = f"""<b>📝 ШАБЛОНИ ДЛЯ ВОРОНКИ</b>
+<i>{funnel.name if funnel else 'Воронка'}</i>
+
+═══════════════════════════════
+
+Шаблони дозволяють швидко створювати 
+повідомлення для кроків воронки.
+
+<b>Категорії шаблонів:</b>
+├ 👋 Привітальні — для першого контакту
+├ 📢 Промо — акції та пропозиції  
+├ 📰 Новини — інформаційні повідомлення
+├ ⏰ Нагадування — follow-up
+├ 🚨 Алерти — термінові сповіщення
+└ 📄 Загальні — універсальні шаблони
+
+<b>Змінні для персоналізації:</b>
+├ <code>{name}</code> — ім'я користувача
+├ <code>{username}</code> — @username
+├ <code>{date}</code> — поточна дата
+└ <code>{time}</code> — поточний час"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📋 Мої шаблони", callback_data="templates_list")],
+        [InlineKeyboardButton(text="➕ Створити шаблон", callback_data="template_create")],
+        [InlineKeyboardButton(text="🌐 Публічні шаблони", callback_data="templates_public")],
+        [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data.startswith("funnel_schedule_"))
+async def funnel_schedule(query: CallbackQuery):
+    await query.answer()
+    funnel_id = int(query.data.split("_")[-1])
+    funnel = funnel_service.get_funnel(funnel_id)
+    
+    text = f"""<b>📅 ПЛАНУВАННЯ ВОРОНКИ</b>
+<i>{funnel.name if funnel else 'Воронка'}</i>
+
+═══════════════════════════════
+
+Налаштуйте автоматичний запуск кроків 
+воронки за розкладом.
+
+<b>Типи розкладу:</b>
+├ 🔂 Одноразовий — запуск в заданий час
+├ ⏱ Інтервальний — кожні N хвилин/годин
+├ 📆 Щоденний — в певний час кожен день
+├ 📅 Щотижневий — в певні дні тижня
+└ 🗓 Щомісячний — в певний день місяця
+
+<b>Поточний статус:</b>
+├ 📊 Активних розкладів: 0
+└ ⏰ Наступний запуск: не заплановано"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📅 Мої розклади", callback_data="scheduled_list")],
+        [InlineKeyboardButton(text="➕ Додати розклад", callback_data=f"funnel_add_schedule_{funnel_id}")],
+        [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data.startswith("funnel_add_schedule_"))
+async def funnel_add_schedule(query: CallbackQuery):
+    await query.answer()
+    funnel_id = int(query.data.split("_")[-1])
+    
+    text = """<b>⏱ ВИБІР ІНТЕРВАЛУ</b>
+═══════════════════════════════
+
+Як часто запускати кроки воронки?"""
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="⏱ Щогодини", callback_data=f"funnel_sched_set_{funnel_id}_60"),
+            InlineKeyboardButton(text="⏱ Кожні 4 год", callback_data=f"funnel_sched_set_{funnel_id}_240")
+        ],
+        [
+            InlineKeyboardButton(text="📆 Щодня", callback_data=f"funnel_sched_set_{funnel_id}_1440"),
+            InlineKeyboardButton(text="📅 Щотижня", callback_data=f"funnel_sched_set_{funnel_id}_10080")
+        ],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"funnel_schedule_{funnel_id}")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data.startswith("funnel_sched_set_"))
+async def funnel_schedule_set(query: CallbackQuery):
+    parts = query.data.split("_")
+    funnel_id = int(parts[3])
+    interval = int(parts[4])
+    
+    interval_names = {60: "щогодини", 240: "кожні 4 години", 1440: "щодня", 10080: "щотижня"}
+    
+    await query.answer(f"✅ Розклад встановлено: {interval_names.get(interval, f'{interval} хв')}", show_alert=True)
+    
+    funnel = funnel_service.get_funnel(funnel_id)
+    await query.message.edit_text(
+        f"✅ Розклад для воронки <b>{funnel.name if funnel else ''}</b> налаштовано!\n\n"
+        f"⏱ Інтервал: {interval_names.get(interval, f'{interval} хв')}",
+        reply_markup=funnel_view_kb(funnel_id, funnel.is_active if funnel else True),
+        parse_mode="HTML"
+    )

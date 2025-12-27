@@ -46,7 +46,11 @@ def manager_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
         ],
         [
-            InlineKeyboardButton(text="✍️ ТЕКСТОВКИ", callback_data="texting_main"),
+            InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
+            InlineKeyboardButton(text="✍️ ТЕКСТОВКИ", callback_data="texting_main")
+        ],
+        [
+            InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu"),
             InlineKeyboardButton(text="👤 ПРОФІЛЬ", callback_data="profile_main")
         ],
         [InlineKeyboardButton(text="📖 ДОВІДКА", callback_data="help_main")]
@@ -95,12 +99,16 @@ def leader_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 АНАЛІТИКА", callback_data="analytics_main")
         ],
         [
+            InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
+            InlineKeyboardButton(text="🔔 СПОВІЩЕННЯ", callback_data="notifications_menu")
+        ],
+        [
             InlineKeyboardButton(text="👥 КОМАНДА", callback_data="team_main"),
-            InlineKeyboardButton(text="⚙️ КОНФІГУРАЦІЯ", callback_data="settings_main")
+            InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu")
         ],
         [
             InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warming_main"),
-            InlineKeyboardButton(text="📦 ТАРИФИ", callback_data="subscription_main")
+            InlineKeyboardButton(text="⚙️ КОНФІГУРАЦІЯ", callback_data="settings_main")
         ],
         [
             InlineKeyboardButton(text="📖 ДОВІДКА", callback_data="help_main"),
@@ -129,6 +137,12 @@ def leader_description() -> str:
 ├ A/B тестування та автоматизація воронок
 └ Глобальне планування розсилок
 
+<b>📝 ШАБЛОНИ & КОМУНІКАЦІЯ:</b>
+├ Бібліотека готових шаблонів розсилок
+├ Планування за розкладом (інтервали)
+├ Сповіщення по ролям та проектам
+└ Центр підтримки з тікет-системою
+
 <b>👥 УПРАВЛІННЯ КОМАНДОЮ:</b>
 ├ Найм менеджерів через INV-коди
 └ Розподіл прав доступу та контроль KPI
@@ -145,12 +159,20 @@ def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚙️ УПРАВЛІННЯ СИСТЕМОЮ", callback_data="admin_system")],
         [
-            InlineKeyboardButton(text="🚫 БЛОКУВАННЯ", callback_data="admin_block"),
+            InlineKeyboardButton(text="🚫 БАНИ", callback_data="bans_menu"),
             InlineKeyboardButton(text="🔄 РОЛІ", callback_data="admin_roles")
         ],
         [
-            InlineKeyboardButton(text="📋 ЗАЯВКИ", callback_data="admin_apps"),
+            InlineKeyboardButton(text="📢 СПОВІЩЕННЯ", callback_data="notifications_menu"),
+            InlineKeyboardButton(text="🎧 ТІКЕТИ", callback_data="support_menu")
+        ],
+        [
+            InlineKeyboardButton(text="📝 ШАБЛОНИ", callback_data="templates_menu"),
             InlineKeyboardButton(text="🔑 ЛІЦЕНЗІЇ", callback_data="admin_keys")
+        ],
+        [
+            InlineKeyboardButton(text="📋 ЗАЯВКИ", callback_data="admin_apps"),
+            InlineKeyboardButton(text="📊 СТАТИСТИКА", callback_data="project_stats")
         ],
         [InlineKeyboardButton(text="📱 ПЕРЕГЛЯД МЕНЮ ЮЗЕРА", callback_data="user_menu")],
         [InlineKeyboardButton(text="🆘 EMERGENCY ALERT", callback_data="admin_emergency")]
@@ -171,7 +193,14 @@ def admin_description() -> str:
 
 <b>👥 КЕРУВАННЯ КОРИСТУВАЧАМИ:</b>
 ├ Ручна зміна ролей (Guest/Manager/Leader)
+├ Система банів (тимчасові/постійні)
 └ Глобальне блокування порушників
+
+<b>📢 КОМУНІКАЦІЙНИЙ ЦЕНТР:</b>
+├ Масові сповіщення по ролях
+├ Система підтримки (тікети)
+├ Шаблони для розсилок
+└ Статистика по проектам
 
 <b>🔑 ЛІЦЕНЗІЙНИЙ ЦЕНТР:</b>
 ├ Генерація унікальних SHADOW-ключів

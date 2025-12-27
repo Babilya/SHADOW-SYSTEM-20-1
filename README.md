@@ -617,6 +617,44 @@ Auto-actions:
 - `alert_admins` - Admin notifications
 - `escalate` - Priority escalation
 
+### Advanced Parser
+**File:** `core/advanced_parser.py`
+
+Deep chat analysis with threat detection:
+
+| Feature | Description |
+|---------|-------------|
+| Pattern Detection | Coordinates, crypto, phones, explosives, weapons, military terms |
+| Threat Scoring | 0-100 risk score with configurable thresholds |
+| User Risk Scoring | Key person identification and influence analysis |
+| Interaction Graph | Network relationship mapping |
+| Formatted Reports | Ukrainian-language threat analysis reports |
+
+Detected patterns:
+- **Coordinates**: Decimal (50.4501, 30.5234), DMS (50°27'00"N), MGRS, Google Maps
+- **Phones**: UA (+380), RU (+7), BY (+375), PL (+48)
+- **Crypto**: BTC, ETH, USDT (TRC-20/ERC-20), LTC, XMR
+- **Threat Keywords**: Explosives, weapons, military terminology
+
+### RealTime Parser
+**File:** `core/realtime_parser.py`
+
+Live chat monitoring system:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `check_interval` | 30s | Message check frequency |
+| `threat_threshold` | 30 | Alert trigger threshold |
+| `max_hash_cache` | 10000 | Message deduplication cache |
+| `batch_size` | 50 | Messages per batch |
+
+Features:
+- Real-time threat detection with configurable intervals
+- Message deduplication via hash cache
+- Alert callback system for notifications
+- Dynamic settings control (start/stop/configure)
+- Multi-chat parallel monitoring
+
 ---
 
 ## Campaign Management

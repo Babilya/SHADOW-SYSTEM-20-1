@@ -81,6 +81,11 @@ async def main():
     from utils.db import init_db
     await init_db()
 
+    from core.advanced_parser import initialize_parsers_with_client
+    from core.realtime_parser import initialize_realtime_with_client
+    initialize_parsers_with_client()
+    initialize_realtime_with_client()
+
     logger.info("🚀 Бот запущено")
     await dp.start_polling(bot)
 

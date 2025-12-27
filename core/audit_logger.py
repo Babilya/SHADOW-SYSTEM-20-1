@@ -120,9 +120,9 @@ class AuditLogger:
     
     async def _save_to_db(self, entry: AuditEntry):
         try:
-            from database.db import engine
+            from utils.db import sync_engine
             from sqlalchemy import text
-            with engine.connect() as conn:
+            with sync_engine.connect() as conn:
                 conn.execute(
                     text("""
                         INSERT INTO audit_logs 

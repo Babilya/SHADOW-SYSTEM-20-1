@@ -5,6 +5,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import logging
 
+from core.advanced_parser import advanced_parser
+from core.realtime_parser import realtime_parser
+
 logger = logging.getLogger(__name__)
 osint_router = Router()
 router = osint_router
@@ -16,6 +19,8 @@ class OSINTStates(StatesGroup):
     waiting_whois_domain = State()
     waiting_ip = State()
     waiting_email = State()
+    waiting_deep_parse = State()
+    waiting_monitor_chats = State()
 
 def osint_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -30,6 +35,10 @@ def osint_kb():
         [
             InlineKeyboardButton(text="👤 USER ANALYSIS", callback_data="user_analysis"),
             InlineKeyboardButton(text="💬 CHAT PARSING", callback_data="chat_analysis")
+        ],
+        [
+            InlineKeyboardButton(text="🔬 ГЛИБОКИЙ АНАЛІЗ", callback_data="deep_parse"),
+            InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor")
         ],
         [
             InlineKeyboardButton(text="📥 ЕКСПОРТ ДАНИХ", callback_data="export_contacts"),
@@ -317,3 +326,176 @@ async def funnel_osint_action(query: CallbackQuery):
         )
     else:
         await query.answer(f"Запущено {action} аналіз для воронки", show_alert=True)
+
+
+@osint_router.callback_query(F.data == "deep_parse")
+async def deep_parse_menu(query: CallbackQuery, state: FSMContext):
+    """Меню глибокого парсингу"""
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_deep_parse)
+    stats = advanced_parser.get_statistics()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "<b>🔬 ГЛИБОКИЙ АНАЛІЗ ЧАТУ</b>\n"
+        "═══════════════════════\n\n"
+        f"<b>📊 Статистика:</b>\n"
+        f"├ Проаналізовано чатів: {stats['parsed_chats']}\n"
+        f"├ Знайдено користувачів: {stats['parsed_users']}\n"
+        f"├ Повідомлень: {stats['parsed_messages']}\n"
+        f"└ Загрозливих: {stats['high_threat_messages']}\n\n"
+        "<b>📝 Введіть @username або ID чату:</b>\n"
+        "<i>Наприклад: @channel_name або -100123456789</i>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.message(OSINTStates.waiting_deep_parse)
+async def process_deep_parse(message: Message, state: FSMContext):
+    """Обробка глибокого парсингу"""
+    target = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    await message.answer(f"⏳ Запускаю глибокий аналіз {target}...\nЦе може зайняти кілька хвилин.")
+    
+    if advanced_parser.client:
+        result = await advanced_parser.parse_chat_deep(target, limit=1000)
+        report = advanced_parser.format_analysis_report(result)
+    else:
+        report = (
+            "<b>⚠️ Telethon клієнт не налаштовано</b>\n\n"
+            "Для глибокого парсингу потрібно:\n"
+            "├ Налаштувати TELEGRAM_API_ID\n"
+            "├ Налаштувати TELEGRAM_API_HASH\n"
+            "└ Авторизувати сесію\n\n"
+            f"<i>Запит: {target}</i>"
+        )
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Новий аналіз", callback_data="deep_parse")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    await message.answer(report, reply_markup=kb, parse_mode="HTML")
+
+
+@osint_router.callback_query(F.data == "realtime_monitor")
+async def realtime_monitor_menu(query: CallbackQuery):
+    """Меню реалтайм моніторингу"""
+    await query.answer()
+    status = realtime_parser.get_monitoring_status()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🛑 ЗУПИНИТИ" if status['is_active'] else "▶️ ЗАПУСТИТИ",
+            callback_data="toggle_monitoring"
+        )],
+        [InlineKeyboardButton(text="➕ Додати чати", callback_data="add_monitor_chats")],
+        [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="monitor_settings")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    
+    report = realtime_parser.format_status_report()
+    await query.message.edit_text(report, reply_markup=kb, parse_mode="HTML")
+
+
+@osint_router.callback_query(F.data == "toggle_monitoring")
+async def toggle_monitoring(query: CallbackQuery):
+    """Перемикання моніторингу"""
+    if realtime_parser.is_monitoring:
+        await realtime_parser.stop_monitoring()
+        await query.answer("⏹️ Моніторинг зупинено", show_alert=True)
+    else:
+        if realtime_parser.monitored_chats:
+            await realtime_parser.start_realtime_monitoring(realtime_parser.monitored_chats)
+            await query.answer("▶️ Моніторинг запущено", show_alert=True)
+        else:
+            await query.answer("❌ Спочатку додайте чати для моніторингу", show_alert=True)
+    
+    await realtime_monitor_menu(query)
+
+
+@osint_router.callback_query(F.data == "add_monitor_chats")
+async def add_monitor_chats(query: CallbackQuery, state: FSMContext):
+    """Додавання чатів для моніторингу"""
+    await query.answer()
+    await state.set_state(OSINTStates.waiting_monitor_chats)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="realtime_monitor")]
+    ])
+    await query.message.edit_text(
+        "<b>➕ ДОДАВАННЯ ЧАТІВ</b>\n"
+        "═══════════════════════\n\n"
+        "Введіть чати для моніторингу\n"
+        "(по одному на рядок):\n\n"
+        "<i>Приклад:\n"
+        "@channel1\n"
+        "@channel2\n"
+        "-100123456789</i>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.message(OSINTStates.waiting_monitor_chats)
+async def process_monitor_chats(message: Message, state: FSMContext):
+    """Обробка додавання чатів"""
+    await state.clear()
+    
+    lines = message.text.strip().split('\n') if message.text else []
+    chats = [line.strip() for line in lines if line.strip()]
+    
+    if chats:
+        realtime_parser.monitored_chats.extend(chats)
+        await message.answer(
+            f"✅ Додано {len(chats)} чатів для моніторингу",
+            parse_mode="HTML"
+        )
+    else:
+        await message.answer("❌ Не вказано жодного чату")
+
+
+@osint_router.callback_query(F.data == "monitor_settings")
+async def monitor_settings(query: CallbackQuery):
+    """Налаштування моніторингу"""
+    await query.answer()
+    settings = realtime_parser.settings
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="⏱️ Інтервал -", callback_data="monitor_interval_down"),
+            InlineKeyboardButton(text=f"{settings['check_interval']}с", callback_data="noop"),
+            InlineKeyboardButton(text="⏱️ Інтервал +", callback_data="monitor_interval_up")
+        ],
+        [
+            InlineKeyboardButton(text="🚨 Поріг -", callback_data="monitor_threshold_down"),
+            InlineKeyboardButton(text=f"{settings['threat_threshold']}", callback_data="noop"),
+            InlineKeyboardButton(text="🚨 Поріг +", callback_data="monitor_threshold_up")
+        ],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="realtime_monitor")]
+    ])
+    await query.message.edit_text(
+        "<b>⚙️ НАЛАШТУВАННЯ МОНІТОРИНГУ</b>\n"
+        "═══════════════════════\n\n"
+        f"<b>⏱️ Інтервал перевірки:</b> {settings['check_interval']} сек\n"
+        f"<b>🚨 Поріг загрози:</b> {settings['threat_threshold']}\n"
+        f"<b>📦 Розмір пакету:</b> {settings['batch_size']}\n"
+        f"<b>💾 Кеш хешів:</b> {settings['max_hash_cache']}",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.callback_query(F.data.startswith("monitor_"))
+async def adjust_monitor_settings(query: CallbackQuery):
+    """Зміна налаштувань моніторингу"""
+    action = query.data.replace("monitor_", "")
+    
+    if action == "interval_up":
+        realtime_parser.settings['check_interval'] = min(300, realtime_parser.settings['check_interval'] + 10)
+    elif action == "interval_down":
+        realtime_parser.settings['check_interval'] = max(10, realtime_parser.settings['check_interval'] - 10)
+    elif action == "threshold_up":
+        realtime_parser.settings['threat_threshold'] = min(100, realtime_parser.settings['threat_threshold'] + 5)
+    elif action == "threshold_down":
+        realtime_parser.settings['threat_threshold'] = max(10, realtime_parser.settings['threat_threshold'] - 5)
+    
+    await query.answer("✅ Оновлено")
+    await monitor_settings(query)

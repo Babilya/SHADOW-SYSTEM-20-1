@@ -70,3 +70,26 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - 5-step validation process
 - Device fingerprint collection
 - Import/validation report generation
+
+## Advanced Parsing & Monitoring (December 2025)
+
+### Advanced Parser (core/advanced_parser.py)
+- Deep chat parsing with threat analysis
+- Coordinate/crypto/phone pattern detection
+- User risk scoring and key person identification
+- Interaction graph building
+- Threat assessment with recommendations
+- Formatted analysis reports
+
+### RealTime Parser (core/realtime_parser.py)
+- Real-time chat monitoring with configurable intervals
+- Threat level threshold alerts
+- Message deduplication via hash cache
+- Alert callbacks for notifications
+- Dynamic settings (interval, threshold, batch size)
+- Status reporting and control (start/stop)
+
+### Integration with OSINT
+- handlers/osint.py: New buttons for "🔬 ГЛИБОКИЙ АНАЛІЗ" and "📡 РЕАЛТАЙМ"
+- keyboards/role_menus.py: Updated Leader/Admin menus with direct access
+- Parsers connect to Telethon via core/osint_telethon.py when API credentials available

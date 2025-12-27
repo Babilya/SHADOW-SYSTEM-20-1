@@ -20,10 +20,10 @@ class TextingStates(StatesGroup):
     waiting_message_text = State()
     waiting_targets = State()
 
-# Text templates library
 TEXT_TEMPLATES = {
     "promo": {
-        "title": "🎁 Промо-пропозиція",
+        "icon": "🎁",
+        "title": "Промо-пропозиція",
         "template": """Привіт! 👋
 
 Ми пропонуємо спеціальну пропозицію для вас:
@@ -33,11 +33,12 @@ TEXT_TEMPLATES = {
 💰 Спеціальна ціна: {price}
 ⏰ Дійсна до: {date}
 
-Скорити у відповідь 👇"""
+Скористайся зараз 👇"""
     },
     
     "welcome": {
-        "title": "👋 Привітання",
+        "icon": "👋",
+        "title": "Привітання",
         "template": """Привіт, {name}! 👋
 
 Чудово, що ти приєднався до нашої спільноти!
@@ -52,7 +53,8 @@ TEXT_TEMPLATES = {
     },
     
     "feedback": {
-        "title": "⭐ Запит відгуку",
+        "icon": "⭐",
+        "title": "Запит відгуку",
         "template": """Як пройшла твоя користування нашим сервісом? ⭐
 
 Твій відгук дуже важливий для нас!
@@ -66,7 +68,8 @@ TEXT_TEMPLATES = {
     },
     
     "reminder": {
-        "title": "🔔 Нагадування",
+        "icon": "🔔",
+        "title": "Нагадування",
         "template": """Привіт! ⏰
 
 Хочемо нагадати про:
@@ -79,7 +82,8 @@ TEXT_TEMPLATES = {
     },
     
     "announcement": {
-        "title": "📢 Оголошення",
+        "icon": "📢",
+        "title": "Оголошення",
         "template": """📢 <b>ВАЖЛИВЕ ОГОЛОШЕННЯ</b>
 
 {announcement_text}
@@ -92,7 +96,8 @@ TEXT_TEMPLATES = {
     },
     
     "upsell": {
-        "title": "📈 Upgrade пропозиція",
+        "icon": "📈",
+        "title": "Upgrade пропозиція",
         "template": """Привіт! 🚀
 
 Помітили, що ти активно користуєшся нашим сервісом!
@@ -139,17 +144,24 @@ async def templates_list(query: CallbackQuery):
     await query.answer()
     
     template_buttons = [
-        [InlineKeyboardButton(text=f"🎁 {name['title']}", callback_data=f"template_{key}")]
-        for key, name in TEXT_TEMPLATES.items()
+        [InlineKeyboardButton(text=f"{data['icon']} {data['title']}", callback_data=f"template_{key}")]
+        for key, data in TEXT_TEMPLATES.items()
     ]
     template_buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="texting_menu_back")])
     
     kb = InlineKeyboardMarkup(inline_keyboard=template_buttons)
-    await query.message.edit_text("<b>📚 ШАБЛОНИ ТЕКСТОВОК</b>\n\nВиберіть готовий шаблон:", reply_markup=kb, parse_mode="HTML")
+    await query.message.edit_text(
+        "<b>📚 ШАБЛОНИ</b>\n\n"
+        "Готові шаблони для розсилок. Виберіть потрібний:",
+        reply_markup=kb, parse_mode="HTML"
+    )
 
 @texting_router.callback_query(F.data.startswith("template_"))
 async def show_template(query: CallbackQuery):
     template_key = query.data.replace("template_", "")
+    if template_key.startswith("use_"):
+        return
+    
     await query.answer()
     
     if template_key in TEXT_TEMPLATES:
@@ -159,16 +171,16 @@ async def show_template(query: CallbackQuery):
             [InlineKeyboardButton(text="◀️ Назад", callback_data="templates_list")]
         ])
         
-        preview = f"<b>{template['title']}</b>\n\n{template['template']}"
+        preview = f"{template['icon']} <b>{template['title']}</b>\n\n{template['template']}"
         await query.message.edit_text(preview, reply_markup=kb, parse_mode="HTML")
 
 @texting_router.callback_query(F.data == "my_texts")
 async def my_texts(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📄 Промо-пропозиція", callback_data="text_detail_1")],
-        [InlineKeyboardButton(text="📄 Привітання", callback_data="text_detail_2")],
-        [InlineKeyboardButton(text="📄 Запит відгуку", callback_data="text_detail_3")],
+        [InlineKeyboardButton(text="📄 Промо-пропозиція", callback_data="text_detail_promo")],
+        [InlineKeyboardButton(text="📄 Привітання", callback_data="text_detail_welcome")],
+        [InlineKeyboardButton(text="📄 Запит відгуку", callback_data="text_detail_feedback")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="texting_menu_back")]
     ])
     
@@ -188,28 +200,53 @@ async def my_texts(query: CallbackQuery):
 @texting_router.callback_query(F.data.startswith("text_detail_"))
 async def text_detail(query: CallbackQuery):
     await query.answer()
+    text_key = query.data.replace("text_detail_", "")
+    
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="text_stats")],
-        [InlineKeyboardButton(text="✏️ Редагувати", callback_data="text_edit")],
-        [InlineKeyboardButton(text="📤 Відправити знову", callback_data="text_resend")],
+        [InlineKeyboardButton(text="📊 Статистика", callback_data=f"text_stats_{text_key}")],
+        [InlineKeyboardButton(text="✏️ Редагувати", callback_data=f"text_edit_{text_key}")],
+        [InlineKeyboardButton(text="📤 Відправити знову", callback_data=f"text_resend_{text_key}")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="my_texts")]
     ])
     
-    text = """<b>📄 ДЕТАЛІ ТЕКСТОВКИ</b>
+    texts_data = {
+        "promo": {
+            "name": "Промо-пропозиція",
+            "date": "15 грудня, 2024",
+            "text": "Привіт! Спеціальна пропозиція тільки для тебе...",
+            "sent": 245, "delivered": 234, "read": 189, "replies": 45, "ctr": "12%"
+        },
+        "welcome": {
+            "name": "Привітання новачків",
+            "date": "12 грудня, 2024",
+            "text": "Привіт! Чудово, що ти приєднався до нашої спільноти...",
+            "sent": 1203, "delivered": 1180, "read": 980, "replies": 125, "ctr": "34%"
+        },
+        "feedback": {
+            "name": "Запит відгуку",
+            "date": "20 грудня, 2024",
+            "text": "Як пройшла твоя користування нашим сервісом?...",
+            "sent": 800, "delivered": 785, "read": 650, "replies": 523, "ctr": "65%"
+        }
+    }
+    
+    data = texts_data.get(text_key, texts_data["promo"])
+    
+    text = f"""<b>📄 ДЕТАЛІ ТЕКСТОВКИ</b>
 
-<b>Назва:</b> Промо-пропозиція
-<b>Створена:</b> 15 грудня, 2024
+<b>Назва:</b> {data['name']}
+<b>Створена:</b> {data['date']}
 <b>Статус:</b> Завершено ✅
 
 <b>Текст:</b>
-"Привіт! Спеціальна пропозиція тільки для тебе..."
+"{data['text']}"
 
 <b>Результати:</b>
-📤 Відправлено: 245
-✅ Доставлено: 234
-👀 Прочитано: 189
-💬 Відповідей: 45
-📊 CTR: 12%"""
+📤 Відправлено: {data['sent']}
+✅ Доставлено: {data['delivered']}
+👀 Прочитано: {data['read']}
+💬 Відповідей: {data['replies']}
+📊 CTR: {data['ctr']}"""
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
@@ -217,7 +254,7 @@ async def text_detail(query: CallbackQuery):
 async def text_settings(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⏰ Час відправлення", callback_data="text_time")],
+        [InlineKeyboardButton(text="🕰 Час відправлення", callback_data="text_time")],
         [InlineKeyboardButton(text="🎯 Сегментація", callback_data="text_segmentation")],
         [InlineKeyboardButton(text="📊 A/B тестування", callback_data="text_ab")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="texting_menu_back")]

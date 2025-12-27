@@ -80,7 +80,9 @@ async def command_start(message: Message, user_role: str = UserRole.GUEST, **kwa
     try:
         user = message.from_user
         
-        if user.id in ADMIN_IDS and user_role != UserRole.ADMIN:
+        # Check if user is in ADMIN_IDS from config
+        from config.settings import ADMIN_ID
+        if str(user.id) == str(ADMIN_ID) and user_role != UserRole.ADMIN:
             user_service.set_user_role(user.id, UserRole.ADMIN)
             user_role = UserRole.ADMIN
         

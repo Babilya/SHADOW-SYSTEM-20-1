@@ -374,3 +374,115 @@ async def process_alert_message(message: Message, state: FSMContext):
     from keyboards.role_menus import admin_menu
     await message.answer(f"✅ Повідомлення відправлено всім користувачам:\n\n{message.text}", reply_markup=admin_menu())
     await state.clear()
+
+@admin_router.callback_query(F.data == "bans_menu")
+async def bans_menu(query: CallbackQuery):
+    await query.answer()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚫 Забанити користувача", callback_data="ban_user")],
+        [InlineKeyboardButton(text="📋 Активні бани", callback_data="active_bans")],
+        [InlineKeyboardButton(text="📜 Історія банів", callback_data="ban_history")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_menu")]
+    ])
+    
+    text = """<b>🚫 УПРАВЛІННЯ БАНАМИ</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Система блокування користувачів.
+
+<b>📊 СТАТИСТИКА:</b>
+├ 🔴 Активних банів: <b>0</b>
+├ ⏳ Тимчасових: <b>0</b>
+├ ♾️ Постійних: <b>0</b>
+└ 📅 За цей місяць: <b>0</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━"""
+    
+    await safe_edit_message(query, text, kb)
+
+@admin_router.callback_query(F.data == "ban_user")
+async def ban_user_handler(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="bans_menu")]
+    ])
+    await safe_edit_message(query, "🚫 <b>ЗАБАНИТИ КОРИСТУВАЧА</b>\n\nВведіть Telegram ID або @username:", kb)
+
+@admin_router.callback_query(F.data == "active_bans")
+async def active_bans_handler(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="bans_menu")]
+    ])
+    await safe_edit_message(query, "<b>📋 АКТИВНІ БАНИ</b>\n\n<i>Немає активних банів</i>", kb)
+
+@admin_router.callback_query(F.data == "ban_history")
+async def ban_history_handler(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="bans_menu")]
+    ])
+    await safe_edit_message(query, "<b>📜 ІСТОРІЯ БАНІВ</b>\n\n<i>Історія порожня</i>", kb)
+
+@admin_router.callback_query(F.data == "project_stats")
+async def project_stats_handler(query: CallbackQuery):
+    await query.answer()
+    from datetime import datetime
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📄 Експорт PDF", callback_data="stats_export_pdf"),
+            InlineKeyboardButton(text="📊 Експорт CSV", callback_data="stats_export_csv")
+        ],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
+    ])
+    
+    text = f"""<b>📊 СТАТИСТИКА ПРОЕКТУ</b>
+
+<b>💎 ТАРИФ:</b> ⭐ СТАНДАРТ
+<b>📅 Активний до:</b> 15.01.2026
+
+<b>📊 ЗАГАЛЬНА СТАТИСТИКА:</b>
+├ Кампаній проведено: <b>156</b>
+├ Повідомлень надіслано: <b>45,230</b>
+├ Відповідей отримано: <b>6,784</b>
+├ Конверсія: <b>15.0%</b>
+└ ROI: <b>+245%</b>
+
+<b>🤖 БОТИ:</b>
+├ Всього: <b>45 / 500</b>
+├ Активних: <b>42</b>
+└ З помилками: <b>3</b>
+
+<b>👥 КОМАНДА:</b>
+├ Менеджерів: <b>3 / 5</b>
+└ Активних сьогодні: <b>2</b>
+
+<b>💰 ВИТРАТИ:</b>
+└ Цей місяць: <b>12,500 ₴</b>"""
+    
+    await safe_edit_message(query, text, kb)
+
+@admin_router.callback_query(F.data == "stats_export_pdf")
+async def stats_export_pdf(query: CallbackQuery):
+    await query.answer("📄 Генерую PDF звіт...", show_alert=True)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="project_stats")]
+    ])
+    await safe_edit_message(query, "📄 <b>PDF ЗВІТ</b>\n\n⏳ Файл генерується...\n<i>Буде надіслано окремим повідомленням</i>", kb)
+
+@admin_router.callback_query(F.data == "stats_export_csv")
+async def stats_export_csv(query: CallbackQuery):
+    await query.answer("📊 Генерую CSV звіт...", show_alert=True)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="project_stats")]
+    ])
+    await safe_edit_message(query, "📊 <b>CSV ЗВІТ</b>\n\n⏳ Файл генерується...\n<i>Буде надіслано окремим повідомленням</i>", kb)
+
+@admin_router.callback_query(F.data == "user_menu")
+async def user_menu_handler(query: CallbackQuery):
+    await query.answer()
+    from keyboards.role_menus import guest_menu, guest_description
+    await safe_edit_message(query, guest_description(), guest_menu())

@@ -32,6 +32,7 @@ from handlers.scheduler import scheduler_router
 from handlers.templates_handler import templates_router
 from handlers.support_handler import support_router
 from handlers.notifications_handler import notifications_router
+from handlers.missing_handlers import missing_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ async def main():
     dp.include_router(templates_router)
     dp.include_router(support_router)
     dp.include_router(notifications_router)
+    dp.include_router(missing_router)
 
     from utils.db import init_db
     await init_db()

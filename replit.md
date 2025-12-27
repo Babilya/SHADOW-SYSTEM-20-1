@@ -96,3 +96,47 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - handlers/osint.py: New buttons for "🔬 ГЛИБОКИЙ АНАЛІЗ" and "📡 РЕАЛТАЙМ"
 - keyboards/role_menus.py: Updated Leader/Admin menus with direct access
 - Parsers connect to Telethon via core/osint_telethon.py when API credentials available
+
+## Forensics & Analysis Suite (December 2025)
+
+### Forensic Snapshot (core/forensic_snapshot.py)
+- Media file capture with original metadata preservation
+- SHA-256 and SHA-512 forensic hashing
+- File signature analysis and entropy calculation
+- Recovery of deleted media from local cache
+- Integrity verification with tamper detection
+
+### AI Sentiment Analyzer (core/ai_sentiment.py)
+- OpenAI-powered sentiment analysis (positive/negative/neutral/mixed)
+- Toxicity and spam probability scoring
+- Emotion extraction (joy, anger, sadness, fear, surprise)
+- Intent classification (question/statement/request/complaint)
+- Keyword-based fallback when AI unavailable
+
+### Anti-Ghost Recovery (core/anti_ghost_recovery.py)
+- Automatic message capture before deletion
+- Edit history tracking with timestamps
+- Message search across captured content
+- Recovery of deleted text and media references
+- Statistics by chat and user
+
+### X-Ray Metadata (core/xray_metadata.py)
+- Deep file analysis with signature detection
+- EXIF extraction for images (camera, GPS, timestamps)
+- Hidden data discovery (embedded URLs, emails, strings)
+- Anomaly detection (high entropy, multi-signature, suspicious patterns)
+- Risk score calculation
+
+### Memory Indexer (core/memory_indexer.py)
+- In-memory full-text search with inverted index
+- Tokenization with stop-word filtering
+- Multi-type indexing (messages, users, media, channels)
+- Relevance scoring with recency boost
+- Fast search with configurable limits
+
+### Enhanced Monitoring (core/enhanced_monitoring.py)
+- Target-based monitoring (channels, chats, users)
+- Keyword and regex triggers
+- Spam pattern detection
+- Alert system with severity levels
+- Event tracking and statistics

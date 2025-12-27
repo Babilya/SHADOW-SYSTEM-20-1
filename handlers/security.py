@@ -30,7 +30,7 @@ def security_kb():
          InlineKeyboardButton(text="👢 Кікнути", callback_data="sec_kick")],
         [InlineKeyboardButton(text="✅ Розблокувати", callback_data="sec_unban")],
         [InlineKeyboardButton(text="📋 Список блокувань", callback_data="sec_list")],
-        [InlineKeyboardButton(text="📊 Security Monitor", callback_data="sec_monitor")],
+        [InlineKeyboardButton(text="📊 Моніторинг безпеки", callback_data="sec_monitor")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
 
@@ -46,7 +46,9 @@ async def security_command(message: Message):
         await message.answer("❌ Доступ заборонено")
         return
     
-    text = f"""🛡️ <b>SECURITY CENTER</b>
+    text = f"""🛡️ <b>ЦЕНТР БЕЗПЕКИ</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>📊 Статистика:</b>
 ├ Заблокованих: {sum(1 for u in blocked_users.values() if u.get('is_blocked'))}
@@ -55,6 +57,8 @@ async def security_command(message: Message):
 
 <b>⚠️ Останні інциденти:</b>
 Немає критичних інцидентів
+
+━━━━━━━━━━━━━━━━━━━━━━━
 
 Виберіть дію:"""
     
@@ -301,7 +305,7 @@ async def sec_monitor(query: CallbackQuery):
     
     recent_security = audit_logger.get_by_category(ActionCategory.SECURITY, 10)
     
-    text = "📊 <b>SECURITY MONITOR</b>\n\n"
+    text = "📊 <b>МОНІТОРИНГ БЕЗПЕКИ</b>\n\n"
     text += "<b>🔐 Останні події безпеки:</b>\n"
     
     if recent_security:
@@ -326,12 +330,16 @@ async def sec_monitor(query: CallbackQuery):
 
 @security_router.callback_query(F.data == "security_menu")
 async def security_menu(query: CallbackQuery):
-    text = f"""🛡️ <b>SECURITY CENTER</b>
+    text = f"""🛡️ <b>ЦЕНТР БЕЗПЕКИ</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>📊 Статистика:</b>
 ├ Заблокованих: {sum(1 for u in blocked_users.values() if u.get('is_blocked'))}
 ├ Кікнутих: {sum(1 for u in kicked_users.values() if u.get('requires_new_key'))}
 └ Загроз сьогодні: 0
+
+━━━━━━━━━━━━━━━━━━━━━━━
 
 Виберіть дію:"""
     

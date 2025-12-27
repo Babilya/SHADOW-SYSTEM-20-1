@@ -407,4 +407,16 @@ async def confirm_application(query: CallbackQuery, state: FSMContext):
 async def cancel_application(query: CallbackQuery, state: FSMContext):
     await state.clear()
     await query.answer("Заявку скасовано")
-    await query.message.edit_text(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
+    
+    from keyboards.role_menus import get_menu_by_role, get_description_by_role
+    from services.user_service import user_service
+    from database.models import UserRole
+    
+    db_user = user_service.get_user_by_telegram_id(query.from_user.id)
+    role = db_user.role if db_user else UserRole.GUEST
+    
+    await query.message.edit_text(
+        get_description_by_role(role),
+        reply_markup=get_menu_by_role(role),
+        parse_mode="HTML"
+    )

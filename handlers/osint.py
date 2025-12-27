@@ -25,16 +25,16 @@ class OSINTStates(StatesGroup):
 def osint_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🌐 DNS LOOKUP", callback_data="osint_dns"),
-            InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois")
+            InlineKeyboardButton(text="🌐 DNS ПОШУК", callback_data="osint_dns"),
+            InlineKeyboardButton(text="📋 WHOIS ІНФО", callback_data="osint_whois")
         ],
         [
-            InlineKeyboardButton(text="🌍 IP GEOLOCATION", callback_data="osint_geoip"),
-            InlineKeyboardButton(text="📧 EMAIL VERIFY", callback_data="osint_email")
+            InlineKeyboardButton(text="🌍 ГЕОЛОКАЦІЯ IP", callback_data="osint_geoip"),
+            InlineKeyboardButton(text="📧 ПЕРЕВІРКА EMAIL", callback_data="osint_email")
         ],
         [
-            InlineKeyboardButton(text="👤 USER ANALYSIS", callback_data="user_analysis"),
-            InlineKeyboardButton(text="💬 CHAT PARSING", callback_data="chat_analysis")
+            InlineKeyboardButton(text="👤 АНАЛІЗ ЮЗЕРІВ", callback_data="user_analysis"),
+            InlineKeyboardButton(text="💬 ПАРСИНГ ЧАТІВ", callback_data="chat_analysis")
         ],
         [
             InlineKeyboardButton(text="🔬 ГЛИБОКИЙ АНАЛІЗ", callback_data="deep_parse"),
@@ -79,15 +79,19 @@ async def osint_stats(query: CallbackQuery):
     ])
     await query.message.edit_text("""📈 <b>СТАТИСТИКА OSINT</b>
 
+━━━━━━━━━━━━━━━━━━━━━━━
+
 <b>ДОСТУПНІ ФУНКЦІЇ:</b>
-DNS Lookup - Пошук DNS записів
-WHOIS - Інформація про домен
-IP Геолокація - Місцезнаходження IP
-Email Verify - Перевірка email
+├ DNS Пошук - Пошук DNS записів
+├ WHOIS Інфо - Інформація про домен
+├ Геолокація IP - Місцезнаходження IP
+└ Перевірка Email - Валідація адрес
 
 <b>ПОТОЧНОГО МІСЯЦЯ:</b>
-Запитів: активно
-Ліміт: необмежено""", reply_markup=kb, parse_mode="HTML")
+├ Запитів: активно
+└ Ліміт: необмежено
+
+━━━━━━━━━━━━━━━━━━━━━━━""", reply_markup=kb, parse_mode="HTML")
 
 @osint_router.callback_query(F.data == "osint_dns")
 async def osint_dns(query: CallbackQuery, state: FSMContext):
@@ -97,7 +101,7 @@ async def osint_dns(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "🌐 <b>DNS LOOKUP</b>\n\n"
+        "🌐 <b>DNS ПОШУК</b>\n\n"
         "Введіть домен для аналізу:\n"
         "<i>Наприклад: example.com</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -129,7 +133,7 @@ async def osint_whois(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "📋 <b>WHOIS LOOKUP</b>\n\n"
+        "📋 <b>WHOIS ІНФОРМАЦІЯ</b>\n\n"
         "Введіть домен для перевірки:\n"
         "<i>Наприклад: google.com</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -162,7 +166,7 @@ async def osint_geoip(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "🌍 <b>IP GEOLOCATION</b>\n\n"
+        "🌍 <b>ГЕОЛОКАЦІЯ IP</b>\n\n"
         "Введіть IP адресу:\n"
         "<i>Наприклад: 8.8.8.8</i>",
         reply_markup=kb, parse_mode="HTML"
@@ -194,7 +198,7 @@ async def osint_email(query: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
     ])
     await query.message.edit_text(
-        "📧 <b>EMAIL VERIFY</b>\n\n"
+        "📧 <b>ПЕРЕВІРКА EMAIL</b>\n\n"
         "Введіть email для перевірки:\n"
         "<i>Наприклад: test@example.com</i>",
         reply_markup=kb, parse_mode="HTML"

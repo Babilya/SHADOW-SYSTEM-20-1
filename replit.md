@@ -137,6 +137,46 @@ All feature routers now properly registered in main.py:
 ## AI Integration Notes
 AI features require OpenAI API key. When key is missing, system operates in graceful degradation mode - all non-AI features remain fully functional.
 
+## Communication & Templates System (December 2025)
+
+### Mailing Templates (services/template_service.py)
+- **TemplateService**: CRUD operations for mailing templates
+- Categories: welcome, promo, news, reminder, alert, general
+- Variable support: {name}, {username}, {date}, {time}
+- Public/private templates with usage tracking
+- **SchedulerService**: Interval-based scheduling
+- Schedule types: once, interval, daily, weekly, monthly
+- Target by roles or specific user IDs
+
+### Support Ticket System (services/support_service.py)
+- **SupportService**: Full ticket lifecycle management
+- Categories: technical, billing, account, feature, bug, general
+- Priorities: low, normal, high, urgent
+- Statuses: open, in_progress, waiting, resolved, closed
+- Threaded messages with attachments
+- Admin assignment and rating system
+
+### Notification & Ban System (services/notification_service.py)
+- **NotificationService**: Role-based targeting
+- Target types: all, role, multi_role, personal, project
+- Types: info, warning, success, error, announcement, update, maintenance
+- Priority levels with read tracking
+- **BanService**: User ban management
+- Ban types: temporary, permanent, warning
+- Appeal system with admin review
+- Auto-expiry for temporary bans
+- **ProjectStatsService**: Per-project analytics
+
+### UI Keyboards
+- keyboards/templates_kb.py: Template management UI
+- keyboards/support_kb.py: Ticket system UI
+- keyboards/notifications_kb.py: Notifications, bans, stats UI
+
+### Registered Handlers
+- templates_router: Template CRUD, scheduling
+- support_router: Ticket creation, responses, status
+- notifications_router: Notifications, bans, statistics
+
 ## ТЗ Compliance (December 2025)
 
 ### Security & Encryption

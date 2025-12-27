@@ -69,6 +69,18 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def get_session():
+    """Context manager for database sessions"""
+    async with async_session() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+
 class DBManager:
     def __init__(self):
         self.engine = async_engine

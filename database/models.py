@@ -351,3 +351,115 @@ class FunnelStep(Base):
     action_data = Column(String, nullable=True)
     delay_seconds = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now)
+
+class MailingTemplate(Base):
+    """Шаблони розсилок"""
+    __tablename__ = "mailing_templates"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(String)
+    project_id = Column(Integer, nullable=True)
+    name = Column(String)
+    category = Column(String, default="general")
+    content = Column(Text)
+    media_file_id = Column(String, nullable=True)
+    media_type = Column(String, nullable=True)
+    buttons_json = Column(Text, default="[]")
+    variables = Column(Text, default="[]")
+    is_public = Column(Boolean, default=False)
+    usage_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now)
+
+class ScheduledMailing(Base):
+    """Заплановані розсилки"""
+    __tablename__ = "scheduled_mailings"
+    id = Column(Integer, primary_key=True)
+    template_id = Column(Integer)
+    owner_id = Column(String)
+    project_id = Column(Integer, nullable=True)
+    name = Column(String)
+    schedule_type = Column(String, default="once")
+    interval_minutes = Column(Integer, nullable=True)
+    cron_expression = Column(String, nullable=True)
+    target_roles = Column(Text, default="[]")
+    target_user_ids = Column(Text, default="[]")
+    next_run_at = Column(DateTime, nullable=True)
+    last_run_at = Column(DateTime, nullable=True)
+    runs_count = Column(Integer, default=0)
+    max_runs = Column(Integer, nullable=True)
+    status = Column(String, default="active")
+    created_at = Column(DateTime, default=datetime.now)
+
+class SupportTicket(Base):
+    """Тікети підтримки"""
+    __tablename__ = "support_tickets"
+    id = Column(Integer, primary_key=True)
+    ticket_code = Column(String, unique=True)
+    user_id = Column(String)
+    user_role = Column(String)
+    assigned_admin_id = Column(String, nullable=True)
+    subject = Column(String)
+    category = Column(String, default="general")
+    priority = Column(String, default="normal")
+    status = Column(String, default="open")
+    project_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now)
+    closed_at = Column(DateTime, nullable=True)
+    rating = Column(Integer, nullable=True)
+
+class TicketMessage(Base):
+    """Повідомлення в тікетах"""
+    __tablename__ = "ticket_messages"
+    id = Column(Integer, primary_key=True)
+    ticket_id = Column(Integer)
+    sender_id = Column(String)
+    sender_role = Column(String)
+    message = Column(Text)
+    attachments = Column(Text, default="[]")
+    is_internal = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.now)
+
+class UserBan(Base):
+    """Система банів"""
+    __tablename__ = "user_bans"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String)
+    banned_by = Column(String)
+    reason = Column(Text)
+    ban_type = Column(String, default="temporary")
+    expires_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
+    can_appeal = Column(Boolean, default=True)
+    appeal_text = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class SystemNotification(Base):
+    """Системні сповіщення"""
+    __tablename__ = "system_notifications"
+    id = Column(Integer, primary_key=True)
+    sender_id = Column(String)
+    title = Column(String)
+    message = Column(Text)
+    notification_type = Column(String, default="info")
+    target_type = Column(String, default="all")
+    target_roles = Column(Text, default="[]")
+    target_user_ids = Column(Text, default="[]")
+    priority = Column(String, default="normal")
+    read_by = Column(Text, default="[]")
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class ProjectStats(Base):
+    """Статистика проектів"""
+    __tablename__ = "project_stats"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer)
+    date = Column(DateTime, default=datetime.now)
+    messages_sent = Column(Integer, default=0)
+    messages_delivered = Column(Integer, default=0)
+    messages_failed = Column(Integer, default=0)
+    new_users = Column(Integer, default=0)
+    active_bots = Column(Integer, default=0)
+    campaigns_launched = Column(Integer, default=0)
+    osint_reports = Column(Integer, default=0)

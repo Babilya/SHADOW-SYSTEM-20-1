@@ -177,3 +177,36 @@ AI features require OpenAI API key. When key is missing, system operates in grac
 - Pattern detection (phones, crypto wallets, coordinates, emails)
 - Suspicious keyword detection (UK/RU/EN)
 - Evidence storage with hash verification
+
+### Real-Time Monitor
+- **RealTimeMonitor**: Telethon events listener (core/realtime_monitor.py)
+- NewMessage, ChatAction, MessageEdited handlers
+- Pattern matching: coordinates (decimal, DMS, MGRS), phones, crypto, frequencies
+- Threat keywords by level (critical/high/medium/low)
+- Auto-actions: block_user, log_evidence, alert_admins
+- Configurable thresholds per metric
+
+### Rapid OSINT Parser
+- **RapidOSINTParser**: Fast channel scanning (core/rapid_osint.py)
+- Multi-channel parallel scanning
+- Pattern extraction: coordinates, phones (UA/RU), crypto (BTC/ETH/USDT), frequencies
+- Threat scoring system with keyword detection
+- JSON report generation with evidence
+- User lookup functionality
+
+### Mass Sender & PsyOps
+- **MassSender**: Telegram mass messaging (core/mass_sender.py)
+- Batch sending with adaptive delays
+- FloodWait handling with retry logic
+- Progress callbacks and statistics
+- **PsyOpsCampaign**: Psychological operations templates
+- Alert/disinformation/panic message types
+- Personalized messaging support
+
+### Alert Thresholds System
+- **AlertThresholdsSystem**: Dynamic rules engine (core/alert_thresholds.py)
+- Rule types: MESSAGE_FREQUENCY, KEYWORD_DETECTION, COORDINATE_LEAK, etc.
+- Actions: LOG, ALERT, BLOCK_USER, NOTIFY_ADMIN, ESCALATE
+- Cooldown and priority settings
+- Violation tracking with evidence
+- Metrics recording and cleanup

@@ -29,10 +29,13 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 
 ### UI/UX Standards
 - Ukrainian language throughout the interface.
-- Consistent use of dividers (e.g., `═══════════════════════`).
+- Dividers: exactly 15 single-line chars `───────────────` (mobile-optimized).
+- Progress bars: native collab style `●●●●○○○○ 50%`.
 - Standardized button layouts (1/2/3 per row).
 - Rich HTML formatting (bold, italic, code) for messages.
 - Tree-like list structures (e.g., `├ └`).
+- No frames/borders - clean minimal design.
+- Deployment: Reserved VM (Background Worker).
 
 ## External Dependencies
 - **aiogram 3.3:** Telegram Bot API interaction.

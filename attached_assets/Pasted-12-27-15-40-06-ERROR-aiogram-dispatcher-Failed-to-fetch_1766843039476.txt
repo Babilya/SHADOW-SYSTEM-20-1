@@ -1,0 +1,52 @@
+12-27 15:40:06
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+12-27 15:40:06
+WARNING:aiogram.dispatcher:Sleep for 1.391603 seconds and try again... (tryings = 2, bot id = 8414166408)
+12-27 15:40:12
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+12-27 15:40:12
+WARNING:aiogram.dispatcher:Sleep for 1.916120 seconds and try again... (tryings = 3, bot id = 8414166408)
+12-27 15:40:20
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+12-27 15:40:20
+WARNING:aiogram.dispatcher:Sleep for 2.530537 seconds and try again... (tryings = 4, bot id = 8414166408)
+12-27 15:40:26
+an open port was not detected
+12-27 15:40:28
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+12-27 15:40:28
+WARNING:aiogram.dispatcher:Sleep for 3.175304 seconds and try again... (tryings = 5, bot id = 8414166408)
+12-27 15:41:56
+starting up user application
+12-27 15:41:56
+metasidecar: loaded enterprise status from environment is_enterprise=false
+12-27 15:42:12
+INFO:utils.db:✅ Database initialized
+12-27 15:42:12
+INFO:telethon.crypto.aes:cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+12-27 15:42:12
+INFO:telethon.crypto.libssl:Failed to load SSL library: (no library called "ssl" found)
+12-27 15:42:13
+WARNING:core.realtime_parser:Telethon client not available for RealTime Parser
+12-27 15:42:13
+INFO:aiogram.dispatcher:Start polling
+12-27 15:42:13
+WARNING:core.advanced_parser:Telethon client not available for Advanced Parser
+12-27 15:42:13
+INFO:__main__:🚀 Бот запущено
+12-27 15:42:14
+INFO:aiogram.dispatcher:Run polling for bot @S1HADOW_IOBOT id=8414166408 - 'S1HADOW_BOT'
+12-27 15:42:14
+INFO:aiogram.dispatcher:Run polling for bot @S1HADOW_IOBOT id=8414166408 - 'S1HADOW_BOT'
+12-27 15:42:14
+INFO:aiogram.dispatcher:Run polling for bot @S1HADOW_IOBOT id=8414166408 - 'S1HADOW_BOT'
+12-27 15:42:14
+INFO:aiogram.dispatcher:Run polling for bot @S1HADOW_IOBOT id=8414166408 - 'S1HADOW_BOT'
+12-27 15:42:56
+an open port was not detected
+12-27 15:42:56
+an open port was not detected
+12-27 15:42:56
+an open port was not detected
+12-27 15:42:56
+an open port was not detected

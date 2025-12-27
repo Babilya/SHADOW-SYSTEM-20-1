@@ -34,11 +34,10 @@ args = "Telegram Bot"
 [[workflows.workflow]]
 name = "Telegram Bot"
 author = "agent"
-mode = "parallel"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
+
+[workflows.workflow.metadata]
+outputType = "console"

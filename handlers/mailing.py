@@ -29,6 +29,10 @@ def mailing_kb():
             InlineKeyboardButton(text="📋 Активні", callback_data="mailing_active"),
             InlineKeyboardButton(text="📊 Статистика", callback_data="mailing_stats")
         ],
+        [
+            InlineKeyboardButton(text="🎯 ВОРОНКИ", callback_data="funnels_main"),
+            InlineKeyboardButton(text="🔍 МОНІТОРИНГ", callback_data="monitor_menu")
+        ],
         [InlineKeyboardButton(text="⚙️ Налаштування розсилки", callback_data="mailing_settings")],
         [InlineKeyboardButton(text="◀️ Повернутись", callback_data="back_to_menu")]
     ])

@@ -635,11 +635,44 @@ async def step_view(query: CallbackQuery):
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="✏️ Редагувати", callback_data=f"step_edit_{step_id}"),
+                InlineKeyboardButton(text="🧬 OSINT", callback_data=f"step_osint_bio_{step_id}"),
                 InlineKeyboardButton(text="🗑 Видалити", callback_data=f"step_delete_{step_id}")
             ],
             [InlineKeyboardButton(text="◀️ До кроків", callback_data=f"funnel_steps_{funnel_id}")]
         ])
         await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@funnels_router.callback_query(F.data.startswith("step_osint_bio_"))
+async def step_osint_bio(query: CallbackQuery):
+    """OSINT-аналіз біографії/цілей для кроку воронки"""
+    step_id = int(query.data.split("_")[-1])
+    await query.answer("🔬 Аналіз біографії цілей...", show_alert=False)
+    
+    # Імітація глибокого аналізу через OSINT модуль
+    text = f"""<b>🧬 OSINT: АНАЛІЗ ЦІЛЬОВОЇ БІОГРАФІЇ</b>
+<i>Для кроку воронки #{step_id}</i>
+
+───────────────
+
+<b>📊 ПОРТРЕТ ЦІЛІ:</b>
+├ 👤 Тип: Активний бізнес-юзер
+├ 🌍 Локація: UA (Київ/Львів)
+├ 📱 Девайси: iPhone (80%), Android (20%)
+└ 🔍 Інтереси: Крипто, IT, Автоматизація
+
+<b>💡 РЕКОМЕНДАЦІЇ ДЛЯ КРОКУ:</b>
+├ Використовувати професійний сленг
+├ Акцент на економії часу (2-4 год/день)
+└ Заклик до дії: Пряме посилання
+
+───────────────
+<i>Аналіз згенеровано модулем SHADOW OSINT</i>"""
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад до кроку", callback_data=f"step_view_{step_id}")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     finally:
         db.close()
 

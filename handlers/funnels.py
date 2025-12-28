@@ -640,7 +640,11 @@ async def step_view(query: CallbackQuery):
             ],
             [InlineKeyboardButton(text="◀️ До кроків", callback_data=f"funnel_steps_{funnel_id}")]
         ])
-        await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error in step_view: {e}")
+        await query.message.edit_text("❌ Помилка завантаження кроку")
+    finally:
+        db.close()
 
 @funnels_router.callback_query(F.data.startswith("step_osint_bio_"))
 async def step_osint_bio(query: CallbackQuery):
@@ -673,8 +677,6 @@ async def step_osint_bio(query: CallbackQuery):
     ])
     
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    finally:
-        db.close()
 
 @funnels_router.callback_query(F.data.startswith("step_delete_"))
 async def step_delete(query: CallbackQuery):

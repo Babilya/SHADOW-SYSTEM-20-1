@@ -37,7 +37,10 @@ def botnet_kb():
             InlineKeyboardButton(text="🛡️ АНТИДЕТЕКТ", callback_data="antidetect_menu"),
             InlineKeyboardButton(text="🔧 РЕКАВЕРІ", callback_data="recovery_menu")
         ],
-        [InlineKeyboardButton(text="📥 ІМПОРТ СЕСІЙ", callback_data="session_import_menu")],
+        [
+            InlineKeyboardButton(text="📥 ІМПОРТ СЕСІЙ", callback_data="session_import_menu"),
+            InlineKeyboardButton(text="🧬 БІОМЕТРІЯ", callback_data="tools_behavior")
+        ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
     ])
 

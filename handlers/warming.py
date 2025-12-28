@@ -255,6 +255,10 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
         ]
         
         for phase in range(1, 4):
+            # Smart Warming 2.0: Динамічні затримки та маскування
+            profile = WARMING_PROFILES.get(bot_record.warming_profile, WARMING_PROFILES['standard'])
+            actions_limit = profile['actions_per_day']
+            
             phase_duration = 24 * 3600
             phase_start = datetime.now()
             
@@ -266,9 +270,15 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
                 )
                 await session.commit()
             
-            logger.info(f"Warming {warming_id} entering phase {phase}")
+            logger.info(f"Warming {warming_id} entering phase {phase} (Smart 2.0)")
             
+            actions_done = 0
             while (datetime.now() - phase_start).total_seconds() < phase_duration:
+                # Перевірка лімітів Smart Warming
+                if actions_done >= actions_limit:
+                    await asyncio.sleep(3600) # Відпочинок 1 година
+                    continue
+
                 async with async_session() as session:
                     result = await session.execute(
                         select(BotWarming.status).where(BotWarming.id == warming_id)
@@ -279,16 +289,28 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
                         return
                 
                 try:
+                    # Емуляція "людської" поведінки через antidetect_system
+                    from core.antidetect import antidetect_system
+                    pattern = 'casual_user' if phase == 1 else 'active_user' if phase == 2 else 'business_user'
+                    
+                    if not antidetect_system.is_online_time(pattern):
+                        await asyncio.sleep(1800) # Сон 30 хв якщо зараз не час онлайну
+                        continue
+
                     if phase == 1:
                         channel = random.choice(PUBLIC_CHANNELS)
                         try:
                             entity = await client.get_entity(channel)
-                            async for msg in client.iter_messages(entity, limit=5):
-                                pass
+                            # Емуляція перегляду з випадковим часом
+                            async for msg in client.iter_messages(entity, limit=random.randint(3, 8)):
+                                await asyncio.sleep(random.uniform(2, 5))
                             logger.debug(f"Warming phase 1: read {channel}")
+                            actions_done += 1
                         except Exception as e:
                             logger.debug(f"Warming read error: {e}")
-                        await asyncio.sleep(random.uniform(300, 600))
+                        
+                        delay = random.uniform(profile['interval_min'], profile['interval_max'])
+                        await asyncio.sleep(delay)
                     
                     elif phase == 2:
                         channel = random.choice(PUBLIC_CHANNELS)
@@ -296,22 +318,30 @@ async def run_warming_cycle(bot_id: int, warming_id: int):
                             entity = await client.get_entity(channel)
                             async for msg in client.iter_messages(entity, limit=3):
                                 if hasattr(msg, 'reactions') and msg.reactions:
+                                    # Випадкова реакція
+                                    await asyncio.sleep(await antidetect_system.emulate_thinking(pattern))
                                     pass
                             logger.debug(f"Warming phase 2: interacted with {channel}")
+                            actions_done += 1
                         except Exception as e:
                             logger.debug(f"Warming interaction error: {e}")
-                        await asyncio.sleep(random.uniform(180, 360))
+                        
+                        delay = random.uniform(profile['interval_min'], profile['interval_max']) * 0.8
+                        await asyncio.sleep(delay)
                     
                     elif phase == 3:
                         channel = random.choice(PUBLIC_CHANNELS)
                         try:
                             entity = await client.get_entity(channel)
                             async for msg in client.iter_messages(entity, limit=10):
-                                pass
+                                await asyncio.sleep(random.uniform(1, 3))
                             logger.debug(f"Warming phase 3: active on {channel}")
+                            actions_done += 1
                         except Exception as e:
                             logger.debug(f"Warming active error: {e}")
-                        await asyncio.sleep(random.uniform(120, 240))
+                        
+                        delay = random.uniform(profile['interval_min'], profile['interval_max']) * 0.5
+                        await asyncio.sleep(delay)
                 
                 except Exception as e:
                     logger.error(f"Warming cycle error: {e}")

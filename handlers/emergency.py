@@ -37,6 +37,7 @@ async def emergency_command(message: Message):
         [InlineKeyboardButton(text="⏸ Зупинити кампанії", callback_data="emergency_stop_campaigns")],
         [InlineKeyboardButton(text="🤖 Зупинити ботнет", callback_data="emergency_stop_botnet")],
         [InlineKeyboardButton(text="👤 Зупинити менеджера", callback_data="emergency_stop_manager")],
+        [InlineKeyboardButton(text="🧨 SELF-DESTRUCT", callback_data="emergency_self_destruct")],
         [InlineKeyboardButton(text="📊 Статус системи", callback_data="emergency_status")]
     ])
     
@@ -226,6 +227,72 @@ async def process_manager_block(message: Message, state: FSMContext):
         parse_mode="HTML"
     )
     await state.clear()
+
+@emergency_router.callback_query(F.data == "emergency_self_destruct")
+async def self_destruct_menu(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧨 ПІДТВЕРДИТИ ЗНИЩЕННЯ ДАНИХ", callback_data="confirm_self_destruct")],
+        [InlineKeyboardButton(text="❌ Скасувати", callback_data="emergency_cancel")]
+    ])
+    
+    await query.message.edit_text(
+        """🧨 <b>РЕЖИМ САМОЗНИЩЕННЯ (SELF-DESTRUCT)</b>
+
+⚠️ <b>УВАГА! КРИТИЧНА ДІЯ!</b>
+Ця функція призначена для екстреного захисту:
+• Видалення всіх бот-сесій з сервера
+• Очищення бази даних (користувачі, кампанії, логи)
+• Видалення конфігураційних файлів
+• Повна зупинка процесу бота
+
+<b>ВІДНОВЛЕННЯ БУДЕ НЕМОЖЛИВИМ!</b>
+
+Ви впевнені?""",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+    await query.answer()
+
+@emergency_router.callback_query(F.data == "confirm_self_destruct")
+async def execute_self_destruct(query: CallbackQuery):
+    if query.from_user.id not in ADMIN_IDS:
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
+
+    logger.critical(f"!!! SELF-DESTRUCT INITIATED BY {query.from_user.id} !!!")
+    
+    try:
+        # 1. Очищення бази даних через SQL
+        from utils.db import engine
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            # Видаляємо дані з усіх таблиць, крім ліцензій (опціонально)
+            tables = ["bot_warmings", "campaigns", "bot_sessions", "users", "audit_logs", "tickets"]
+            for table in tables:
+                await conn.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+        
+        # 2. Видалення файлів сесій
+        import shutil
+        import os
+        for folder in ['sessions', 'logs', 'database']:
+            if os.path.exists(folder):
+                shutil.rmtree(folder)
+                os.makedirs(folder)
+
+        await query.message.edit_text("🧨 <b>ДАНІ ЗНИЩЕНО. СИСТЕМА ВИМКНЕНА.</b>", parse_mode="HTML")
+        await query.answer("🧨 Дані знищено!", show_alert=True)
+        
+        # 3. Вихід з процесу
+        import sys
+        sys.exit(0)
+        
+    except Exception as e:
+        logger.error(f"Self-destruct failed: {e}")
+        await query.message.edit_text(f"❌ Помилка знищення: {e}")
 
 @emergency_router.callback_query(F.data == "emergency_status")
 async def emergency_status(query: CallbackQuery):

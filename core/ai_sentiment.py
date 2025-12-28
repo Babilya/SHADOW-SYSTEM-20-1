@@ -199,6 +199,33 @@ class AISentimentAnalyzer:
         
         return basic
     
+    async def filter_reply(self, text: str) -> Dict[str, Any]:
+        """AI-фільтрація відповідей для менеджерів (Smart Filter)"""
+        analysis = await self.analyze_sentiment(text)
+        
+        # Категоризація для менеджерів
+        priority = "LOW"
+        if analysis.sentiment == "negative" or analysis.toxicity_score > 0.6:
+            priority = "HIGH"
+        elif analysis.intent == "urgent_request":
+            priority = "CRITICAL"
+        
+        # Автоматична дія
+        action = "notify_manager"
+        if analysis.spam_probability > 0.8:
+            action = "ignore_spam"
+        elif analysis.toxicity_score > 0.9:
+            action = "auto_block"
+            
+        return {
+            "text_preview": text[:50],
+            "sentiment": analysis.sentiment,
+            "priority": priority,
+            "intent": analysis.intent,
+            "recommended_action": action,
+            "summary": analysis.summary
+        }
+
     def _calculate_toxicity(self, text: str) -> float:
         """Розрахунок токсичності"""
         score = 0.0

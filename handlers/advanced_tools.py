@@ -196,18 +196,30 @@ async def show_drip_stats(callback: CallbackQuery):
 
 @advanced_tools_router.callback_query(F.data == "tools_behavior")
 async def show_behavior_menu(callback: CallbackQuery):
-    """Меню профілювання поведінки"""
+    """Меню Dynamic Biometrics та профілювання"""
+    text = """<b>🧬 DYNAMIC BIOMETRICS</b>
+<i>Управління "життям" ботів та профілювання</i>
+
+───────────────
+
+<b>📊 СТАТУС МОДУЛЯ:</b>
+├ 🔋 Активність: <code>ON</code>
+├ 🧬 Алгоритм: <code>Adaptive Life v2.1</code>
+└ 🛡️ Рівень маскування: <code>High</code>
+
+<b>💡 ФУНКЦІЇ:</b>
+├ Автопідписка на тематичні канали
+├ Імітація читання постів
+├ Репости у "Збережене"
+└ Аналіз поведінкових патернів
+
+───────────────
+<i>Бот виглядає як реальна людина з історією</i>"""
+    
     await callback.message.edit_text(
-        "<b>👤 ПРОФІЛЮВАННЯ ПОВЕДІНКИ</b>\n"
-        "═══════════════════════\n\n"
-        "Аналіз поведінкових патернів:\n"
-        "├ Добовий ритм активності\n"
-        "├ Оцінка графіку сну\n"
-        "├ Виявлення аномалій\n"
-        "├ Класифікація користувача\n"
-        "└ Прогноз активності\n\n"
-        "Оберіть дію:",
-        reply_markup=get_behavior_menu()
+        text,
+        reply_markup=get_behavior_menu(),
+        parse_mode="HTML"
     )
 
 

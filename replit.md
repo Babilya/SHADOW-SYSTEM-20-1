@@ -3,11 +3,35 @@
 ## Overview
 SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. It provides comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, focusing on robust functionality over a payment/balance system.
 
+## Project Structure (Cleaned - December 2025)
+**Removed:** `shadow_system_io/` duplicate folder, `main.py` (unused), `simple_bot.py` (unused)
+**Active Entry Point:** `bot.py` - main Telegram bot dispatcher
+
+### Root Directory Organization
+- **api/** - API endpoints (FastAPI/minimal)
+- **bot.py** - Main entry point (aiogram dispatcher setup)
+- **config/** - Application settings and configuration
+- **core/** - Core services and business logic
+- **database/** - ORM models, migrations, CRUD operations
+- **docs/** - API and user guides
+- **handlers/** - Telegram message handlers and command routers
+- **keyboards/** - Reply and inline keyboard builders
+- **middlewares/** - Request/response middleware (auth, roles, logging)
+- **services/** - High-level business logic services
+- **utils/** - Helper functions and utilities
+- **logs/** - Log files storage
+- **evidence/** - Forensic evidence storage
+- **intel_reports/** - Intelligence report generation
+- **sessions/** - Bot session storage
+- **data/** - Forensic snapshots and data artifacts
+- **attached_assets/** - User-uploaded files and media
+
 ## User Preferences
 - Concise, high-level summaries over granular details
 - No changelogs or date-wise entries
 - Focus on core architectural decisions
 - Ukrainian interface with styled formatting (dividers, emoji, button layouts)
+- Prefer simplicity over unnecessary complexity
 
 ## System Architecture
 
@@ -44,6 +68,7 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - **OpenAI (via Replit AI):** Provides AI capabilities.
 - **ReportLab:** For generating professional PDF reports.
 - **Jinja2:** Templating engine for various text and HTML generation needs.
+
 ## Botnet Infrastructure (December 2025)
 
 ### BotnetManager (core/botnet_manager.py)

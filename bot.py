@@ -13,45 +13,43 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-try:
-    from config.settings import BOT_TOKEN, ADMIN_ID
-    # Use ADMIN_ID from config as the list for backward compatibility
-    ADMIN_IDS = [int(ADMIN_ID)]
-    from handlers.start import router as start_router
-    from handlers.user import user_router
-    from handlers.admin import admin_router
-    from handlers.botnet import botnet_router
-    from handlers.osint import osint_router
-    from handlers.analytics import analytics_router
-    from handlers.team import team_router
-    from handlers.subscriptions import subscriptions_router
-    from handlers.funnels import funnels_router
-    from handlers.help import help_router
-    from handlers.texting import texting_router
-    from handlers.applications import applications_router
-    from handlers.emergency import emergency_router
-    from handlers.configurator import configurator_router
-    from handlers.security import security_router
-    from handlers.tickets import tickets_router
-    from handlers.referral import referral_router
-    from handlers.mailing import mailing_router
-    from handlers.missing_handlers import missing_router
-    from handlers.auth_system import auth_router
-    from handlers.proxy import proxy_router
-    from handlers.export import export_router
-    from handlers.warming import warming_router
-    from handlers.scheduler import scheduler_router
-    from handlers.geoscanner import geo_router
-    from handlers.advanced_features import advanced_router
-    from middlewares.security_middleware import SecurityMiddleware
-    from utils.db import init_db
-    from middlewares.role_middleware import RoleMiddleware
-    from keyboards.role_menus import get_menu_by_role, get_description_by_role
-    from services.user_service import user_service
-    from core.role_constants import UserRole
-    logger.info("✅ Все модулі завантажені успішно")
-except Exception as e:
-    logger.error(f"❌ Помилка при завантаженні модулів: {e}", exc_info=True)
+from config.settings import BOT_TOKEN, ADMIN_ID
+# Use ADMIN_ID from config as the list for backward compatibility
+ADMIN_IDS = [int(ADMIN_ID)]
+from handlers.start import router as start_router
+from handlers.user import user_router
+from handlers.admin import admin_router
+from handlers.botnet import botnet_router
+from handlers.osint import osint_router
+from handlers.analytics import analytics_router
+from handlers.team import team_router
+from handlers.subscriptions import subscriptions_router
+from handlers.funnels import funnels_router
+from handlers.help import help_router
+from handlers.texting import texting_router
+from handlers.applications import applications_router
+from handlers.emergency import emergency_router
+from handlers.configurator import configurator_router
+from handlers.security import security_router
+from handlers.tickets import tickets_router
+from handlers.referral import referral_router
+from handlers.mailing import mailing_router
+from handlers.missing_handlers import missing_router
+from handlers.auth_system import auth_router
+from handlers.proxy import proxy_router
+from handlers.export import export_router
+from handlers.warming import warming_router
+from handlers.scheduler import scheduler_router
+from handlers.geoscanner import geo_router
+from handlers.advanced_features import advanced_router
+from middlewares.security_middleware import SecurityMiddleware
+from utils.db import init_db
+from middlewares.role_middleware import RoleMiddleware
+from keyboards.role_menus import get_menu_by_role, get_description_by_role
+from services.user_service import user_service
+from core.role_constants import UserRole
+
+logger.info("✅ Все модулі завантажені успішно")
 
 bot = Bot(token=BOT_TOKEN or "PLACEHOLDER")
 storage = MemoryStorage()

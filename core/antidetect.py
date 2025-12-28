@@ -165,6 +165,10 @@ class AntiDetectSystem:
     
     def __init__(self):
         self.generated_fingerprints: Dict[str, dict] = {}
+        from core.poison_pill import poison_pill
+        from core.dynamic_biometrics import dynamic_biometrics
+        self.poison_pill = poison_pill
+        self.dynamic_biometrics = dynamic_biometrics
     
     def generate_device_fingerprint(
         self, 

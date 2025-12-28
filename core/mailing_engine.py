@@ -78,6 +78,8 @@ class MailingTask:
     total_count: int = 0
     interval_min: float = 1.0
     interval_max: float = 3.0
+    stealth_mode: bool = False
+    stealth_delay: int = 60
     created_at: datetime = field(default_factory=datetime.now)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -104,7 +106,9 @@ class MailingEngine:
         target_chats: List[int] = None,
         bot_sessions: List[str] = None,
         interval_min: float = 1.0,
-        interval_max: float = 3.0
+        interval_max: float = 3.0,
+        stealth_mode: bool = False,
+        stealth_delay: int = 60
     ) -> MailingTask:
         task = MailingTask(
             id=task_id,
@@ -116,10 +120,12 @@ class MailingEngine:
             bot_sessions=bot_sessions or [],
             total_count=len(target_users or []) + len(target_chats or []),
             interval_min=interval_min,
-            interval_max=interval_max
+            interval_max=interval_max,
+            stealth_mode=stealth_mode,
+            stealth_delay=stealth_delay
         )
         self.tasks[task_id] = task
-        logger.info(f"Mailing task created: {task_id}")
+        logger.info(f"Mailing task created: {task_id} (Stealth: {stealth_mode})")
         return task
     
     def get_task(self, task_id: str) -> Optional[MailingTask]:
@@ -204,7 +210,7 @@ class MailingEngine:
             task.errors.append(str(e))
             logger.error(f"Mailing failed: {task_id}, error: {e}")
     
-    async def _send_message(self, target: int, message: str, session: str = None) -> bool:
+    async def _send_message(self, target: int, message: str, session: str = None, stealth_mode: bool = False, stealth_delay: int = 60) -> bool:
         from core.session_manager import session_manager
         
         if not session:
@@ -217,6 +223,10 @@ class MailingEngine:
         result = await session_manager.send_message(session, str(target), message)
         
         if result.get("status") == "success":
+            if stealth_mode:
+                message_id = result.get("message_id")
+                if message_id:
+                    asyncio.create_task(self._stealth_delete(session, target, message_id, stealth_delay))
             return True
         elif result.get("status") == "flood":
             wait_time = result.get("wait_seconds", 30)
@@ -227,6 +237,19 @@ class MailingEngine:
             logger.error(f"Send failed: {result.get('message')}")
             return False
     
+    async def _stealth_delete(self, session: str, target: int, message_id: int, delay: int):
+        """Автоматичне видалення повідомлення через заданий час (Режим Невидимка)"""
+        from core.session_manager import session_manager
+        try:
+            await asyncio.sleep(delay)
+            # В реальному Telethon/Pyrogram клієнті через session_manager
+            client = await session_manager.get_client(session)
+            if client:
+                await client.delete_messages(target, [message_id])
+                logger.debug(f"Stealth delete: message {message_id} in {target} removed")
+        except Exception as e:
+            logger.error(f"Stealth delete error: {e}")
+
     def add_session(self, session_id: str, session_data: Any):
         self.session_pool[session_id] = session_data
         self.stats["active_sessions"] = len(self.session_pool)

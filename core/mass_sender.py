@@ -103,7 +103,9 @@ class MassSender:
         chat_ids: List[int],
         message: str,
         media: Optional[str] = None,
-        campaign_name: str = None
+        campaign_name: str = None,
+        stealth_mode: bool = False,
+        stealth_delay: int = 60
     ) -> Dict[str, Any]:
         """Розсилка в чати"""
         
@@ -116,7 +118,7 @@ class MassSender:
         self._running = True
         self.flood_wait_count = 0
         
-        logger.info(f"Starting campaign {self.current_campaign} to {len(chat_ids)} chats")
+        logger.info(f"Starting campaign {self.current_campaign} to {len(chat_ids)} chats (Stealth: {stealth_mode})")
         
         for i, chat_id in enumerate(chat_ids):
             if not self._running:
@@ -130,6 +132,9 @@ class MassSender:
             
             if result.status == SendStatus.SENT:
                 self.stats.sent += 1
+                if stealth_mode and result.message_id:
+                    # Плануємо видалення повідомлення
+                    asyncio.create_task(self._stealth_delete(chat_id, result.message_id, stealth_delay))
             elif result.status == SendStatus.FAILED:
                 self.stats.failed += 1
             elif result.status == SendStatus.BLOCKED:
@@ -206,6 +211,16 @@ class MassSender:
             logger.error(f"Broadcast error: {e}")
             return {'error': str(e)}
     
+    async def _stealth_delete(self, chat_id: Any, message_id: int, delay: int):
+        """Автоматичне видалення повідомлення через заданий час (Режим Невидимка)"""
+        try:
+            await asyncio.sleep(delay)
+            if self.client:
+                await self.client.delete_messages(chat_id, [message_id])
+                logger.debug(f"Stealth delete: message {message_id} in {chat_id} removed")
+        except Exception as e:
+            logger.error(f"Stealth delete error for {message_id} in {chat_id}: {e}")
+
     async def _send_message(
         self,
         target: Any,

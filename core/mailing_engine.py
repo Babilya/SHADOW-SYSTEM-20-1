@@ -180,7 +180,9 @@ class MailingEngine:
                     success = await self._send_message(
                         target=target,
                         message=task.message_template,
-                        session=task.bot_sessions[i % len(task.bot_sessions)] if task.bot_sessions else None
+                        session=task.bot_sessions[i % len(task.bot_sessions)] if task.bot_sessions else None,
+                        stealth_mode=task.stealth_mode,
+                        stealth_delay=task.stealth_delay
                     )
                     
                     if success:

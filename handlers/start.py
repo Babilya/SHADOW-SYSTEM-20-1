@@ -60,11 +60,18 @@ async def start_handler(message: Message, user_role: str = UserRole.GUEST):
 @router.callback_query(F.data == "user_menu")
 async def user_menu_callback(callback: CallbackQuery):
     from aiogram.exceptions import TelegramBadRequest
-    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
-    role = user.role if user else UserRole.GUEST
+    if not callback.from_user or not callback.message:
+        await callback.answer()
+        return
     
-    new_text = get_description_by_role(role)
-    new_markup = get_menu_by_role(role)
+    username = callback.from_user.username or "unknown"
+    first_name = callback.from_user.first_name or "User"
+    user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
+    role = user.role if user else UserRole.GUEST
+    role_str = str(role) if role else UserRole.GUEST
+    
+    new_text = get_description_by_role(role_str)
+    new_markup = get_menu_by_role(role_str)
     
     try:
         await callback.message.edit_text(
@@ -80,13 +87,20 @@ async def user_menu_callback(callback: CallbackQuery):
 @router.callback_query(F.data == "back_to_menu")
 async def back_to_menu_callback(callback: CallbackQuery):
     from aiogram.exceptions import TelegramBadRequest
-    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    if not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    
+    username = callback.from_user.username or "unknown"
+    first_name = callback.from_user.first_name or "User"
+    user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
     role = user.role if user else UserRole.GUEST
+    role_str = str(role) if role else UserRole.GUEST
     
     try:
         await callback.message.edit_text(
-            get_description_by_role(role),
-            reply_markup=get_menu_by_role(role),
+            get_description_by_role(role_str),
+            reply_markup=get_menu_by_role(role_str),
             parse_mode="HTML"
         )
     except TelegramBadRequest as e:
@@ -97,16 +111,24 @@ async def back_to_menu_callback(callback: CallbackQuery):
 @router.callback_query(F.data == "profile_main")
 async def profile_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    user = user_service.get_or_create_user(callback.from_user.id, callback.from_user.username, callback.from_user.first_name)
+    if not callback.from_user or not callback.message:
+        await callback.answer()
+        return
+    
+    username = callback.from_user.username or "unknown"
+    first_name = callback.from_user.first_name or "User"
+    user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
+    role = user.role if user else UserRole.GUEST
+    created_at = user.created_at.strftime('%d.%m.%Y') if user and user.created_at else 'N/A'
     
     text = f"""👤 <b>ВАШ ПРОФІЛЬ</b>
 ───────────────
 <b>📋 Обліковий запис:</b>
 ├ 🆔 <code>{callback.from_user.id}</code>
 ├ 👤 @{callback.from_user.username or 'не вказано'}
-├ 📝 {callback.from_user.first_name or 'Не вказано'}
-├ 🎭 <b>{user.role.upper() if user else 'GUEST'}</b>
-└ 📅 {user.created_at.strftime('%d.%m.%Y') if user and user.created_at else 'N/A'}"""
+├ 📝 {first_name}
+├ 🎭 <b>{str(role).upper()}</b>
+└ 📅 {created_at}"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
@@ -121,6 +143,10 @@ async def profile_callback(callback: CallbackQuery):
 @router.callback_query(F.data == "texting_main")
 async def texting_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    if not callback.message:
+        await callback.answer()
+        return
     
     text = """✍️ <b>ТЕКСТОВКИ</b>
 <i>Бібліотека шаблонів</i>
@@ -149,6 +175,10 @@ async def texting_callback(callback: CallbackQuery):
 @router.callback_query(F.data == "settings_main")
 async def settings_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    if not callback.message:
+        await callback.answer()
+        return
     
     text = """⚙️ <b>НАЛАШТУВАННЯ</b>
 <i>Конфігурація проекту</i>

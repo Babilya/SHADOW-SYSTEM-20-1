@@ -15,32 +15,39 @@ router = Router()
 
 @router.message(Command("start"))
 async def start_handler(message: Message, user_role: str = UserRole.GUEST):
+    if not message.from_user:
+        return
+    
     logger.info(f"Start handler called. User: {message.from_user.id}, Middleware role: {user_role}")
     
     from config.settings import ADMIN_ID
-    if str(message.from_user.id) == str(ADMIN_ID):
+    user_id = message.from_user.id
+    username = message.from_user.username or "unknown"
+    first_name = message.from_user.first_name or "User"
+    
+    if str(user_id) == str(ADMIN_ID):
         role = UserRole.ADMIN
-        db_user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
-        if db_user.role != UserRole.ADMIN:
-            user_service.set_user_role(message.from_user.id, UserRole.ADMIN)
-            logger.info(f"Forced ADMIN role for owner {message.from_user.id}")
+        db_user = user_service.get_or_create_user(user_id, username, first_name)
+        if db_user and db_user.role != UserRole.ADMIN:
+            user_service.set_user_role(user_id, UserRole.ADMIN)
+            logger.info(f"Forced ADMIN role for owner {user_id}")
     else:
-        user = user_service.get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
-        role = user.role
+        user = user_service.get_or_create_user(user_id, username, first_name)
+        role = user.role if user else UserRole.GUEST
         try:
             async with async_session() as session:
-                project = await ProjectCRUD.get_by_leader_async(str(message.from_user.id))
+                project = await ProjectCRUD.get_by_leader_async(str(user_id))
             
-            if project and role == UserRole.GUEST:
-                user_service.set_user_role(message.from_user.id, UserRole.LEADER)
+            if project is not None and role == UserRole.GUEST:
+                user_service.set_user_role(user_id, UserRole.LEADER)
                 role = UserRole.LEADER
         except Exception as e:
             logger.error(f"Error checking project: {e}")
 
     await audit_logger.log_auth(
-        user_id=message.from_user.id,
+        user_id=user_id,
         action="user_start",
-        username=message.from_user.username,
+        username=username,
         details={"role": role}
     )
     

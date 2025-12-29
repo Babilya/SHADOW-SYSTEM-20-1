@@ -19,24 +19,25 @@
 
 SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform designed for Ukrainian-language operations. It provides advanced functionality for managing bot networks, mass messaging campaigns, OSINT intelligence gathering, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization and implements enterprise-grade security measures.
 
+**Current Status (December 2025):** Fully cleaned and optimized. Entry point: `bot.py`
+
 ---
 
 ## Table of Contents
 
 1. [Key Features](#key-features)
 2. [System Architecture](#system-architecture)
-3. [Core Modules](#core-modules)
-4. [Advanced Tools](#advanced-tools)
-5. [Security & Encryption](#security--encryption)
-6. [Role-Based Access Control](#role-based-access-control)
-7. [OSINT Capabilities](#osint-capabilities)
-8. [Campaign Management](#campaign-management)
-9. [Funnel System](#funnel-system)
-10. [AI Integration](#ai-integration)
-11. [Real-Time Monitoring](#real-time-monitoring)
-12. [Installation & Setup](#installation--setup)
-13. [API Reference](#api-reference)
-14. [Technology Stack](#technology-stack)
+3. [Core Services](#core-services)
+4. [Botnet Infrastructure](#botnet-infrastructure)
+5. [Advanced Parsing & Monitoring](#advanced-parsing--monitoring)
+6. [Forensics & Analysis Suite](#forensics--analysis-suite)
+7. [Security & Encryption](#security--encryption)
+8. [Role-Based Access Control](#role-based-access-control)
+9. [OSINT Capabilities](#osint-capabilities)
+10. [Campaign Management](#campaign-management)
+11. [Funnel System](#funnel-system)
+12. [AI Integration](#ai-integration)
+13. [Technology Stack](#technology-stack)
 
 ---
 
@@ -50,8 +51,8 @@ SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform 
 | **Bot Warming** | 72-hour, 3-phase warming cycles with progress tracking |
 | **Proxy Management** | SOCKS5/HTTP proxy rotation with health monitoring |
 | **Mass Control** | Bulk operations on multiple bots simultaneously |
-| **Anti-Detect Profiles** | Device fingerprinting and profile randomization |
-| **Flood Protection** | Automatic FloodWait handling with retry logic |
+| **Anti-Detect Profiles** | 9 device profiles with 5 behavior patterns |
+| **Flood Protection** | Automatic FloodWait handling with recovery |
 
 ### Campaign & Mailing System
 | Feature | Description |
@@ -90,51 +91,61 @@ SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform 
 
 ```
 shadow-system/
-├── main.py                    # Application entry point
-├── bot.py                     # Bot initialization
-├── config/
+├── bot.py                     # Main entry point (aiogram dispatcher)
+├── config/                    # Application settings and configuration
 │   ├── settings.py            # Global configuration
 │   ├── constants.py           # System constants
 │   └── limits.py              # Rate limits and thresholds
 │
-├── core/                      # Core Services (25+ modules)
+├── core/                      # Core Services (40+ modules)
 │   ├── role_constants.py      # Unified role definitions (RBAC)
 │   ├── states.py              # Centralized FSM states
-│   ├── ai_service.py          # OpenAI/GPT integration
 │   ├── encryption.py          # AES-256-CBC encryption manager
 │   ├── session_validator.py   # Multi-format session validation
 │   ├── rate_limiter.py        # Token bucket rate limiting
 │   ├── message_queue.py       # Async message queue (3 workers)
-│   ├── mailing_scheduler.py   # Campaign scheduling engine
-│   ├── anti_fraud.py          # Behavioral fraud detection
-│   ├── segmentation.py        # User segmentation engine
 │   ├── audit_logger.py        # Comprehensive audit logging
-│   ├── alerts.py              # Notification system
-│   ├── alert_thresholds.py    # Dynamic rules engine
 │   ├── ui_components.py       # Paginator, ProgressBar, MenuBuilder
-│   ├── background_tasks.py    # Non-blocking heavy operations
 │   │
-│   ├── # Advanced Campaign System
-│   ├── advanced_campaign_manager.py  # Worker pool with async queues
-│   ├── mailing_engine.py             # Core mailing logic
-│   ├── mass_sender.py                # Mass messaging with FloodWait handling
-│   ├── psyops_campaign.py            # PsyOps message templates
+│   ├── # Campaign & Mailing
+│   ├── advanced_campaign_manager.py
+│   ├── mailing_engine.py
+│   ├── mass_sender.py
+│   ├── mailing_scheduler.py
+│   │
+│   ├── # Botnet Infrastructure
+│   ├── botnet_manager.py      # Worker pool, bot selection, health monitoring
+│   ├── antidetect.py          # 9 device profiles, 5 behavior patterns
+│   ├── recovery_system.py     # 4-step auto-recovery, proxy rotation
+│   ├── session_importer.py    # Multi-format import with 5-step validation
+│   │
+│   ├── # Advanced Parsing & Monitoring
+│   ├── advanced_parser.py     # Deep chat parsing, threat analysis
+│   ├── realtime_parser.py     # Real-time monitoring with configurable intervals
+│   ├── osint_telethon.py      # Telethon integration for parsing
+│   │
+│   ├── # Forensics & Analysis Suite
+│   ├── forensic_snapshot.py   # Media capture, SHA-256/512 hashing
+│   ├── ai_sentiment.py        # OpenAI-powered sentiment analysis
+│   ├── anti_ghost_recovery.py # Message capture before deletion
+│   ├── xray_metadata.py       # Deep file analysis, EXIF extraction
+│   ├── memory_indexer.py      # In-memory full-text search
+│   ├── enhanced_monitoring.py # Target-based monitoring with triggers
 │   │
 │   ├── # OSINT Engine
-│   ├── advanced_osint_engine.py      # Deep analysis system
-│   ├── rapid_osint.py                # Fast channel scanning
-│   ├── realtime_monitor.py           # Telethon event listener
+│   ├── advanced_osint_engine.py
+│   ├── rapid_osint.py
 │   │
 │   ├── # Advanced Tools (AI-Powered)
-│   ├── ai_pattern_detection.py       # GPT threat analysis
-│   ├── spam_analyzer.py              # Pre-send spam checking
-│   ├── drip_campaign.py              # Cascading campaigns
-│   ├── behavior_profiler.py          # User pattern analysis
-│   ├── keyword_analyzer.py           # Text/keyword analysis
-│   └── enhanced_reports.py           # PDF report generator
+│   ├── ai_pattern_detection.py
+│   ├── spam_analyzer.py
+│   ├── drip_campaign.py
+│   ├── behavior_profiler.py
+│   ├── keyword_analyzer.py
+│   └── enhanced_reports.py
 │
 ├── database/
-│   ├── models.py              # SQLAlchemy ORM models (20+ tables)
+│   ├── models.py              # SQLAlchemy ORM models
 │   ├── crud.py                # Database operations
 │   └── migrations/            # Schema migrations
 │
@@ -144,52 +155,39 @@ shadow-system/
 │   ├── admin.py               # Admin panel operations
 │   ├── funnels.py             # Funnel CRUD
 │   ├── osint.py               # OSINT tools interface
-│   ├── osint_handlers.py      # OSINT callback handlers
 │   ├── mailing.py             # Campaign management
 │   ├── botnet.py              # Bot network control
-│   ├── campaigns.py           # Campaign center
 │   ├── team.py                # Team management
 │   ├── analytics.py           # Analytics dashboard
-│   ├── warming.py             # Bot warming cycles
-│   ├── proxy.py               # Proxy management
-│   ├── geo.py                 # Geo Scanner
 │   ├── templates.py           # Template CRUD
-│   ├── support.py             # Ticket system
-│   ├── notifications.py       # Notifications, bans, stats
-│   ├── advanced_tools.py      # AI-powered tools
-│   └── missing.py             # Fallback handler
+│   └── support.py             # Ticket system
 │
 ├── keyboards/                 # Telegram Inline Keyboards
 │   ├── role_menus.py          # Role-based menus
 │   ├── admin_kb.py            # Admin keyboards
 │   ├── funnel_kb.py           # Funnel keyboards
-│   ├── osint_kb.py            # OSINT keyboards
-│   ├── advanced_kb.py         # Advanced tools keyboards
-│   └── ...                    # Other keyboard modules
+│   └── osint_kb.py            # OSINT keyboards
 │
 ├── middlewares/               # Request Processing
 │   ├── auth_middleware.py     # Authentication checks
 │   ├── role_middleware.py     # Role verification
-│   ├── rate_limit_middleware.py  # Rate limiting
 │   └── logging_middleware.py  # Request logging
 │
 ├── services/                  # Business Logic Layer
 │   ├── user_service.py        # User management
 │   ├── funnel_service.py      # Funnel operations
 │   ├── osint_service.py       # OSINT operations
-│   ├── mailing_service.py     # Mailing operations
-│   └── key_service.py         # License key management
+│   └── mailing_service.py     # Mailing operations
 │
 └── utils/                     # Utilities
     ├── db.py                  # Database connection pool
     ├── helpers.py             # Common helpers
-    ├── formatters.py          # Text formatting
-    └── validators.py          # Input validation
+    └── formatters.py          # Text formatting
 ```
 
 ---
 
-## Core Modules
+## Core Services
 
 ### 1. Role Management System
 **File:** `core/role_constants.py`
@@ -198,12 +196,12 @@ shadow-system/
 class UserRole:
     GUEST = 0      # View tariffs, submit applications
     MANAGER = 1    # Mailings, OSINT, botnet operation
-    LEADER = 2     # Team management, license generation, funnels
-    ADMIN = 3      # Full system control, emergency access
+    LEADER = 2     # Team management, license generation
+    ADMIN = 3      # Full system control
     ROOT = 4       # Super admin (system level)
 ```
 
-### 2. Encryption Manager
+### 2. Unified Encryption Manager
 **File:** `core/encryption.py`
 
 | Feature | Specification |
@@ -211,24 +209,17 @@ class UserRole:
 | Algorithm | AES-256-CBC |
 | Key Derivation | HKDF (HMAC-based) |
 | Key Types | Separate keys for sessions, proxies, data |
-| Fallback | XOR encryption when cryptography unavailable |
 | Salt | Random 16-byte salt per encryption |
 
 ### 3. Session Validator
 **File:** `core/session_validator.py`
 
-Performs 5 validation tests on imported sessions:
-1. **Connection Test** - Verifies network connectivity
-2. **Authorization Test** - Checks session authorization status
-3. **Rate Limit Test** - Detects flood wait states
-4. **Privacy Test** - Verifies privacy settings access
-5. **Functionality Test** - Tests basic API operations
-
-Supported formats:
-- Telethon `.session` files
-- Pyrogram JSON sessions
-- TData archives
-- StringSession format
+Performs 5 validation tests:
+1. **Connection Test** - Network connectivity
+2. **Authorization Test** - Session auth status
+3. **Rate Limit Test** - Flood wait detection
+4. **Privacy Test** - Privacy settings access
+5. **Functionality Test** - API operations
 
 ### 4. Rate Limiter
 **File:** `core/rate_limiter.py`
@@ -237,51 +228,9 @@ Supported formats:
 |------------|-------|
 | Global Rate | 30 requests/second |
 | Per-Bot Rate | 25 requests/second |
-| Burst Capacity | 50 requests |
 | Algorithm | Token Bucket |
 
-### 5. Message Queue
-**File:** `core/message_queue.py`
-
-| Parameter | Value |
-|-----------|-------|
-| Workers | 3 async workers |
-| Queue Type | asyncio.Queue |
-| Retry Logic | 3 retries with exponential backoff |
-| Priority | Supports priority queuing |
-
-### 6. Mailing Scheduler
-**File:** `core/mailing_scheduler.py`
-
-Scheduling presets:
-- **Interval**: 60 minutes, 240 minutes
-- **Daily**: 1440 minutes (24 hours)
-- **Weekly**: 10080 minutes (7 days)
-- **Custom**: User-defined intervals
-
-### 7. Anti-Fraud System
-**File:** `core/anti_fraud.py`
-
-Detection methods:
-- Behavioral pattern analysis
-- Velocity checks (action frequency)
-- Device fingerprint verification
-- Session anomaly detection
-- Geographic inconsistency detection
-
-### 8. User Segmentation
-**File:** `core/segmentation.py`
-
-Automatic segments:
-| Segment | Criteria |
-|---------|----------|
-| `new_user` | Registered < 7 days |
-| `active` | Activity in last 24 hours |
-| `inactive` | No activity > 30 days |
-| `power_user` | > 100 actions/week |
-| `paying` | Active subscription |
-
-### 9. Audit Logger
+### 5. Audit Logger
 **File:** `core/audit_logger.py`
 
 Logged events:
@@ -292,135 +241,20 @@ Logged events:
 - Admin actions
 - Security incidents
 
-### 10. UI Components
-**File:** `core/ui_components.py`
-
-| Component | Description |
-|-----------|-------------|
-| `Paginator` | Infinite scroll pagination for lists |
-| `ProgressBar` | Visual progress indicators |
-| `MenuBuilder` | Dynamic keyboard construction |
-
 ---
 
-## Advanced Tools
+## Botnet Infrastructure
 
-### 1. AI Pattern Detection
-**File:** `core/ai_pattern_detection.py`
-
-GPT-powered threat analysis system:
-
-| Detection Type | Patterns |
-|----------------|----------|
-| **Coordinates** | Decimal (50.4501, 30.5234), DMS (50°27'00"N), MGRS (36U XC 12345), Google Maps links |
-| **Phones** | UA (+380), RU (+7), BY (+375), PL (+48) |
-| **Crypto** | BTC (1A1zP1...), ETH (0x...), USDT TRC-20 (T...) |
-| **Threats** | 4 levels: Critical, High, Medium, Low |
-| **Encoded Data** | Base64, Hex patterns |
-
-Risk scoring: 0-100 with configurable thresholds.
-
-### 2. Spam Analyzer
-**File:** `core/spam_analyzer.py`
-
-Pre-send analysis metrics:
-
-| Metric | Weight |
-|--------|--------|
-| Caps Ratio | 15% |
-| Link Density | 20% |
-| Keyword Density | 25% |
-| Emoji Count | 10% |
-| Special Characters | 10% |
-| Message Length | 10% |
-| Readability | 10% |
-
-Risk levels: `LOW` (0-30), `MEDIUM` (31-60), `HIGH` (61-100)
-
-### 3. Drip Campaign Manager
-**File:** `core/drip_campaign.py`
-
-Sequential campaign automation:
-
-| Trigger Type | Description |
-|--------------|-------------|
-| `TIME` | Delay-based progression |
-| `MESSAGE_OPENED` | On message read |
-| `LINK_CLICKED` | On link interaction |
-| `REPLY_RECEIVED` | On user response |
-
-Conditional transitions:
-- `has_replied` - User responded
-- `no_replies` - No response after X time
-- `link_clicked` - Specific link interaction
-
-### 4. Behavior Profiler
-**File:** `core/behavior_profiler.py`
-
-User activity analysis:
-
-| Analysis Type | Output |
-|---------------|--------|
-| Daily Rhythm | Morning/Afternoon/Evening/Night distribution |
-| Sleep Schedule | Estimated sleep hours (e.g., 23:00-07:00) |
-| Peak Hours | Top 3 most active hours |
-| Consistency | Activity regularity score (0-100%) |
-| User Type | Classification (see below) |
-
-User type classifications:
-- `night_owl` - Primary activity 22:00-04:00
-- `early_bird` - Primary activity 05:00-09:00
-- `office_hours` - Primary activity 09:00-18:00
-- `heavy_user` - > 50 daily actions
-- `passive` - < 5 daily actions
-- `irregular` - No consistent pattern
-
-Anomaly detection:
-- Activity spikes (> 3σ deviation)
-- Long absences (> 7 days)
-- Pattern changes (sudden behavior shift)
-
-### 5. Enhanced Report Generator
-**File:** `core/enhanced_reports.py`
-
-Professional PDF report generation:
-
-| Report Type | Contents |
-|-------------|----------|
-| **OSINT Report** | Findings, threats, evidence, network graph |
-| **Campaign Report** | Delivery stats, conversions, A/B results |
-| **User Profile** | Behavior analysis, activity history, predictions |
-| **Analytics Report** | Project overview, team metrics, trends |
-
-Requires: ReportLab library
-
-### 6. Keyword Analyzer
-**File:** `core/keyword_analyzer.py`
-
-Text analysis capabilities:
-
-| Feature | Description |
-|---------|-------------|
-| Word Frequency | Top N most common words |
-| Sentiment | Positive/Negative/Neutral classification |
-| Language Detection | Ukrainian, Russian, English |
-| Readability Score | Flesch-Kincaid adapted for Cyrillic |
-| Trending Words | Statistical outlier detection |
-
-Stop words: Ukrainian (200+), Russian (200+) built-in lists
-
-### 7. Botnet Manager
+### BotnetManager
 **File:** `core/botnet_manager.py`
-
-Enterprise botnet management system:
 
 | Feature | Description |
 |---------|-------------|
 | Worker Pool | Async task queue with configurable workers |
-| Bot Selection | Round-robin, weighted, smart, geolocation strategies |
-| Health Monitoring | Automatic health checks every 5 minutes |
-| Auto Recovery | Automatic bot recovery after failures |
+| Bot Selection | Round-robin, weighted, random, smart strategies |
+| Health Monitoring | Automatic checks every 5 minutes |
 | Daily Limits | Per-bot message limits with midnight reset |
+| Auto Recovery | Automatic bot recovery after failures |
 | Statistics | Real-time success rate, health score tracking |
 
 Bot statuses:
@@ -433,24 +267,17 @@ Bot statuses:
 - `WARMING` - In warming phase
 - `COOLING` - In cooldown period
 
-### 8. AntiDetect System
+### AntiDetect System
 **File:** `core/antidetect.py`
 
-Device masking and behavior emulation:
+Device profiles (9 total):
+- Samsung Galaxy (S21, A52)
+- Xiaomi Redmi
+- iPhone (13, 12)
+- Pixel
+- Desktop (Windows, macOS, Linux)
 
-| Device Profiles | Description |
-|-----------------|-------------|
-| `android_samsung_s21` | Samsung Galaxy S21, Android 12 |
-| `android_samsung_a52` | Samsung Galaxy A52, Android 11 |
-| `android_xiaomi` | Redmi Note 10, Android 11 |
-| `android_pixel` | Pixel 6, Android 13 |
-| `iphone_13` | iPhone 13 Pro, iOS 16.2 |
-| `iphone_12` | iPhone 12, iOS 15.6 |
-| `desktop_windows` | Windows 10 Desktop |
-| `desktop_macos` | MacBook Pro, macOS 13.1 |
-| `desktop_linux` | Ubuntu 22.04 Desktop |
-
-Behavior patterns:
+Behavior patterns (5 types):
 - `casual_user` - Typical user, 9-12 & 18-23 online
 - `active_user` - High activity, 8-24 online
 - `business_user` - Office hours, formal communication
@@ -460,32 +287,26 @@ Behavior patterns:
 Fingerprint components:
 - Canvas hash, WebGL hash, Audio hash, Font hash
 - Screen resolution, Device ID, Session ID
-- Unique fingerprint hash per bot
 
-### 9. Recovery System
+### Recovery System
 **File:** `core/recovery_system.py`
 
-Automatic recovery and failover:
-
-| Feature | Description |
-|---------|-------------|
-| Auto Recovery | 5-step recovery process |
-| Proxy Rotation | Automatic proxy switching on failure |
-| Backup System | Session backups with versioning |
-| Health Checks | Proxy pool health monitoring |
-| Batch Recovery | Mass bot recovery operations |
-
-Recovery process:
+4-step auto-recovery process:
 1. Try reconnection
 2. Rotate proxy and retry
 3. Restore from backup
 4. Mark as dead if all fail
 
-### 10. Session Importer
+Additional features:
+- Proxy pool with rotation
+- Session backup with versioning
+- Batch recovery operations
+- Proxy health monitoring
+
+### Session Importer
 **File:** `core/session_importer.py`
 
-Multi-format session import:
-
+Supported formats:
 | Format | Extension | Description |
 |--------|-----------|-------------|
 | Telethon Binary | `.session` | SQLite database format |
@@ -493,12 +314,140 @@ Multi-format session import:
 | String Session | `.txt` | Base64 encoded string |
 | TData Archive | `.zip` | Telegram Desktop data |
 
-Validation tests:
-1. Connection test
-2. Authorization test
-3. Rate limit test
-4. Privacy test
-5. Functionality test
+Features:
+- 5-step validation process
+- Device fingerprint collection
+- Import/validation report generation
+
+---
+
+## Advanced Parsing & Monitoring
+
+### Advanced Parser
+**File:** `core/advanced_parser.py`
+
+Deep chat analysis with threat detection:
+
+| Feature | Description |
+|---------|-------------|
+| Pattern Detection | Coordinates, crypto, phones, weapons, military terms |
+| Threat Scoring | 0-100 risk score with configurable thresholds |
+| User Risk Scoring | Key person identification and influence analysis |
+| Interaction Graph | Network relationship mapping |
+| Formatted Reports | Ukrainian-language threat analysis reports |
+
+Detected patterns:
+- **Coordinates**: Decimal (50.4501, 30.5234), DMS (50°27'00"N), MGRS
+- **Phones**: UA (+380), RU (+7), BY (+375), PL (+48)
+- **Crypto**: BTC, ETH, USDT (TRC-20/ERC-20)
+- **Threat Keywords**: Explosives, weapons, military terminology
+
+### RealTime Parser
+**File:** `core/realtime_parser.py`
+
+Real-time chat monitoring system:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `check_interval` | 30s | Message check frequency |
+| `threat_threshold` | 30 | Alert trigger threshold |
+| `batch_size` | 100 | Messages per check |
+
+Features:
+- Threat level threshold alerts
+- Message deduplication via hash cache
+- Alert callbacks for notifications
+- Dynamic settings (interval, threshold, batch size)
+- Status reporting and control (start/stop)
+
+### Telethon Integration
+**File:** `core/osint_telethon.py`
+
+Connects parsers to Telethon for real-time monitoring when API credentials available.
+
+---
+
+## Forensics & Analysis Suite
+
+### Forensic Snapshot
+**File:** `core/forensic_snapshot.py`
+
+| Feature | Description |
+|---------|-------------|
+| Media Capture | Original metadata preservation |
+| Hashing | SHA-256 and SHA-512 forensic hashing |
+| File Analysis | Signature analysis and entropy calculation |
+| Cache Recovery | Recover deleted media from local cache |
+| Integrity Check | Tamper detection with verification |
+
+### AI Sentiment Analyzer
+**File:** `core/ai_sentiment.py`
+
+OpenAI-powered analysis:
+
+| Analysis Type | Output |
+|---------------|--------|
+| Sentiment | Positive/Negative/Neutral/Mixed |
+| Toxicity | Probability score (0-100) |
+| Spam | Spam probability score |
+| Emotions | Joy, anger, sadness, fear, surprise |
+| Intent | Question, statement, request, complaint |
+
+Features:
+- Keyword-based fallback when AI unavailable
+- Configurable thresholds
+
+### Anti-Ghost Recovery
+**File:** `core/anti_ghost_recovery.py`
+
+Recovery of deleted content:
+
+| Feature | Description |
+|---------|-------------|
+| Message Capture | Automatic capture before deletion |
+| Edit History | Tracking with timestamps |
+| Search | Across captured content |
+| Media Recovery | Reference to deleted text and media |
+| Statistics | By chat and user |
+
+### X-Ray Metadata
+**File:** `core/xray_metadata.py`
+
+Deep file analysis:
+
+| Feature | Description |
+|---------|-------------|
+| Signature Detection | File type identification |
+| EXIF Extraction | Camera, GPS, timestamps |
+| Hidden Data | Embedded URLs, emails, strings |
+| Anomaly Detection | High entropy, multi-signature, suspicious patterns |
+| Risk Score | 0-100 risk assessment |
+
+### Memory Indexer
+**File:** `core/memory_indexer.py`
+
+In-memory full-text search:
+
+| Feature | Description |
+|---------|-------------|
+| Indexing | Inverted index with tokenization |
+| Stop Words | Ukrainian and Russian filters |
+| Multi-Type | Messages, users, media, channels |
+| Scoring | Relevance with recency boost |
+| Performance | Fast search with configurable limits |
+
+### Enhanced Monitoring
+**File:** `core/enhanced_monitoring.py`
+
+Target-based monitoring:
+
+| Feature | Description |
+|---------|-------------|
+| Targets | Channels, chats, users |
+| Triggers | Keyword and regex patterns |
+| Spam Detection | Pattern recognition |
+| Alerts | Severity levels (low, medium, high) |
+| Tracking | Event statistics and history |
 
 ---
 
@@ -600,376 +549,220 @@ Fast channel scanning:
 - JSON report generation
 - User lookup functionality
 
-### Real-Time Monitor
-**File:** `core/realtime_monitor.py`
-
-Telethon-based event listener:
-
-| Event Type | Handler |
-|------------|---------|
-| NewMessage | Content analysis, pattern matching |
-| ChatAction | Join/leave, admin changes |
-| MessageEdited | Change tracking |
-
-Auto-actions:
-- `block_user` - Automatic blocking
-- `log_evidence` - Evidence capture
-- `alert_admins` - Admin notifications
-- `escalate` - Priority escalation
-
-### Advanced Parser
-**File:** `core/advanced_parser.py`
-
-Deep chat analysis with threat detection:
-
-| Feature | Description |
-|---------|-------------|
-| Pattern Detection | Coordinates, crypto, phones, explosives, weapons, military terms |
-| Threat Scoring | 0-100 risk score with configurable thresholds |
-| User Risk Scoring | Key person identification and influence analysis |
-| Interaction Graph | Network relationship mapping |
-| Formatted Reports | Ukrainian-language threat analysis reports |
-
-Detected patterns:
-- **Coordinates**: Decimal (50.4501, 30.5234), DMS (50°27'00"N), MGRS, Google Maps
-- **Phones**: UA (+380), RU (+7), BY (+375), PL (+48)
-- **Crypto**: BTC, ETH, USDT (TRC-20/ERC-20), LTC, XMR
-- **Threat Keywords**: Explosives, weapons, military terminology
-
-### RealTime Parser
-**File:** `core/realtime_parser.py`
-
-Live chat monitoring system:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `check_interval` | 30s | Message check frequency |
-| `threat_threshold` | 30 | Alert trigger threshold |
-| `max_hash_cache` | 10000 | Message deduplication cache |
-| `batch_size` | 50 | Messages per batch |
-
-Features:
-- Real-time threat detection with configurable intervals
-- Message deduplication via hash cache
-- Alert callback system for notifications
-- Dynamic settings control (start/stop/configure)
-- Multi-chat parallel monitoring
-
 ---
 
 ## Campaign Management
 
 ### Campaign Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| **Broadcast** | One-time mass message | Announcements |
-| **Targeted** | Segmented audience | Personalization |
-| **Drip** | Sequential messages | Onboarding |
-| **A/B Test** | Split testing | Optimization |
-| **Scheduled** | Time-based delivery | Planning |
+| Type | Description |
+|------|-------------|
+| **Broadcast** | One-time message to all users |
+| **Targeted** | Segmented users based on criteria |
+| **Drip** | Sequential messages over time |
+| **Sequential** | Dependent on user actions |
+| **A/B Testing** | Variant comparison with metrics |
 
-### Advanced Campaign Manager
-**File:** `core/advanced_campaign_manager.py`
+### Scheduling System
 
-| Feature | Description |
-|---------|-------------|
-| Worker Pool | Async queue-based workers |
-| Bot Selection | Weighted round-robin algorithm |
-| Delay Calculation | Adaptive based on success rate |
-| Statistics | Lock-safe real-time updates |
-| A/B Testing | Built-in variant support |
+Scheduling presets:
+- **Interval**: 60 minutes, 240 minutes
+- **Daily**: 1440 minutes (24 hours)
+- **Weekly**: 10080 minutes (7 days)
+- **Custom**: User-defined intervals
 
-### Mass Sender
-**File:** `core/mass_sender.py`
+### Message Queue
 
 | Parameter | Value |
 |-----------|-------|
-| Batch Size | 30 messages |
-| Base Delay | 3 seconds |
-| Max Delay | 60 seconds |
-| Retry Count | 3 attempts |
-| FloodWait Handling | Automatic pause + retry |
+| Workers | 3 async workers |
+| Queue Type | asyncio.Queue |
+| Retry Logic | 3 retries with exponential backoff |
+| Priority | Supports priority queuing |
 
 ---
 
 ## Funnel System
 
-### Funnel Features
+### Comprehensive Funnel Management
 
 | Feature | Description |
 |---------|-------------|
-| Multi-Step | Unlimited steps per funnel |
-| Photo Support | Images in funnel messages |
-| Tariff Config | Per-funnel pricing |
-| Conversion Tracking | Step-by-step analytics |
-| AI Generation | GPT-powered step creation |
-| Template Integration | Use templates as steps |
-| Scheduling | Time-based step triggers |
-
-### Funnel Integrations
-
-| Integration | Callback Pattern |
-|-------------|------------------|
-| Templates | `funnel_templates_{funnel_id}` |
-| Scheduling | `funnel_schedule_{funnel_id}` |
-| Mailings | `funnel_mailing:{funnel_id}:menu` |
-| OSINT | `funnel_osint:{funnel_id}:menu` |
-| Monitoring | `funnel_monitor:{funnel_id}:menu` |
-
-### Trigger Types
-
-| Trigger | Description |
-|---------|-------------|
-| `message` | On message delivery |
-| `button` | On button click |
-| `time` | After time delay |
-| `keyword` | On keyword match |
-| `reply` | On user reply |
+| **Full CRUD** | Create, read, update, delete funnels |
+| **Template Integration** | Link with mailing templates |
+| **Scheduling** | Time-based funnel automation |
+| **OSINT Analysis** | Integrated threat assessment |
+| **Monitoring** | Real-time performance tracking |
+| **Trigger Transitions** | Conditional funnel state changes |
 
 ---
 
 ## AI Integration
 
-### AI Service
-**File:** `core/ai_service.py`
+### OpenAI Integration
 
-Powered by OpenAI via Replit AI Integrations.
+**Replit AI Integration:** Seamless connection to OpenAI-compatible models (e.g., GPT-5)
 
-### Available AI Features
+Features:
+- AI Pattern Detection
+- Sentiment Analysis
+- Behavior Profiling
+- Enhanced Report Generation
+- Keyword Analysis
+- Spam Detection
 
-| Feature | Description | Model |
-|---------|-------------|-------|
-| Campaign Text Generation | 4 styles (formal, casual, urgent, friendly) | GPT-4 |
-| Sentiment Analysis | Positive/Negative/Neutral detection | GPT-4 |
-| OSINT Report Generation | Automated threat reports | GPT-4 |
-| Message Rewriting | 5 tones available | GPT-4 |
-| Funnel Step Generation | AI-suggested funnel steps | GPT-4 |
-| Chat History Analysis | Conversation summarization | GPT-4 |
-| Response Templates | Auto-generated replies | GPT-4 |
-| Audience Analysis | Demographic insights | GPT-4 |
-| Threat Detection | Real-time content analysis | GPT-4 |
+### Advanced Tools
 
----
+#### 1. AI Pattern Detection
+**File:** `core/ai_pattern_detection.py`
 
-## Real-Time Monitoring
+| Detection Type | Patterns |
+|----------------|----------|
+| **Coordinates** | Decimal, DMS, MGRS, Google Maps links |
+| **Phones** | UA, RU, BY, PL formats |
+| **Crypto** | BTC, ETH, USDT, LTC, XMR |
+| **Threats** | 4 levels: Critical, High, Medium, Low |
+| **Encoded Data** | Base64, Hex patterns |
 
-### Alert Thresholds System
-**File:** `core/alert_thresholds.py`
+Risk scoring: 0-100 with configurable thresholds.
 
-Dynamic rules engine:
+#### 2. Spam Analyzer
+**File:** `core/spam_analyzer.py`
 
-| Rule Type | Description |
-|-----------|-------------|
-| `MESSAGE_FREQUENCY` | Messages per time window |
-| `KEYWORD_DETECTION` | Suspicious keyword matches |
-| `COORDINATE_LEAK` | Location data exposure |
-| `CRYPTO_ADDRESS` | Cryptocurrency patterns |
-| `PHONE_EXPOSURE` | Phone number detection |
-| `THREAT_LEVEL` | Combined risk score |
+Pre-send analysis metrics:
 
-Actions:
-- `LOG` - Record to audit log
-- `ALERT` - Send notification
-- `BLOCK_USER` - Automatic ban
-- `NOTIFY_ADMIN` - Admin alert
-- `ESCALATE` - Priority escalation
+| Metric | Weight |
+|--------|--------|
+| Caps Ratio | 15% |
+| Link Density | 20% |
+| Keyword Density | 25% |
+| Emoji Count | 10% |
+| Special Characters | 10% |
+| Message Length | 10% |
+| Readability | 10% |
 
----
+Risk levels: `LOW` (0-30), `MEDIUM` (31-60), `HIGH` (61-100)
 
-## Installation & Setup
+#### 3. Drip Campaign Manager
+**File:** `core/drip_campaign.py`
 
-### Prerequisites
+Sequential campaign automation:
 
-- Python 3.11+
-- PostgreSQL 14+
-- Telegram Bot Token
-- Telegram API Credentials (API_ID, API_HASH)
-- OpenAI API Key (optional, for AI features)
+| Trigger Type | Description |
+|--------------|-------------|
+| `TIME` | Delay-based progression |
+| `MESSAGE_OPENED` | On message read |
+| `LINK_CLICKED` | On link interaction |
+| `REPLY_RECEIVED` | On user response |
 
-### Environment Variables
+Conditional transitions:
+- `has_replied` - User responded
+- `no_replies` - No response after X time
+- `link_clicked` - Specific link interaction
 
-```bash
-# Required
-BOT_TOKEN=your_telegram_bot_token
-TELEGRAM_API_ID=your_api_id
-TELEGRAM_API_HASH=your_api_hash
-DATABASE_URL=postgresql://user:password@host:5432/database
+#### 4. Behavior Profiler
+**File:** `core/behavior_profiler.py`
 
-# Optional
-OPENAI_API_KEY=your_openai_key
-ENCRYPTION_KEY=your_32_byte_key
-ADMIN_IDS=123456789,987654321
-DEBUG=false
-```
+User activity analysis:
 
-### Installation Steps
+| Analysis Type | Output |
+|---------------|--------|
+| Daily Rhythm | Morning/Afternoon/Evening/Night distribution |
+| Sleep Schedule | Estimated sleep hours |
+| Peak Hours | Top 3 most active hours |
+| Consistency | Activity regularity score (0-100%) |
+| User Type | Classification (see below) |
 
-```bash
-# 1. Clone repository
-git clone https://github.com/your-org/shadow-system.git
-cd shadow-system
+User type classifications:
+- `night_owl` - Primary activity 22:00-04:00
+- `early_bird` - Primary activity 05:00-09:00
+- `office_hours` - Primary activity 09:00-18:00
+- `heavy_user` - > 50 daily actions
+- `passive` - < 5 daily actions
+- `irregular` - No consistent pattern
 
-# 2. Install dependencies
-pip install -r requirements.txt
+#### 5. Keyword Analyzer
+**File:** `core/keyword_analyzer.py`
 
-# 3. Initialize database
-python -c "from utils.db import init_db; import asyncio; asyncio.run(init_db())"
+Text analysis capabilities:
 
-# 4. Run the bot
-python main.py
-```
+| Feature | Description |
+|---------|-------------|
+| Word Frequency | Top N most common words |
+| Sentiment | Positive/Negative/Neutral classification |
+| Language Detection | Ukrainian, Russian, English |
+| Readability Score | Flesch-Kincaid adapted for Cyrillic |
+| Trending Words | Statistical outlier detection |
 
-### First-Time Setup
+#### 6. Enhanced Report Generator
+**File:** `core/enhanced_reports.py`
 
-1. Start the bot with `/start`
-2. As the first user, you'll be assigned ROOT role
-3. Generate SHADOW keys for team members
-4. Create INV codes for manager onboarding
+Professional PDF report generation:
 
----
+| Report Type | Contents |
+|-------------|----------|
+| **OSINT Report** | Findings, threats, evidence, network graph |
+| **Campaign Report** | Delivery stats, conversions, A/B results |
+| **User Profile** | Behavior analysis, activity history, predictions |
+| **Analytics Report** | Project overview, team metrics, trends |
 
-## API Reference
-
-### Database Models
-
-| Model | Fields | Description |
-|-------|--------|-------------|
-| `User` | id, telegram_id, role, created_at, ... | User accounts |
-| `ShadowKey` | key, user_id, expires_at, is_active | License keys |
-| `Campaign` | id, name, type, status, stats, ... | Marketing campaigns |
-| `Funnel` | id, name, steps, conversions, ... | Sales funnels |
-| `BotSession` | id, session_data, proxy_config, ... | Bot sessions (20+ fields) |
-| `Template` | id, name, content, variables, ... | Message templates |
-| `Ticket` | id, user_id, status, messages, ... | Support tickets |
-| `AuditLog` | id, user_id, action, details, ... | Audit records |
-
-### BotSession Extended Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `device_fingerprint` | JSON | Device identification |
-| `anti_detect_profile` | JSON | Browser profile |
-| `proxy_type` | Enum | SOCKS5/HTTP/None |
-| `proxy_config` | JSON | Proxy settings |
-| `warming_phase` | Integer | Current warming phase (1-3) |
-| `flood_wait_until` | DateTime | FloodWait expiry |
-| `success_rate` | Float | Delivery success percentage |
-| `messages_sent` | Integer | Total messages sent |
-| `tags` | Array | Filtering tags |
+Requires: ReportLab library
 
 ---
 
 ## Technology Stack
 
-| Component | Technology | Version |
-|-----------|------------|---------|
-| **Bot Framework** | aiogram | 3.3+ |
-| **Database** | PostgreSQL | 14+ |
-| **ORM** | SQLAlchemy | 2.0+ |
-| **Async Driver** | asyncpg | Latest |
-| **Sessions** | Telethon | Latest |
-| **AI/LLM** | OpenAI API | GPT-4 |
-| **Encryption** | cryptography | Latest |
-| **PDF Reports** | ReportLab | Latest |
-| **Templating** | Jinja2 | Latest |
-| **HTTP Client** | aiohttp | Latest |
+### Core Framework
+- **aiogram 3.3+** - Telegram Bot API framework
+- **asyncpg** - Asynchronous PostgreSQL driver
+- **SQLAlchemy** - Object-Relational Mapper (ORM)
 
----
+### Advanced Libraries
+- **Telethon** - Telegram client library for OSINT
+- **OpenAI API** - AI/GPT integration (via Replit AI)
+- **ReportLab** - PDF report generation
+- **Jinja2** - Template engine
+- **cryptography** - AES-256-CBC encryption
+- **dnspython** - DNS resolution
+- **python-dotenv** - Environment configuration
 
-## Active Services (25+)
+### Python Version
+- **Python 3.11+**
 
-| # | Service | Description |
-|---|---------|-------------|
-| 1 | RateLimiter | Token bucket rate limiting |
-| 2 | MessageQueue | 3 async workers |
-| 3 | MailingScheduler | Campaign scheduling |
-| 4 | AntiFraud | Behavioral analysis |
-| 5 | Segmentation | Automatic user tagging |
-| 6 | KeyNotifications | License expiry alerts |
-| 7 | SecurityCache | Fast user blocking |
-| 8 | AuditLogger | Action tracking |
-| 9 | EncryptionManager | AES-256 encryption |
-| 10 | AIService | GPT integration |
-| 11 | SessionValidator | Session verification |
-| 12 | AdvancedCampaignManager | Async campaign execution |
-| 13 | AdvancedOSINTEngine | Deep OSINT analysis |
-| 14 | RealTimeMonitor | Event-based monitoring |
-| 15 | AlertThresholds | Dynamic rules engine |
-| 16 | AIPatternDetector | Threat detection |
-| 17 | SpamAnalyzer | Pre-send analysis |
-| 18 | DripCampaignManager | Sequential campaigns |
-| 19 | BehaviorProfiler | User profiling |
-| 20 | KeywordAnalyzer | Text analysis |
-| 21 | EnhancedReportGenerator | PDF generation |
-| 22 | MassSender | Bulk messaging |
-| 23 | RapidOSINTParser | Fast scanning |
-| 24 | FunnelService | Funnel operations |
-| 25 | TicketService | Support system |
-
----
-
-## Registered Handlers (25+)
-
-```python
-# Main routers in registration order
-start_router          # /start, welcome flow
-auth_router           # Authentication
-subs_router           # Subscriptions
-tickets_router        # Ticket handling
-admin_router          # Admin panel
-osint_router          # OSINT tools
-botnet_router         # Bot network
-campaigns_router      # Campaigns
-team_router           # Team management
-analytics_router      # Analytics
-config_router         # Configuration
-help_router           # Help system
-funnels_router        # Funnels
-warming_router        # Bot warming
-mailing_router        # Mailings
-geo_router            # Geo Scanner
-proxy_router          # Proxy management
-advanced_router       # Advanced features
-osint_handler_router  # OSINT callbacks
-texting_router        # Texting
-scheduler_router      # Scheduling
-templates_router      # Templates
-support_router        # Support
-notifications_router  # Notifications
-advanced_tools_router # AI-powered tools
-missing_router        # Fallback handler
-```
+### Security
+- AES-256-CBC encryption
+- HKDF key derivation
+- Argon2id password hashing
+- Rate limiting (token bucket)
+- Audit logging
 
 ---
 
 ## UI/UX Standards
 
-- **Language**: Ukrainian throughout
-- **Dividers**: `═══════════════════════`
-- **Button Layout**: 1/2/3 buttons per row
-- **Formatting**: HTML (bold, italic, code)
-- **Lists**: Tree structure (`├ └`)
-- **Emojis**: Standardized per feature type
+- **Language:** Ukrainian throughout the interface
+- **Dividers:** Exactly 15 single-line chars `───────────────` (mobile-optimized)
+- **Progress bars:** Native style `●●●●○○○○ 50%`
+- **Button layouts:** 1/2/3 per row, standardized
+- **Rich formatting:** Bold, italic, code blocks in HTML
+- **Tree structures:** List-like format with `├ └` characters
+- **Design:** Clean minimal design, no frames/borders
+
+---
+
+## Deployment
+
+**Type:** Reserved VM (Background Worker)
+**Entry Point:** `python bot.py`
+**Environment:** NixOS with Python 3.11+
 
 ---
 
 ## License
 
-This software is proprietary and requires a valid SHADOW license key for operation.
+SHADOW LICENSE - Proprietary Ukrainian Software
 
 ---
 
-## Support
-
-For technical support, use the built-in ticket system or contact your administrator.
-
----
-
-<div align="center">
-
-**SHADOW SYSTEM iO v2.0**
-
-*Built for Ukrainian Marketing Professionals*
-
-</div>
+**Last Updated:** December 29, 2025  
+**Version:** 2.0 (Fully Optimized)

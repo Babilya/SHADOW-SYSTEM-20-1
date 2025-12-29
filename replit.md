@@ -33,6 +33,11 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - Ukrainian interface with styled formatting (dividers, emoji, button layouts)
 - Prefer simplicity over unnecessary complexity
 
+## Feature Status (December 29, 2025)
+- **Baseline Functionality:** 100% Complete (All initial ТЗ implemented)
+- **v2.0 Additions:** 16+ advanced modules (Forensics, AI tools, Real-time monitoring)
+- **See:** `FEATURE_MATRIX.md` for detailed comparison
+
 ## System Architecture
 
 ### Core Architectural Decisions

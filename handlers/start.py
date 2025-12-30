@@ -204,6 +204,10 @@ async def warming_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     from core.ui_components import ProgressBar
     
+    if not callback.message:
+        await callback.answer()
+        return
+    
     text = f"""🔥 <b>ПРОГРІВ</b>
 <i>Автопрогрів ботів</i>
 ───────────────
@@ -235,6 +239,10 @@ async def warming_callback(callback: CallbackQuery):
 async def support_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     
+    if not callback.message:
+        await callback.answer()
+        return
+    
     text = """💬 <b>ПІДТРИМКА</b>
 <i>Технічна допомога</i>
 ───────────────
@@ -264,6 +272,10 @@ async def support_callback(callback: CallbackQuery):
 async def warming_start_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     from core.ui_components import ProgressBar
+    
+    if not callback.message:
+        await callback.answer()
+        return
     
     text = f"""🔥 <b>ПРОГРІВ ЗАПУЩЕНО</b>
 ───────────────
@@ -295,6 +307,10 @@ async def warming_start_callback(callback: CallbackQuery):
 @router.callback_query(F.data == "warming_stop")
 async def warming_stop_callback(callback: CallbackQuery):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    if not callback.message:
+        await callback.answer()
+        return
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="▶️ Запустити", callback_data="warming_start")],

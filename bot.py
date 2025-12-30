@@ -21,11 +21,11 @@ from handlers.user import user_router
 from handlers.admin import admin_router
 from handlers.botnet import botnet_router
 from handlers.osint import osint_router
-from handlers.analytics import analytics_router
-from handlers.team import team_router
-from handlers.subscriptions import subscriptions_router
+from handlers.analytics import router as analytics_router
+from handlers.team import router as team_router
+from handlers.subscriptions import router as subscriptions_router
 from handlers.funnels import funnels_router
-from handlers.help import help_router
+from handlers.help import router as help_router
 from handlers.texting import texting_router
 from handlers.applications import applications_router
 from handlers.emergency import emergency_router
@@ -35,7 +35,7 @@ from handlers.tickets import tickets_router
 from handlers.referral import referral_router
 from handlers.mailing import mailing_router
 from handlers.missing_handlers import missing_router
-from handlers.auth_system import auth_router
+from handlers.auth_system import router as auth_router
 from handlers.proxy import proxy_router
 from handlers.export import export_router
 from handlers.warming import warming_router

@@ -58,6 +58,8 @@ class Key(Base):
     user_id = Column(String)
     is_used = Column(Boolean, default=False)
     expires_at = Column(DateTime)
+    expires_notified_7d = Column(Boolean, default=False, nullable=True)
+    expires_notified_3d = Column(Boolean, default=False, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
 class Project(Base):

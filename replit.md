@@ -29,6 +29,8 @@ Advanced features include:
 -   **Comprehensive Funnel System:** Full CRUD for funnels, integrated with mailing templates, scheduling, and OSINT analysis, with trigger-based transitions.
 -   **Group Parsing:** Telethon-based member extraction from groups/channels with filters (all, active recently, with username, premium only, no bots), saved lists management, and export to mailing.
 -   **DM Sender:** Personal message campaigns with session rotation, personalization ({name}, {username}, {date}), blacklist management, 24h cooldown tracking, and proper flood protection (FloodWaitError, PeerFloodError, UserPrivacyRestrictedError handling with auto-pause).
+-   **Structured Logging:** Categorized logging system (SECURITY, CAMPAIGN, DM, PARSER, FLOOD, SYSTEM) with metrics tracking, contextual metadata (user_id, session_id, task_id, duration_ms), and JSON export capabilities.
+-   **Flood Monitor:** Real-time flood event tracking with severity-based alerts (LOW/MEDIUM/HIGH/CRITICAL), configurable thresholds, session/task status monitoring, and automated pause recommendations.
 -   **Advanced Tools:** AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, Keyword Analyzer, Forensic Snapshotting, AI Sentiment Analysis, Anti-Ghost Recovery, X-Ray Metadata analysis, and an in-memory Memory Indexer for full-text search.
 -   **User Profile System:** Profile management (display_name, email, project_name, project_goals) with optional session password (Argon2 hashed), configurable session timeout (1-24h), Leader-Manager linking (leader_id field). Tables: `user_profiles`, `user_sessions`.
 
@@ -49,6 +51,8 @@ The interface is entirely in Ukrainian. It uses mobile-optimized dividers (`â”€â
 -   `sessions/`: Bot session storage.
 -   `data/`: Forensic snapshots and artifacts.
 -   `attached_assets/`: User-uploaded files.
+-   `tests/`: Unit tests for core services (pytest + pytest-asyncio).
+-   `docs/`: API reference and documentation.
 
 ## External Dependencies
 -   **aiogram 3.3:** Telegram Bot API interaction.

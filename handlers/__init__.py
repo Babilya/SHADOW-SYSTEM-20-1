@@ -27,7 +27,8 @@ try:
         botnet_router, funnels_router, analytics_router, warming_router,
         mailing_router, osint_router, subscriptions_router, team_router,
         advanced_router, tools_router, forensics_router, bots_router,
-        campaigns_router, osint_handler_router, proxy_router, referral_router
+        campaigns_router, osint_handler_router, proxy_router, referral_router,
+        profile_router
     )
     main_router.include_router(botnet_router)
     main_router.include_router(funnels_router)
@@ -45,6 +46,7 @@ try:
     main_router.include_router(osint_handler_router)
     main_router.include_router(proxy_router)
     main_router.include_router(referral_router)
+    main_router.include_router(profile_router)
 except ImportError as e:
     print(f"Warning: Could not import feature handlers: {e}")
 

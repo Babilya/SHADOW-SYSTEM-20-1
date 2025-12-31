@@ -506,3 +506,40 @@ class UIStyle(Base):
     tree_prefix = Column(String(10), default="├")
     tree_last = Column(String(10), default="└")
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class UserProfile(Base):
+    """Профіль користувача з додатковими даними"""
+    __tablename__ = "user_profiles"
+    
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(String, unique=True, index=True)
+    display_name = Column(String(100), nullable=True)
+    email = Column(String(255), nullable=True)
+    project_name = Column(String(200), nullable=True)
+    project_goals = Column(Text, nullable=True)
+    password_hash = Column(String(255), nullable=True)
+    password_enabled = Column(Boolean, default=False)
+    session_timeout_hours = Column(Integer, default=6)
+    leader_id = Column(String, nullable=True)
+    timezone = Column(String(50), default="Europe/Kyiv")
+    language = Column(String(10), default="uk")
+    notifications_enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class UserSession(Base):
+    """Сесії користувачів для контролю активності"""
+    __tablename__ = "user_sessions"
+    
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(String, index=True)
+    session_token = Column(String(64), unique=True)
+    last_activity = Column(DateTime, default=datetime.now)
+    last_password_check = Column(DateTime, nullable=True)
+    is_authenticated = Column(Boolean, default=False)
+    ip_address = Column(String(50), nullable=True)
+    device_info = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    expires_at = Column(DateTime, nullable=True)

@@ -27,7 +27,8 @@ def guest_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔑 Ключ", callback_data="enter_key"),
             InlineKeyboardButton(text="💬 Підтримка", callback_data="support"),
             InlineKeyboardButton(text="📖 Довідка", callback_data="help_main")
-        ]
+        ],
+        [InlineKeyboardButton(text="👤 Профіль", callback_data="profile_main")]
     ])
 
 def guest_description() -> str:
@@ -201,7 +202,10 @@ def admin_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📱 МЕНЮ ЮЗЕРА", callback_data="user_menu")
         ],
         [InlineKeyboardButton(text="🔬 КРИМІНАЛІСТИКА", callback_data="forensics_menu")],
-        [InlineKeyboardButton(text="🆘 EMERGENCY", callback_data="admin_emergency")]
+        [
+            InlineKeyboardButton(text="👤 ПРОФІЛЬ", callback_data="profile_main"),
+            InlineKeyboardButton(text="🆘 EMERGENCY", callback_data="admin_emergency")
+        ]
     ])
 
 def admin_description() -> str:

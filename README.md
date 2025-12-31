@@ -21,7 +21,14 @@ SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform 
 
 **Current Status (December 31, 2025):** Production Ready. Entry point: `bot.py`
 
-**New in v2.0.1:**
+**New in v2.0.2:**
+- Structured Logging with categorized events (SECURITY, CAMPAIGN, DM, PARSER, FLOOD, SYSTEM)
+- Flood Monitor with severity-based alerts (LOW/MEDIUM/HIGH/CRITICAL)
+- Comprehensive Unit Test Suite (33 tests via pytest)
+- API Reference Documentation (docs/API_REFERENCE.md)
+- RBAC enforcement on all admin handlers
+
+**v2.0.1:**
 - Real-time System Stats (CPU/RAM/Disk via psutil)
 - Health Dashboard with service monitoring
 - In-memory Cache Service with TTL
@@ -38,13 +45,15 @@ SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform 
 4. [Botnet Infrastructure](#botnet-infrastructure)
 5. [Advanced Parsing & Monitoring](#advanced-parsing--monitoring)
 6. [Forensics & Analysis Suite](#forensics--analysis-suite)
-7. [Security & Encryption](#security--encryption)
-8. [Role-Based Access Control](#role-based-access-control)
-9. [OSINT Capabilities](#osint-capabilities)
-10. [Campaign Management](#campaign-management)
-11. [Funnel System](#funnel-system)
-12. [AI Integration](#ai-integration)
-13. [Technology Stack](#technology-stack)
+7. [Structured Logging & Monitoring](#structured-logging--monitoring)
+8. [Security & Encryption](#security--encryption)
+9. [Role-Based Access Control](#role-based-access-control)
+10. [OSINT Capabilities](#osint-capabilities)
+11. [Campaign Management](#campaign-management)
+12. [Funnel System](#funnel-system)
+13. [AI Integration](#ai-integration)
+14. [Testing](#testing)
+15. [Technology Stack](#technology-stack)
 
 ---
 
@@ -458,6 +467,62 @@ Target-based monitoring:
 
 ---
 
+## Structured Logging & Monitoring
+
+### Structured Logger
+**File:** `core/structured_logging.py`
+
+Categorized logging with metrics and context:
+
+| Category | Description |
+|----------|-------------|
+| `SECURITY` | Authentication, authorization events |
+| `CAMPAIGN` | Campaign creation, execution |
+| `DM` | Direct message operations |
+| `PARSER` | Group parsing events |
+| `FLOOD` | Telegram flood events |
+| `SYSTEM` | System-level events |
+
+Features:
+- Contextual metadata (user_id, session_id, task_id, duration_ms)
+- Automatic metrics tracking (total_logs, errors, warnings, flood_events)
+- JSON export for analysis
+- In-memory log storage with configurable limits
+
+### Flood Monitor
+**File:** `core/flood_monitor.py`
+
+Real-time flood event monitoring:
+
+| Severity | Threshold | Description |
+|----------|-----------|-------------|
+| `LOW` | < 3 floods | Minor flood events |
+| `MEDIUM` | 3+ floods/session | Needs attention |
+| `HIGH` | 300s+ wait | Significant delay |
+| `CRITICAL` | 5+ floods/session | Immediate action required |
+
+Configurable thresholds:
+```python
+{
+    "floods_per_session_warn": 3,
+    "floods_per_session_critical": 5,
+    "floods_per_task_warn": 5,
+    "floods_per_task_critical": 10,
+    "wait_seconds_warn": 300,
+    "wait_seconds_critical": 600,
+    "window_minutes": 60
+}
+```
+
+Features:
+- Session/task flood tracking
+- Automatic alert generation
+- Pause recommendations
+- Ukrainian-language reports
+- Alert acknowledgement system
+
+---
+
 ## Security & Encryption
 
 ### SHADOW Key System
@@ -722,6 +787,51 @@ Requires: ReportLab library
 
 ---
 
+## Testing
+
+### Unit Test Suite
+**Directory:** `tests/`
+
+The project includes a comprehensive test suite using pytest and pytest-asyncio:
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ --cov=core
+```
+
+### Test Coverage
+
+| Test File | Module | Tests |
+|-----------|--------|-------|
+| `test_dm_sender.py` | DMSenderService | 14 tests |
+| `test_group_parser.py` | GroupParserService | 9 tests |
+| `test_bot_session.py` | BotSession model | 12 tests |
+
+### Test Categories
+
+**DMSenderService Tests:**
+- Service initialization
+- Task creation with blacklist/cooldown filtering
+- Task stop/start operations
+- Flood protection (24h cooldown)
+- Statistics tracking
+
+**GroupParserService Tests:**
+- User list storage
+- ParsedUser dataclass
+- ParseJob creation
+- Filter enum values
+
+**BotSession Tests:**
+- Availability checks (status, flood wait, success rate)
+- Statistics update
+- Status constants
+
+---
+
 ## Technology Stack
 
 ### Core Framework
@@ -776,5 +886,5 @@ SHADOW LICENSE - Proprietary Ukrainian Software
 
 ---
 
-**Last Updated:** December 29, 2025  
-**Version:** 2.0 (Fully Optimized)
+**Last Updated:** December 31, 2025  
+**Version:** 2.0.2

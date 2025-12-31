@@ -32,3 +32,4 @@ sqlalchemy
 telethon
 cryptg
 psutil
+argon2-cffi

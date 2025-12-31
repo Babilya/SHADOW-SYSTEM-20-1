@@ -15,6 +15,7 @@ from .campaigns_handler import router as campaigns_router
 from .osint_handler import osint_router as osint_handler_router
 from .proxy import proxy_router
 from .referral import referral_router
+from .profile import profile_router
 
 __all__ = [
     "botnet_router",
@@ -33,4 +34,5 @@ __all__ = [
     "osint_handler_router",
     "proxy_router",
     "referral_router",
+    "profile_router",
 ]

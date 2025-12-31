@@ -27,6 +27,8 @@ Advanced features include:
 -   **AI Communication Styles:** 8 default personas (friendly, professional, casual, sales, tech, crypto, support, mysterious), custom persona creation, training via examples, GPT-5 powered response generation.
 -   **Geo Scanner:** Telethon-based GetLocatedRequest for finding nearby users/groups/channels, with caching, filtering, distance calculation, and result formatting.
 -   **Comprehensive Funnel System:** Full CRUD for funnels, integrated with mailing templates, scheduling, and OSINT analysis, with trigger-based transitions.
+-   **Group Parsing:** Telethon-based member extraction from groups/channels with filters (all, active recently, with username, premium only, no bots), saved lists management, and export to mailing.
+-   **DM Sender:** Personal message campaigns with session rotation, personalization ({name}, {username}, {date}), blacklist management, 24h cooldown tracking, and proper flood protection (FloodWaitError, PeerFloodError, UserPrivacyRestrictedError handling with auto-pause).
 -   **Advanced Tools:** AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, Keyword Analyzer, Forensic Snapshotting, AI Sentiment Analysis, Anti-Ghost Recovery, X-Ray Metadata analysis, and an in-memory Memory Indexer for full-text search.
 -   **User Profile System:** Profile management (display_name, email, project_name, project_goals) with optional session password (Argon2 hashed), configurable session timeout (1-24h), Leader-Manager linking (leader_id field). Tables: `user_profiles`, `user_sessions`.
 

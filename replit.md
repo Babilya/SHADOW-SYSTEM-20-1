@@ -3,8 +3,17 @@
 ## Overview
 SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. It provides comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, focusing on robust functionality over a payment/balance system.
 
-## Project Structure (Cleaned - December 2025)
-**Removed:** `shadow_system_io/` duplicate folder, `main.py` (unused), `simple_bot.py` (unused)
+## Project Structure (Cleaned - December 31, 2025)
+**Removed:** 
+- `shadow_system_io/` duplicate folder
+- `main.py` (unused)
+- `simple_bot.py` (unused)  
+- `keyboards/admin.py` (consolidated to role_menus.py)
+- `keyboards/user.py` (consolidated to role_menus.py)
+- `keyboards/admin_kb.py` (consolidated to role_menus.py)
+
+**Backups Created:** `keyboards/*.py.bak` files for reference
+
 **Active Entry Point:** `bot.py` - main Telegram bot dispatcher
 
 ### Root Directory Organization
@@ -33,9 +42,10 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - Ukrainian interface with styled formatting (dividers, emoji, button layouts)
 - Prefer simplicity over unnecessary complexity
 
-## Feature Status (December 29, 2025)
+## Feature Status (December 31, 2025)
 - **Baseline Functionality:** 100% Complete (All initial ТЗ implemented)
 - **v2.0 Additions:** 16+ advanced modules (Forensics, AI tools, Real-time monitoring)
+- **UI/UX Refactor:** ✅ Complete - Unified menu system across all roles
 - **See:** `FEATURE_MATRIX.md` for detailed comparison
 
 ## System Architecture
@@ -56,13 +66,18 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - **Comprehensive Funnel System:** Full CRUD for funnels, integration with mailing templates, scheduling, OSINT analysis, and monitoring with trigger-based transitions.
 - **Advanced Tools:** Includes AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, and Keyword Analyzer.
 
-### UI/UX Standards
+### UI/UX Standards (December 31, 2025 - UNIFIED)
 - Ukrainian language throughout the interface.
-- Dividers: exactly 15 single-line chars `───────────────` (mobile-optimized).
-- Progress bars: native collab style `●●●●○○○○ 50%`.
-- Standardized button layouts (1/2/3 per row).
-- Rich HTML formatting (bold, italic, code) for messages.
-- Tree-like list structures (e.g., `├ └`).
+- **Dividers:** exactly 15 single-line chars `───────────────` (mobile-optimized).
+- **Progress bars:** native collab style `●●●●○○○○ 50%`.
+- **Standardized button layouts:** 1/2/3 per row with consistent spacing.
+- **Rich HTML formatting:** bold, italic, code formatting for messages.
+- **Tree-like list structures:** e.g., `├ └` for hierarchical info.
+- **Back buttons:** Universal `◀️ Назад` with callback_data standardization.
+- **Menu consolidation:** All role menus unified in `keyboards/role_menus.py`
+  - Guest, Manager, Leader, Admin menus with consistent styling
+  - Unified descriptions with role-based information sections
+  - Back buttons using shared `back_button()` utility function
 - No frames/borders - clean minimal design.
 - Deployment: Reserved VM (Background Worker).
 
@@ -170,3 +185,38 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - Spam pattern detection
 - Alert system with severity levels
 - Event tracking and statistics
+
+## UI System Refactor (December 31, 2025)
+
+### Consolidation Summary
+**Problem:** 2 different styling systems for funnels/buttons across roles, especially in back navigation
+**Solution:** Unified keyboard system in `keyboards/role_menus.py`
+
+### Key Changes
+1. **Centralized All Menus:**
+   - Guest menu, Manager menu, Leader menu, Admin menu
+   - License, Subscription, Settings menus
+   - Broadcast and confirmation menus
+   - All previously scattered across `admin.py`, `user.py`, `admin_kb.py`
+
+2. **Consistent Styling:**
+   - `DIVIDER = "───────────────"` constant used everywhere
+   - `back_button()` utility function for universal back buttons
+   - All descriptions use same structure: `<b>Title</b> <i>subtitle</i> DIVIDER content`
+   - Tree structures with `├ └` symbols throughout
+
+3. **Role-Based Dispatchers:**
+   - `get_menu_by_role(role: str)` - Returns appropriate menu
+   - `get_description_by_role(role: str)` - Returns consistent role description
+   - All callback_data normalized to standard patterns
+
+4. **Handler Updates:**
+   - `handlers/user.py` now imports from `keyboards.role_menus`
+   - `main_menu()` function added for universal main menu access
+   - All menu functions available in single import source
+
+### Architecture Benefit
+- **No Function Loss:** All previous functionality preserved
+- **Single Source of Truth:** One file for all menu definitions
+- **Easy Maintenance:** Changes to UI styling affect all roles uniformly
+- **Extensibility:** New menus added to one place, instantly available to all handlers

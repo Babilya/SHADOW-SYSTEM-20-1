@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, InaccessibleMessage
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -8,7 +8,7 @@ from services.user_service import user_service
 from config import ADMIN_IDS
 from database.models import UserRole
 import logging
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 funnels_router = Router()
@@ -106,7 +106,7 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.clear()
     
-    if not query.message:
+    if not query.message or isinstance(query.message, InaccessibleMessage):
         return
     
     if not await check_funnel_access(query.from_user.id):
@@ -143,7 +143,7 @@ async def funnels_main(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data == "funnel_create")
 async def funnel_create_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message:
+    if not query.message or isinstance(query.message, InaccessibleMessage):
         return
     await state.set_state(FunnelStates.waiting_name)
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -190,7 +190,7 @@ async def funnel_create_name(message: Message, state: FSMContext):
 async def funnel_view(query: CallbackQuery, state: FSMContext):
     await query.answer()
     await state.clear()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -239,7 +239,7 @@ async def funnel_view(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_name_"))
 async def funnel_edit_name_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
@@ -277,7 +277,7 @@ async def funnel_edit_name_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_desc_"))
 async def funnel_edit_desc_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
@@ -311,7 +311,7 @@ async def funnel_edit_desc_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_photo_"))
 async def funnel_edit_photo_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
@@ -350,7 +350,7 @@ async def funnel_edit_photo_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_remove_photo_"))
 async def funnel_remove_photo(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel_service.update_funnel(funnel_id, photo_file_id=None)
@@ -364,7 +364,7 @@ async def funnel_remove_photo(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_edit_config_"))
 async def funnel_edit_config_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(editing_funnel_id=funnel_id)
@@ -399,7 +399,7 @@ async def funnel_edit_config_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_toggle_"))
 async def funnel_toggle(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -417,7 +417,7 @@ async def funnel_toggle(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_stats_"))
 async def funnel_stats(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -462,7 +462,7 @@ async def funnel_stats(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_delete_"))
 async def funnel_delete_confirm(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -480,7 +480,7 @@ async def funnel_delete_confirm(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_delete_confirm_"))
 async def funnel_delete_execute(query: CallbackQuery):
     await query.answer("Видалено!")
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel_service.delete_funnel(funnel_id)
@@ -496,7 +496,7 @@ async def funnel_delete_execute(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_steps_"))
 async def funnel_steps_list(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -518,7 +518,7 @@ async def funnel_steps_list(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_add_"))
 async def step_add_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     await state.update_data(adding_step_funnel_id=funnel_id)
@@ -577,7 +577,7 @@ async def step_add_photo(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data == "step_skip_photo")
 async def step_skip_photo(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message:
+    if not query.message or isinstance(query.message, InaccessibleMessage):
         return
     data = await state.get_data()
     funnel_id = data.get("adding_step_funnel_id")
@@ -600,7 +600,7 @@ async def step_skip_photo(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("step_view_"))
 async def step_view(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     step_id = int(query.data.split("_")[-1])
     
@@ -640,6 +640,7 @@ async def step_view(query: CallbackQuery):
             ],
             [InlineKeyboardButton(text="◀️ До кроків", callback_data=f"funnel_steps_{funnel_id}")]
         ])
+        await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     except Exception as e:
         logger.error(f"Error in step_view: {e}")
         await query.message.edit_text("❌ Помилка завантаження кроку")
@@ -648,11 +649,11 @@ async def step_view(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("step_osint_bio_"))
 async def step_osint_bio(query: CallbackQuery):
-    """OSINT-аналіз біографії/цілей для кроку воронки"""
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
+        return
     step_id = int(query.data.split("_")[-1])
     await query.answer("🔬 Аналіз біографії цілей...", show_alert=False)
     
-    # Імітація глибокого аналізу через OSINT модуль
     text = f"""<b>🧬 OSINT: АНАЛІЗ ЦІЛЬОВОЇ БІОГРАФІЇ</b>
 <i>Для кроку воронки #{step_id}</i>
 
@@ -681,7 +682,7 @@ async def step_osint_bio(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_delete_"))
 async def step_delete(query: CallbackQuery):
     await query.answer("Видалено!")
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     step_id = int(query.data.split("_")[-1])
     
@@ -703,7 +704,7 @@ async def step_delete(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("step_edit_"))
 async def step_edit_start(query: CallbackQuery, state: FSMContext):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     step_id = int(query.data.split("_")[-1])
     
@@ -750,7 +751,7 @@ async def step_edit_content_save(message: Message, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_templates_"))
 async def funnel_templates(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -795,7 +796,7 @@ async def funnel_templates(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("apply_tpl:"))
 async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     parts = query.data.split(":")
     funnel_id = int(parts[1])
@@ -814,12 +815,15 @@ async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
     
     funnel = funnel_service.get_funnel(funnel_id)
     funnel_name = _get_attr(funnel, 'name', '') if funnel else ''
-    new_step = funnel_service.add_step(
-        funnel_id=funnel_id,
-        content=template['content'],
-        title=template['name'],
-        photo_file_id=template.get('media_file_id')
-    )
+    media_file_id = template.get('media_file_id')
+    step_kwargs = {
+        "funnel_id": funnel_id,
+        "content": template['content'],
+        "title": template['name'],
+    }
+    if media_file_id:
+        step_kwargs["photo_file_id"] = str(media_file_id)
+    new_step = funnel_service.add_step(**step_kwargs)
     
     await query.answer("✅ Крок з шаблоном додано!", show_alert=True)
     
@@ -835,7 +839,7 @@ async def apply_template_to_funnel(query: CallbackQuery, state: FSMContext):
 
 @funnels_router.callback_query(F.data.startswith("tpl_for_funnel:"))
 async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split(":")[1])
     await state.update_data(return_to_funnel=funnel_id)
@@ -863,7 +867,7 @@ async def create_template_for_funnel(query: CallbackQuery, state: FSMContext):
 @funnels_router.callback_query(F.data.startswith("funnel_schedule_"))
 async def funnel_schedule(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     funnel = funnel_service.get_funnel(funnel_id)
@@ -907,7 +911,7 @@ async def funnel_schedule(query: CallbackQuery):
 @funnels_router.callback_query(F.data.startswith("funnel_add_schedule_"))
 async def funnel_add_schedule(query: CallbackQuery):
     await query.answer()
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     funnel_id = int(query.data.split("_")[-1])
     
@@ -932,7 +936,7 @@ async def funnel_add_schedule(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("funnel_sched_set_"))
 async def funnel_schedule_set(query: CallbackQuery):
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     parts = query.data.split("_")
     funnel_id = int(parts[3])
@@ -951,7 +955,7 @@ async def funnel_schedule_set(query: CallbackQuery):
     async with get_session() as session:
         await scheduler_service.create_scheduled_mailing(
             session,
-            template_id=None,
+            template_id=0,
             owner_id=str(query.from_user.id),
             name=f"Воронка: {name}",
             schedule_type=schedule_type,
@@ -972,7 +976,7 @@ async def funnel_schedule_set(query: CallbackQuery):
 
 @funnels_router.callback_query(F.data.startswith("funnel_monitor:"))
 async def funnel_monitor_action(query: CallbackQuery):
-    if not query.message or not query.data:
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
         return
     parts = query.data.split(":")
     funnel_id = int(parts[1])
@@ -1043,6 +1047,81 @@ async def funnel_monitor_action(query: CallbackQuery):
             parse_mode="HTML"
         )
     else:
-        await query.answer(f"Функція {action} буде доступна найближчим часом", show_alert=True)
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data=f"funnel_monitor:{funnel_id}:menu")]
+        ])
+        await query.message.edit_text(
+            f"ℹ️ <b>Функція: {action}</b>\n\n<i>В розробці...</i>",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    await query.answer()
+
+@funnels_router.callback_query(F.data.startswith("funnel_mailing:"))
+async def funnel_mailing_action(query: CallbackQuery):
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
+        return
+    parts = query.data.split(":")
+    funnel_id = int(parts[1])
+    action = parts[2] if len(parts) > 2 else "menu"
     
+    funnel = funnel_service.get_funnel(funnel_id)
+    name = _get_attr(funnel, 'name', f'Воронка #{funnel_id}') if funnel else f'Воронка #{funnel_id}'
+    
+    if action == "menu":
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📧 Масова розсилка", callback_data=f"funnel_mailing:{funnel_id}:mass")],
+            [InlineKeyboardButton(text="🎯 Таргетована", callback_data=f"funnel_mailing:{funnel_id}:targeted")],
+            [InlineKeyboardButton(text="📊 Історія", callback_data=f"funnel_mailing:{funnel_id}:history")],
+            [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+        ])
+        await query.message.edit_text(
+            f"📧 <b>РОЗСИЛКА ДЛЯ ВОРОНКИ</b>\n"
+            f"<i>{name}</i>\n\n"
+            "───────────────═════\n\n"
+            "<b>Виберіть тип розсилки:</b>",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data=f"funnel_mailing:{funnel_id}:menu")]
+        ])
+        await query.message.edit_text(
+            f"ℹ️ <b>Функція: {action}</b>\n\n<i>В розробці...</i>",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    await query.answer()
+
+@funnels_router.callback_query(F.data.startswith("funnel_osint:"))
+async def funnel_osint_action(query: CallbackQuery):
+    if not query.message or isinstance(query.message, InaccessibleMessage) or not query.data:
+        return
+    parts = query.data.split(":")
+    funnel_id = int(parts[1])
+    action = parts[2] if len(parts) > 2 else "menu"
+    
+    funnel = funnel_service.get_funnel(funnel_id)
+    name = _get_attr(funnel, 'name', f'Воронка #{funnel_id}') if funnel else f'Воронка #{funnel_id}'
+    
+    if action == "menu":
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔍 Аналіз аудиторії", callback_data=f"funnel_osint:{funnel_id}:audience")],
+            [InlineKeyboardButton(text="📊 Конкуренти", callback_data=f"funnel_osint:{funnel_id}:competitors")],
+            [InlineKeyboardButton(text="🎯 Рекомендації", callback_data=f"funnel_osint:{funnel_id}:recommendations")],
+            [InlineKeyboardButton(text="◀️ До воронки", callback_data=f"funnel_view_{funnel_id}")]
+        ])
+        await query.message.edit_text(
+            f"🔍 <b>OSINT ДЛЯ ВОРОНКИ</b>\n"
+            f"<i>{name}</i>\n\n"
+            "───────────────═════\n\n"
+            "<b>Виберіть тип аналізу:</b>",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data=f"funnel_osint:{funnel_id}:menu")]
+        ])
+        await query.message.edit_text(
+            f"ℹ️ <b>Функція: {action}</b>\n\n<i>В розробці...</i>",
+            reply_markup=kb, parse_mode="HTML"
+        )
     await query.answer()

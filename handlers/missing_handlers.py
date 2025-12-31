@@ -810,6 +810,9 @@ async def stats_role(query: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data=f"users_{role}")]
     ])
+    if query.message is None:
+        await query.answer()
+        return
     await query.message.edit_text(f"""📊 <b>СТАТИСТИКА: {role.upper()}</b>
 
 <b>За останні 7 днів:</b>
@@ -822,3 +825,28 @@ async def stats_role(query: CallbackQuery):
 ├ Активних: 0
 └ Заблокованих: 0""", reply_markup=kb, parse_mode="HTML")
     await query.answer()
+
+
+@missing_router.callback_query()
+async def catch_all_callback(query: CallbackQuery):
+    """Catch-all handler for any unhandled callback queries"""
+    callback_data = query.data or "unknown"
+    logger.warning(f"Unhandled callback: {callback_data} from user {query.from_user.id if query.from_user else 'unknown'}")
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏠 Головне меню", callback_data="back_to_start")]
+    ])
+    
+    await query.answer("⚠️ Функція в розробці", show_alert=False)
+    
+    if query.message is not None:
+        try:
+            await query.message.edit_text(
+                f"⚠️ <b>ФУНКЦІЯ В РОЗРОБЦІ</b>\n\n"
+                f"Ця функція (<code>{callback_data}</code>) ще не реалізована.\n"
+                f"Будь ласка, поверніться до головного меню.",
+                reply_markup=kb,
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass

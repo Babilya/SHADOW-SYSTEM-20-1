@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
-from keyboards.guest_kb import apply_kb
+from keyboards.role_menus import apply_kb
 
 router = Router()
 

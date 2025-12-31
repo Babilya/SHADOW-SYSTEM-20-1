@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from keyboards.templates_kb import (
+from keyboards.role_menus import (
     templates_menu_kb, templates_list_kb, template_categories_kb,
     template_view_kb, template_create_category_kb, schedule_type_kb,
     schedule_interval_kb, schedule_target_kb, scheduled_list_kb,
@@ -209,7 +209,7 @@ async def template_content_received(message: Message, state: FSMContext):
     
     await state.clear()
     
-    from keyboards.templates_kb import templates_menu_kb
+    from keyboards.role_menus import templates_menu_kb
     
     await message.answer(f"""
 ✅ <b>Шаблон створено!</b>

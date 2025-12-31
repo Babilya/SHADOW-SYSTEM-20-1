@@ -20,7 +20,12 @@ A unified `UserRole` class (ROOT/ADMIN, LEADER, MANAGER, GUEST) in `core/role_co
 Advanced features include:
 -   **Campaign Management:** Worker pool with async queues, weighted round-robin bot selection, adaptive delay calculation, and A/B testing.
 -   **OSINT Engine:** Deep analysis, network graph building, threat assessment, pattern detection (phones, crypto, coordinates, emails), and evidence storage.
+-   **Multi-Database OSINT:** Unified search across 10+ data sources (Telegram, GetContact, TrueCaller, NumVerify, HIBP, EmailRep, Hunter, social platforms) with auto-detection by query type, merged profiles, and risk scoring.
 -   **Real-time Monitoring:** Telethon-based event listener for threat detection, pattern matching, and auto-actions, with dynamic alert thresholds.
+-   **Bot Activity Tracking:** Comprehensive activity dashboard with conversation records, incoming/outgoing contact tracking, event timeline (messages, reactions, commands), and health scoring.
+-   **Bot Commands System:** Reaction management (50+ emoji), user watching with change detection (username, name, photo, bio, status), alert notifications with read status.
+-   **AI Communication Styles:** 8 default personas (friendly, professional, casual, sales, tech, crypto, support, mysterious), custom persona creation, training via examples, GPT-5 powered response generation.
+-   **Geo Scanner:** Telethon-based GetLocatedRequest for finding nearby users/groups/channels, with caching, filtering, distance calculation, and result formatting.
 -   **Comprehensive Funnel System:** Full CRUD for funnels, integrated with mailing templates, scheduling, and OSINT analysis, with trigger-based transitions.
 -   **Advanced Tools:** AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, Keyword Analyzer, Forensic Snapshotting, AI Sentiment Analysis, Anti-Ghost Recovery, X-Ray Metadata analysis, and an in-memory Memory Indexer for full-text search.
 -   **User Profile System:** Profile management (display_name, email, project_name, project_goals) with optional session password (Argon2 hashed), configurable session timeout (1-24h), Leader-Manager linking (leader_id field). Tables: `user_profiles`, `user_sessions`.

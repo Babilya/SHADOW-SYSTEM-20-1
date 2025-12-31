@@ -19,7 +19,14 @@
 
 SHADOW SYSTEM iO v2.0 is a comprehensive Telegram marketing automation platform designed for Ukrainian-language operations. It provides advanced functionality for managing bot networks, mass messaging campaigns, OSINT intelligence gathering, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization and implements enterprise-grade security measures.
 
-**Current Status (December 2025):** Fully cleaned and optimized. Entry point: `bot.py`
+**Current Status (December 31, 2025):** Production Ready. Entry point: `bot.py`
+
+**New in v2.0.1:**
+- Real-time System Stats (CPU/RAM/Disk via psutil)
+- Health Dashboard with service monitoring
+- In-memory Cache Service with TTL
+- Enhanced REST API (OSINT, AI, System endpoints)
+- 40+ improvement recommendations documented
 
 ---
 
@@ -601,7 +608,12 @@ Scheduling presets:
 
 ### OpenAI Integration
 
-**Replit AI Integration:** Seamless connection to OpenAI-compatible models (e.g., GPT-5)
+**Replit AI Integration:** Seamless connection to OpenAI-compatible models (GPT-5 via Replit AI Integrations)
+
+**API Keys (Configured):**
+- `TELEGRAM_API_ID`: 20799080
+- `TELEGRAM_API_HASH`: d6b90fc1e1d4fc023d5bab647069473b
+- AI keys: Auto-configured via Replit AI Integrations
 
 Features:
 - AI Pattern Detection

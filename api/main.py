@@ -174,11 +174,118 @@ async def get_user_bots(user_id: int, session: AsyncSession = Depends(get_sessio
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "ok",
-        "service": "Shadow System V2.0",
-        "version": "2.0.0"
-    }
+    try:
+        from core.system_stats import system_stats
+        from core.health_dashboard import health_dashboard
+        stats = system_stats.get_all_stats()
+        await health_dashboard.check_all()
+        health_summary = health_dashboard.get_summary()
+        return {
+            "status": health_summary["overall"],
+            "service": "Shadow System V2.0",
+            "version": "2.0.0",
+            "uptime": stats["uptime"]["formatted"],
+            "cpu_percent": stats["cpu"]["usage_percent"],
+            "memory_percent": stats["memory"]["percent"],
+            "services": health_summary["services"]
+        }
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return {"status": "ok", "service": "Shadow System V2.0", "version": "2.0.0"}
+
+
+@app.get("/api/system/stats")
+async def get_system_stats():
+    """Get detailed system statistics"""
+    try:
+        from core.system_stats import system_stats
+        return system_stats.get_all_stats()
+    except Exception as e:
+        logger.error(f"System stats error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/system/cache")
+async def get_cache_stats():
+    """Get cache statistics"""
+    try:
+        from core.cache_service import cache_service
+        return cache_service.get_stats()
+    except Exception as e:
+        logger.error(f"Cache stats error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/cache/clear")
+async def clear_cache():
+    """Clear all cache"""
+    try:
+        from core.cache_service import cache_service
+        cleared = await cache_service.clear()
+        return {"cleared": cleared, "message": "Cache cleared successfully"}
+    except Exception as e:
+        logger.error(f"Cache clear error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/osint/dns/{domain}")
+async def osint_dns_lookup(domain: str):
+    """Perform DNS lookup"""
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.dns_lookup(domain)
+        return result
+    except Exception as e:
+        logger.error(f"DNS lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/osint/whois/{domain}")
+async def osint_whois_lookup(domain: str):
+    """Perform WHOIS lookup"""
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.whois_lookup(domain)
+        return result
+    except Exception as e:
+        logger.error(f"WHOIS lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/osint/geoip/{ip}")
+async def osint_geoip_lookup(ip: str):
+    """Perform GeoIP lookup"""
+    try:
+        from core.osint_service import osint_service
+        result = await osint_service.ip_geolocation(ip)
+        return result
+    except Exception as e:
+        logger.error(f"GeoIP lookup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ai/sentiment")
+async def ai_sentiment_analysis(text: str):
+    """Analyze text sentiment using AI"""
+    try:
+        from core.ai_service import ai_service
+        result = await ai_service.analyze_sentiment(text)
+        return result
+    except Exception as e:
+        logger.error(f"Sentiment analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ai/generate")
+async def ai_generate_text(topic: str, style: str = "professional"):
+    """Generate marketing text using AI"""
+    try:
+        from core.ai_service import ai_service
+        result = await ai_service.generate_campaign_text(topic, style)
+        return {"topic": topic, "style": style, "generated_text": result}
+    except Exception as e:
+        logger.error(f"Text generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

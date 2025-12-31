@@ -31,3 +31,4 @@ reportlab
 sqlalchemy
 telethon
 cryptg
+psutil

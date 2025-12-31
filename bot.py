@@ -319,6 +319,21 @@ async def command_start_help(message: Message, user_role: str = UserRole.GUEST, 
 
 async def start_services():
     try:
+        from core.cache_service import cache_service
+        await cache_service.start()
+        logger.info("✅ CacheService started")
+    except Exception as e:
+        logger.warning(f"CacheService failed: {e}")
+    
+    try:
+        from core.health_dashboard import health_dashboard, init_health_checks
+        init_health_checks()
+        await health_dashboard.start()
+        logger.info("✅ HealthDashboard started")
+    except Exception as e:
+        logger.warning(f"HealthDashboard failed: {e}")
+    
+    try:
         from core.rate_limiter import rate_limiter
         await rate_limiter.start()
         logger.info("✅ RateLimiter started")

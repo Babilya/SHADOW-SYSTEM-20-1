@@ -1,7 +1,7 @@
-# Shadow System v2.0
+# Shadow System v2.0.3
 
 ## Overview
-SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. Its primary purpose is to provide comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, emphasizing robust functionality over a payment/balance system. This platform aims to be a leading solution for advanced Telegram marketing and intelligence operations.
+SHADOW SYSTEM iO v2.0.3 is a professional Ukrainian-language Telegram marketing automation platform. Its primary purpose is to provide comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, emphasizing robust functionality over a payment/balance system. This platform aims to be a leading solution for advanced Telegram marketing and intelligence operations.
 
 ## User Preferences
 - Concise, high-level summaries over granular details
@@ -33,6 +33,11 @@ Advanced features include:
 -   **Flood Monitor:** Real-time flood event tracking with severity-based alerts (LOW/MEDIUM/HIGH/CRITICAL), configurable thresholds, session/task status monitoring, and automated pause recommendations.
 -   **Advanced Tools:** AI Pattern Detection, Spam Analyzer, Drip Campaign Manager, Behavior Profiler, Enhanced Report Generator, Keyword Analyzer, Forensic Snapshotting, AI Sentiment Analysis, Anti-Ghost Recovery, X-Ray Metadata analysis, and an in-memory Memory Indexer for full-text search.
 -   **User Profile System:** Profile management (display_name, email, project_name, project_goals) with optional session password (Argon2 hashed), configurable session timeout (1-24h), Leader-Manager linking (leader_id field). Tables: `user_profiles`, `user_sessions`.
+-   **Multi-Tier Referral System:** 5 tiers (Bronze/Silver/Gold/Platinum/Diamond), 3-level commission structure (10-20%), tier-specific bonus days per referral, achievement bonuses at milestones (1/5/10/25/50/100 referrals), withdrawal system with minimum threshold.
+-   **Enhanced Alert System:** Multi-channel delivery (Telegram/Email/Webhook/SMS framework), HTML email templates with severity-based styling, HMAC webhook signatures for security, severity levels (INFO/WARNING/ERROR/CRITICAL), subscriber management per channel.
+-   **A/B Testing Analytics:** Statistical significance calculator with z-test, p-value analysis, confidence intervals, lift calculation, minimum sample size estimation, automated winner detection, recommendations engine.
+-   **HWID Binding Service:** Hardware fingerprint collection (device_id, model, system_version, app_version), SHA-256 hashing, multi-device support with configurable limits, device similarity scoring (70% threshold), suspicious activity detection with auto-suspension after 5 failed attempts.
+-   **CRM Sync Service:** Real-time bidirectional synchronization, Notion/Airtable/Webhook adapters, configurable sync intervals (default 30min), auto-sync loops with asyncio, batch operations, sync history tracking, connection status monitoring.
 
 ### UI/UX Standards
 The interface is entirely in Ukrainian. It uses mobile-optimized dividers (`───────────────`), native-style progress bars (`●●●●○○○○ 50%`), and standardized button layouts (1/2/3 per row). Rich HTML formatting (bold, italic, code) is supported, and hierarchical information uses tree-like list structures (`├ └`). Universal `◀️ Назад` buttons with standardized callback data are implemented. All role menus (Guest, Manager, Leader, Admin) are unified in `keyboards/role_menus.py` for consistent styling and simplified maintenance, avoiding frames or borders for a clean, minimal design. The application is designed for deployment on a reserved VM acting as a background worker.

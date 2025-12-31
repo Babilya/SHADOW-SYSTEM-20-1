@@ -446,6 +446,28 @@ async def bans_active(callback: CallbackQuery):
     
     await safe_edit(callback, text, bans_list_kb(bans))
 
+@router.callback_query(F.data == "bans_history")
+async def bans_history(callback: CallbackQuery):
+    """Історія банів"""
+    async with get_session() as session:
+        bans = await ban_service.get_all_bans(session, active_only=False)
+    
+    text = f"""
+📜 <b>ІСТОРІЯ БАНІВ</b>
+───────────────═════
+
+Всього записів: {len(bans)}
+"""
+    
+    if bans:
+        await safe_edit(callback, text, bans_list_kb(bans))
+    else:
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="bans_menu")]
+        ])
+        await safe_edit(callback, text + "\n<i>Історія порожня</i>", kb)
+
 @router.callback_query(F.data.startswith("ban_view:"))
 async def ban_view(callback: CallbackQuery):
     """Перегляд бану"""

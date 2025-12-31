@@ -1,6 +1,6 @@
 import logging
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InaccessibleMessage
 from aiogram.filters import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.crud import ProjectCRUD
@@ -12,6 +12,14 @@ from utils.db import async_session
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+def _safe_role_str(role) -> str:
+    """Safely convert role to string, handling SQLAlchemy Column types"""
+    if role is None:
+        return UserRole.GUEST
+    if hasattr(role, '__clause_element__'):
+        return UserRole.GUEST
+    return str(role)
 
 @router.message(Command("start"))
 async def start_handler(message: Message, user_role: str = UserRole.GUEST):
@@ -28,12 +36,13 @@ async def start_handler(message: Message, user_role: str = UserRole.GUEST):
     if str(user_id) == str(ADMIN_ID):
         role = UserRole.ADMIN
         db_user = user_service.get_or_create_user(user_id, username, first_name)
-        if db_user and db_user.role != UserRole.ADMIN:
+        db_role = _safe_role_str(getattr(db_user, 'role', None)) if db_user else UserRole.GUEST
+        if db_user and db_role != UserRole.ADMIN:
             user_service.set_user_role(user_id, UserRole.ADMIN)
             logger.info(f"Forced ADMIN role for owner {user_id}")
     else:
         user = user_service.get_or_create_user(user_id, username, first_name)
-        role = user.role if user else UserRole.GUEST
+        role = _safe_role_str(getattr(user, 'role', None)) if user else UserRole.GUEST
         try:
             async with async_session() as session:
                 project = await ProjectCRUD.get_by_leader_async(str(user_id))
@@ -44,16 +53,18 @@ async def start_handler(message: Message, user_role: str = UserRole.GUEST):
         except Exception as e:
             logger.error(f"Error checking project: {e}")
 
+    role_str = _safe_role_str(role)
+    
     await audit_logger.log_auth(
         user_id=user_id,
         action="user_start",
         username=username,
-        details={"role": role}
+        details={"role": role_str}
     )
     
     await message.answer(
-        get_description_by_role(role),
-        reply_markup=get_menu_by_role(role),
+        get_description_by_role(role_str),
+        reply_markup=get_menu_by_role(role_str),
         parse_mode="HTML"
     )
 
@@ -64,14 +75,17 @@ async def user_menu_callback(callback: CallbackQuery):
         await callback.answer()
         return
     
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
+        return
+    
     username = callback.from_user.username or "unknown"
     first_name = callback.from_user.first_name or "User"
     user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
-    role = user.role if user else UserRole.GUEST
-    role_str = str(role) if role else UserRole.GUEST
+    role = _safe_role_str(getattr(user, 'role', None)) if user else UserRole.GUEST
     
-    new_text = get_description_by_role(role_str)
-    new_markup = get_menu_by_role(role_str)
+    new_text = get_description_by_role(role)
+    new_markup = get_menu_by_role(role)
     
     try:
         await callback.message.edit_text(
@@ -91,16 +105,19 @@ async def back_to_menu_callback(callback: CallbackQuery):
         await callback.answer()
         return
     
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
+        return
+    
     username = callback.from_user.username or "unknown"
     first_name = callback.from_user.first_name or "User"
     user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
-    role = user.role if user else UserRole.GUEST
-    role_str = str(role) if role else UserRole.GUEST
+    role = _safe_role_str(getattr(user, 'role', None)) if user else UserRole.GUEST
     
     try:
         await callback.message.edit_text(
-            get_description_by_role(role_str),
-            reply_markup=get_menu_by_role(role_str),
+            get_description_by_role(role),
+            reply_markup=get_menu_by_role(role),
             parse_mode="HTML"
         )
     except TelegramBadRequest as e:
@@ -115,11 +132,20 @@ async def profile_callback(callback: CallbackQuery):
         await callback.answer()
         return
     
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
+        return
+    
     username = callback.from_user.username or "unknown"
     first_name = callback.from_user.first_name or "User"
     user = user_service.get_or_create_user(callback.from_user.id, username, first_name)
-    role = user.role if user else UserRole.GUEST
-    created_at = user.created_at.strftime('%d.%m.%Y') if user and user.created_at else 'N/A'
+    role = _safe_role_str(getattr(user, 'role', None)) if user else UserRole.GUEST
+    
+    created_at_val = getattr(user, 'created_at', None) if user else None
+    if created_at_val and not hasattr(created_at_val, '__clause_element__'):
+        created_at = created_at_val.strftime('%d.%m.%Y')
+    else:
+        created_at = 'N/A'
     
     text = f"""👤 <b>ВАШ ПРОФІЛЬ</b>
 ───────────────
@@ -127,7 +153,7 @@ async def profile_callback(callback: CallbackQuery):
 ├ 🆔 <code>{callback.from_user.id}</code>
 ├ 👤 @{callback.from_user.username or 'не вказано'}
 ├ 📝 {first_name}
-├ 🎭 <b>{str(role).upper()}</b>
+├ 🎭 <b>{role.upper()}</b>
 └ 📅 {created_at}"""
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -146,6 +172,10 @@ async def texting_callback(callback: CallbackQuery):
     
     if not callback.message:
         await callback.answer()
+        return
+    
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
         return
     
     text = """✍️ <b>ТЕКСТОВКИ</b>
@@ -180,6 +210,10 @@ async def settings_callback(callback: CallbackQuery):
         await callback.answer()
         return
     
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
+        return
+    
     text = """⚙️ <b>НАЛАШТУВАННЯ</b>
 <i>Конфігурація проекту</i>
 ───────────────
@@ -206,6 +240,10 @@ async def warming_callback(callback: CallbackQuery):
     
     if not callback.message:
         await callback.answer()
+        return
+    
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
         return
     
     text = f"""🔥 <b>ПРОГРІВ</b>
@@ -243,6 +281,10 @@ async def support_callback(callback: CallbackQuery):
         await callback.answer()
         return
     
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
+        return
+    
     text = """💬 <b>ПІДТРИМКА</b>
 <i>Технічна допомога</i>
 ───────────────
@@ -275,6 +317,10 @@ async def warming_start_callback(callback: CallbackQuery):
     
     if not callback.message:
         await callback.answer()
+        return
+    
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
         return
     
     text = f"""🔥 <b>ПРОГРІВ ЗАПУЩЕНО</b>
@@ -310,6 +356,10 @@ async def warming_stop_callback(callback: CallbackQuery):
     
     if not callback.message:
         await callback.answer()
+        return
+    
+    if isinstance(callback.message, InaccessibleMessage):
+        await callback.answer("Повідомлення недоступне")
         return
     
     kb = InlineKeyboardMarkup(inline_keyboard=[

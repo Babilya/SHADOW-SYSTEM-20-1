@@ -3,18 +3,22 @@
 ## Overview
 SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing automation platform. It provides comprehensive functionality for managing bot networks, mass mailings, OSINT reconnaissance, team collaboration, and AI-powered features. The system uses SHADOW license keys for authorization, focusing on robust functionality over a payment/balance system.
 
-## Project Structure (Cleaned - December 31, 2025)
-**Removed:** 
-- `shadow_system_io/` duplicate folder
-- `main.py` (unused)
-- `simple_bot.py` (unused)  
-- `keyboards/admin.py` (consolidated to role_menus.py)
-- `keyboards/user.py` (consolidated to role_menus.py)
-- `keyboards/admin_kb.py` (consolidated to role_menus.py)
+## Project Structure (Reorganized - December 31, 2025)
 
-**Backups Created:** `keyboards/*.py.bak` files for reference
+**Handler Reorganization:**
+- `handlers/core/` - Authentication, start, help, user, security handlers
+- `handlers/features/` - Campaigns, botnet, osint, mailing, funnels, etc.
+- `handlers/moderation/` - Support, tickets, notifications handlers  
+- `handlers/integrations/` - Templates, scheduler, export, geo handlers
 
-**Active Entry Point:** `bot.py` - main Telegram bot dispatcher
+**UI Components:**
+- `core/ui_builder.py` - MenuMessage, MessageBuilder, UniversalPaginator classes
+- `core/ui_components.py` - StatusIndicator, Paginator, ProgressBar classes
+- `keyboards/user.py` - Compatibility wrapper for role_menus imports
+
+**Active Entry Point:** `bot.py` - Uses single main_router from handlers/__init__.py
+
+**Backups:** `keyboards/*.py.bak` files for reference
 
 ### Root Directory Organization
 - **api/** - API endpoints (FastAPI/minimal)

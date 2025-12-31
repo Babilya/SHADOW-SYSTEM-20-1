@@ -4,7 +4,7 @@ import sys
 import os
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InaccessibleMessage
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import F
 
@@ -16,32 +16,8 @@ logger = logging.getLogger(__name__)
 from config.settings import BOT_TOKEN, ADMIN_ID
 # Use ADMIN_ID from config as the list for backward compatibility
 ADMIN_IDS = [int(ADMIN_ID)]
-from handlers.start import router as start_router
-from handlers.user import user_router
-from handlers.admin import admin_router
-from handlers.botnet import botnet_router
-from handlers.osint import osint_router
-from handlers.analytics import router as analytics_router
-from handlers.team import router as team_router
-from handlers.subscriptions import router as subscriptions_router
-from handlers.funnels import funnels_router
-from handlers.help import router as help_router
-from handlers.texting import texting_router
-from handlers.applications import applications_router
+from handlers import main_router
 from handlers.emergency import emergency_router
-from handlers.configurator import configurator_router
-from handlers.security import security_router
-from handlers.tickets import tickets_router
-from handlers.referral import referral_router
-from handlers.mailing import mailing_router
-from handlers.missing_handlers import missing_router
-from handlers.auth_system import router as auth_router
-from handlers.proxy import proxy_router
-from handlers.export import export_router
-from handlers.warming import warming_router
-from handlers.scheduler import scheduler_router
-from handlers.geoscanner import geo_router
-from handlers.advanced_features import advanced_router
 from middlewares.security_middleware import SecurityMiddleware
 from utils.db import init_db
 from middlewares.role_middleware import RoleMiddleware
@@ -60,48 +36,24 @@ dp.callback_query.middleware(SecurityMiddleware())
 dp.message.middleware(RoleMiddleware())
 dp.callback_query.middleware(RoleMiddleware())
 
-# Register routers - ORDER MATTERS for command precedence
-routers = [
-    start_router,  # Place start router first
-    admin_router,
-    user_router,
-    botnet_router,
-    osint_router,
-    analytics_router,
-    team_router,
-    subscriptions_router,
-    funnels_router,
-    help_router,
-    texting_router,
-    applications_router,
-    emergency_router,
-    configurator_router,
-    security_router,
-    tickets_router,
-    referral_router,
-    mailing_router,
-    missing_router,
-    proxy_router,
-    export_router,
-    warming_router,
-    scheduler_router,
-    geo_router,
-    auth_router,
-    advanced_router
-]
+# Register main router (contains all handlers from organized subdirectories)
+try:
+    dp.include_router(main_router)
+except Exception as e:
+    logger.error(f"❌ Error including main router: {e}")
 
-for r in routers:
-    try:
-        dp.include_router(r)
-    except Exception as e:
-        logger.error(f"❌ Error including router: {e}")
+try:
+    dp.include_router(emergency_router)
+except Exception as e:
+    logger.error(f"❌ Error including emergency router: {e}")
 
 @dp.message(CommandStart())
 async def command_start(message: Message, user_role: str = UserRole.GUEST, **kwargs):
     try:
         user = message.from_user
+        if user is None:
+            return
         
-        # Check if user is in ADMIN_IDS from config
         from config.settings import ADMIN_ID
         if str(user.id) == str(ADMIN_ID) and user_role != UserRole.ADMIN:
             user_service.set_user_role(user.id, UserRole.ADMIN)
@@ -133,18 +85,24 @@ async def command_role(message: Message, user_role: str = UserRole.GUEST, **kwar
 @dp.callback_query(F.data == "user_menu")
 async def user_menu_callback(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from keyboards.user import main_menu, main_menu_description
     await query.message.edit_text(main_menu_description(), reply_markup=main_menu(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "view_tariffs")
 async def view_tariffs_callback(query: CallbackQuery, **kwargs):
     await query.answer()
-    from handlers.subscriptions import subscriptions_description, subscriptions_kb
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
+    from handlers.features.subscriptions import subscriptions_description, subscriptions_kb
     await query.message.edit_text(subscriptions_description(), reply_markup=subscriptions_kb(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "submit_application")
 async def submit_application_callback(query: CallbackQuery, **kwargs):
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🆓 Free", callback_data="apply_free")],
@@ -163,6 +121,8 @@ async def submit_application_callback(query: CallbackQuery, **kwargs):
 @dp.callback_query(F.data == "support")
 async def support_callback(query: CallbackQuery, **kwargs):
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💬 Написати", url="https://t.me/shadow_support")],
@@ -180,6 +140,8 @@ async def support_callback(query: CallbackQuery, **kwargs):
 @dp.callback_query(F.data == "back_to_start")
 async def back_to_start_callback(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     menu = get_menu_by_role(user_role)
     description = get_description_by_role(user_role)
     await query.message.edit_text(description, reply_markup=menu, parse_mode="HTML")
@@ -190,6 +152,8 @@ async def admin_applications_callback(query: CallbackQuery, user_role: str = Use
         await query.answer("❌ Тільки для адміністраторів", show_alert=True)
         return
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📥 Нові заявки (3)", callback_data="new_applications")],
@@ -210,6 +174,8 @@ async def admin_keys_callback(query: CallbackQuery, user_role: str = UserRole.GU
         await query.answer("❌ Тільки для адміністраторів", show_alert=True)
         return
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔑 Генерувати ключ", callback_data="generate_key")],
@@ -230,6 +196,8 @@ async def admin_change_role_callback(query: CallbackQuery, user_role: str = User
         await query.answer("❌ Тільки для адміністраторів", show_alert=True)
         return
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
@@ -255,6 +223,8 @@ async def admin_settings_callback(query: CallbackQuery, user_role: str = UserRol
         await query.answer("❌ Тільки для адміністраторів", show_alert=True)
         return
     await query.answer()
+    if isinstance(query.message, InaccessibleMessage) or query.message is None:
+        return
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
@@ -275,6 +245,8 @@ async def command_setrole(message: Message, user_role: str = UserRole.GUEST, **k
         await message.answer("❌ Тільки для адміністраторів")
         return
     
+    if message.text is None:
+        return
     args = message.text.split()[1:]
     if len(args) != 2:
         await message.answer(

@@ -197,3 +197,111 @@ class MenuBuilder:
 def format_divider() -> str:
     """Generate consistent divider - 15 chars single line"""
     return DIVIDER
+
+
+class UniversalPaginator(Paginator):
+    """Extended paginator with support for different view types"""
+    
+    def __init__(
+        self,
+        items: List[Any],
+        view_type: str,
+        page: int = 1,
+        per_page: int = 10,
+        item_formatter: Optional[Callable[[Any, int], tuple]] = None
+    ):
+        callback_prefix = f"{view_type}_page"
+        super().__init__(items, page, per_page, callback_prefix)
+        self.view_type = view_type
+        self.item_formatter = item_formatter or self._default_formatter
+    
+    def _default_formatter(self, item: Any, index: int) -> tuple:
+        """Default item formatter, returns (text, callback_data)"""
+        if hasattr(item, 'name'):
+            name = getattr(item, 'name', 'Item')
+        elif isinstance(item, dict) and 'name' in item:
+            name = item.get('name', 'Item')
+        else:
+            name = str(item)
+        
+        if hasattr(item, 'id'):
+            item_id = getattr(item, 'id')
+        elif isinstance(item, dict) and 'id' in item:
+            item_id = item.get('id', index)
+        else:
+            item_id = index
+        
+        return (str(name)[:30], f"{self.view_type}_view_{item_id}")
+    
+    def get_item_buttons(self) -> List[List[InlineKeyboardButton]]:
+        """Get buttons for items on current page"""
+        buttons = []
+        for i, item in enumerate(self.current_items):
+            global_index = (self.page - 1) * self.per_page + i
+            text, callback = self.item_formatter(item, global_index)
+            buttons.append([InlineKeyboardButton(text=text, callback_data=callback)])
+        return buttons
+    
+    def build_keyboard(
+        self,
+        back_callback: str = "back_to_menu",
+        extra_buttons: Optional[List[List[InlineKeyboardButton]]] = None
+    ) -> InlineKeyboardMarkup:
+        """Build complete keyboard with pagination"""
+        buttons = self.get_item_buttons()
+        
+        if self.total_pages > 1:
+            buttons.append(self.get_nav_buttons())
+        
+        if extra_buttons:
+            buttons.extend(extra_buttons)
+        
+        buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data=back_callback)])
+        
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+class StatusIndicator:
+    """Status indicators for various states"""
+    
+    ICONS = {
+        "online": "🟢",
+        "offline": "⚪",
+        "busy": "🟡",
+        "error": "🔴",
+        "warning": "🟠",
+        "success": "✅",
+        "pending": "⏳",
+        "active": "🔵",
+        "paused": "⏸",
+    }
+    
+    @staticmethod
+    def get(status: str, with_text: bool = False) -> str:
+        """Get status icon, optionally with text"""
+        icon = StatusIndicator.ICONS.get(status.lower(), "⚪")
+        if with_text:
+            return f"{icon} {status.capitalize()}"
+        return icon
+    
+    @staticmethod
+    def health(value: int) -> str:
+        """Get health indicator based on percentage"""
+        if value >= 80:
+            return "🟢"
+        elif value >= 50:
+            return "🟡"
+        elif value >= 20:
+            return "🟠"
+        else:
+            return "🔴"
+    
+    @staticmethod
+    def trend(current: float, previous: float) -> str:
+        """Get trend indicator"""
+        if current > previous:
+            return "📈"
+        elif current < previous:
+            return "📉"
+        else:
+            return "➡️"

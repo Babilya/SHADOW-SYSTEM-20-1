@@ -593,7 +593,7 @@ def notification_role_kb(notif_type: str) -> InlineKeyboardMarkup:
     buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data=f"notif_target:{notif_type}:role")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def notification_multi_role_kb(notif_type: str, selected: list = None) -> InlineKeyboardMarkup:
+def notification_multi_role_kb(notif_type: str, selected: list | None = None) -> InlineKeyboardMarkup:
     """Notification multi-role selection"""
     if selected is None:
         selected = []

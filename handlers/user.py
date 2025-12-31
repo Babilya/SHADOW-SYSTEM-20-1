@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards.user import main_menu, subscription_menu, settings_menu, main_menu_description, license_menu
+from keyboards.role_menus import main_menu, main_menu_description, license_menu, subscription_menu, settings_menu
 import json
 from datetime import datetime
 

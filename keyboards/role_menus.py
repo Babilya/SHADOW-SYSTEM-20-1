@@ -132,7 +132,10 @@ def leader_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="⚙️ КОНФІГ", callback_data="settings_main"),
             InlineKeyboardButton(text="🎧 ПІДТРИМКА", callback_data="support_menu")
         ],
-        [InlineKeyboardButton(text="🛠 ІНСТРУМЕНТИ", callback_data="advanced_tools")],
+        [
+            InlineKeyboardButton(text="🛠 ІНСТРУМЕНТИ", callback_data="advanced_tools"),
+            InlineKeyboardButton(text="🎭 AI СТИЛІ", callback_data="ai_styles_menu")
+        ],
         [InlineKeyboardButton(text="🔬 КРИМІНАЛІСТИКА", callback_data="forensics_menu")],
         [
             InlineKeyboardButton(text="📖 ДОВІДКА", callback_data="help_main"),
@@ -199,7 +202,7 @@ def admin_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="🎨 РЕДАКТОР UI", callback_data="ui_editor"),
-            InlineKeyboardButton(text="📱 МЕНЮ ЮЗЕРА", callback_data="user_menu")
+            InlineKeyboardButton(text="🎭 AI СТИЛІ", callback_data="ai_styles_menu")
         ],
         [InlineKeyboardButton(text="🔬 КРИМІНАЛІСТИКА", callback_data="forensics_menu")],
         [

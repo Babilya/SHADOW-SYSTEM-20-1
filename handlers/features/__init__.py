@@ -17,6 +17,7 @@ from .proxy import proxy_router
 from .referral import referral_router
 from .profile import profile_router
 from .ai_styles import ai_styles_router
+from .parsing import parsing_router
 
 __all__ = [
     "botnet_router",
@@ -37,4 +38,5 @@ __all__ = [
     "referral_router",
     "profile_router",
     "ai_styles_router",
+    "parsing_router",
 ]

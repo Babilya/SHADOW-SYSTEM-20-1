@@ -51,11 +51,16 @@ async def system_restart(query: CallbackQuery):
 
 @admin_router.callback_query(F.data == "system_clear_cache")
 async def system_clear_cache(query: CallbackQuery):
-    await query.answer("✅ Кеш очищено!", show_alert=True)
+    import logging
+    logger = logging.getLogger(__name__)
+    cleared = await cache_service.clear()
+    logger.info(f"Cache cleared by admin: {query.from_user.id}, entries: {cleared}")
+    await query.answer(f"✅ Кеш очищено! ({cleared} записів)", show_alert=True)
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📦 Статистика кешу", callback_data="system_cache_stats")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_system")]
     ])
-    await safe_edit_message(query, "🗑️ <b>Кеш очищено!</b>\n\nВсі тимчасові дані видалено.", kb)
+    await safe_edit_message(query, f"🗑️ <b>Кеш очищено!</b>\n\n✅ Видалено записів: <code>{cleared}</code>\n📊 Кеш тепер порожній.", kb)
 
 @admin_router.message(AdminStates.waiting_block_id)
 async def process_block(message: Message, state: FSMContext):

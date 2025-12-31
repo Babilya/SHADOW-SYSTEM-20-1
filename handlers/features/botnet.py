@@ -23,6 +23,8 @@ class BotnetStates(StatesGroup):
     waiting_session_file = State()
     waiting_session_string = State()
     waiting_proxy_add = State()
+    waiting_reaction_target = State()
+    waiting_watch_user = State()
 
 def botnet_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -31,6 +33,14 @@ def botnet_kb():
             InlineKeyboardButton(text="📋 БОТИ", callback_data="list_bots"),
             InlineKeyboardButton(text="🔄 ПРОКСІ", callback_data="proxy_rotation"),
             InlineKeyboardButton(text="📊 СТАТИ", callback_data="bots_stats")
+        ],
+        [
+            InlineKeyboardButton(text="📈 АКТИВНІСТЬ", callback_data="bot_activity_dashboard"),
+            InlineKeyboardButton(text="💬 ПЕРЕПИСКИ", callback_data="bot_conversations")
+        ],
+        [
+            InlineKeyboardButton(text="⚡ КОМАНДИ", callback_data="bot_commands_menu"),
+            InlineKeyboardButton(text="👁 СТЕЖЕННЯ", callback_data="bot_watch_menu")
         ],
         [
             InlineKeyboardButton(text="🔥 ПРОГРІВ", callback_data="warm_bots"),
@@ -878,3 +888,680 @@ async def imported_sessions_list(query: CallbackQuery):
         [InlineKeyboardButton(text="◀️ Назад", callback_data="session_import_menu")]
     ])
     await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_activity_dashboard")
+async def bot_activity_dashboard(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    from core.session_manager import session_manager
+    
+    stats = bot_activity_tracker.get_stats()
+    summaries = await bot_activity_tracker.get_all_bots_summary()
+    
+    text = "<b>📈 ДАШБОРД АКТИВНОСТІ БОТІВ</b>\n"
+    text += "═══════════════════════\n\n"
+    text += f"<b>📊 Загальна статистика:</b>\n"
+    text += f"├ Ботів відстежується: {stats['bots_tracked']}\n"
+    text += f"├ Всього подій: {stats['total_events']}\n"
+    text += f"└ Всього діалогів: {stats['total_conversations']}\n\n"
+    
+    if summaries:
+        text += "<b>🤖 Активність ботів:</b>\n"
+        for i, bot in enumerate(summaries[:8], 1):
+            status_icon = "🟢" if bot["is_active"] else "🔴"
+            health_icon = "💚" if bot["health_score"] >= 80 else "💛" if bot["health_score"] >= 50 else "❤️"
+            text += f"{i}. {status_icon} <code>{bot['bot_id'][:20]}</code>\n"
+            text += f"   ├ {health_icon} Здоров'я: {bot['health_score']}%\n"
+            text += f"   ├ ↑ Відправлено: {bot['messages_sent']}\n"
+            text += f"   ├ ↓ Отримано: {bot['messages_received']}\n"
+            text += f"   └ 💬 Діалогів: {bot['conversations']}\n"
+    else:
+        text += "<i>Немає даних про активність</i>\n"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📋 Детальний звіт", callback_data="bot_detailed_report")],
+        [InlineKeyboardButton(text="📩 Хто пише ботам", callback_data="bot_incoming_contacts")],
+        [InlineKeyboardButton(text="📤 Кому пишуть боти", callback_data="bot_outgoing_contacts")],
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="bot_activity_dashboard")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_conversations")
+async def bot_conversations_menu(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    stats = bot_activity_tracker.get_stats()
+    
+    text = "<b>💬 ПЕРЕПИСКИ БОТІВ</b>\n"
+    text += "═══════════════════════\n\n"
+    text += f"<b>📊 Статистика:</b>\n"
+    text += f"├ Всього діалогів: {stats['total_conversations']}\n"
+    text += f"└ Ботів з діалогами: {stats['bots_tracked']}\n\n"
+    text += "<b>Виберіть категорію:</b>"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📩 Вхідні (хто пише ботам)", callback_data="bot_incoming_contacts")],
+        [InlineKeyboardButton(text="📤 Вихідні (кому пишуть боти)", callback_data="bot_outgoing_contacts")],
+        [InlineKeyboardButton(text="🔥 Топ контакти", callback_data="bot_top_contacts")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_incoming_contacts")
+async def bot_incoming_contacts(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    all_incoming = []
+    for bot_id in bot_activity_tracker.conversations.keys():
+        incoming = await bot_activity_tracker.get_incoming_contacts(bot_id)
+        for conv in incoming:
+            all_incoming.append((bot_id, conv))
+    
+    all_incoming.sort(key=lambda x: x[1].last_message, reverse=True)
+    
+    text = "<b>📩 ХТО ПИШЕ БОТАМ</b>\n"
+    text += "═══════════════════════\n"
+    text += "<i>Контакти, які ініціювали діалог</i>\n\n"
+    
+    if not all_incoming:
+        text += "<i>Немає вхідних контактів</i>"
+    else:
+        for i, (bot_id, conv) in enumerate(all_incoming[:15], 1):
+            name = conv.user_username or conv.user_name or str(conv.user_id)
+            diff = (query.message.date.replace(tzinfo=None) - conv.last_message) if hasattr(query.message, 'date') else None
+            time_str = conv.last_message.strftime("%d.%m %H:%M")
+            
+            text += f"<b>{i}. {name}</b>\n"
+            text += f"   ├ ID: <code>{conv.user_id}</code>\n"
+            text += f"   ├ Бот: <code>{bot_id[:15]}...</code>\n"
+            text += f"   ├ ↑{conv.messages_sent} ↓{conv.messages_received}\n"
+            text += f"   └ 🕐 {time_str}\n"
+            
+            if conv.last_message_preview:
+                text += f"   💬 <i>{conv.last_message_preview[:40]}...</i>\n"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="bot_incoming_contacts")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_conversations")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_outgoing_contacts")
+async def bot_outgoing_contacts(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    all_outgoing = []
+    for bot_id in bot_activity_tracker.conversations.keys():
+        outgoing = await bot_activity_tracker.get_outgoing_conversations(bot_id)
+        for conv in outgoing:
+            all_outgoing.append((bot_id, conv))
+    
+    all_outgoing.sort(key=lambda x: x[1].last_message, reverse=True)
+    
+    text = "<b>📤 КОМУ ПИШУТЬ БОТИ</b>\n"
+    text += "═══════════════════════\n"
+    text += "<i>Вихідні діалоги</i>\n\n"
+    
+    if not all_outgoing:
+        text += "<i>Немає вихідних діалогів</i>"
+    else:
+        for i, (bot_id, conv) in enumerate(all_outgoing[:15], 1):
+            name = conv.user_username or conv.user_name or str(conv.user_id)
+            time_str = conv.last_message.strftime("%d.%m %H:%M")
+            
+            text += f"<b>{i}. {name}</b>\n"
+            text += f"   ├ ID: <code>{conv.user_id}</code>\n"
+            text += f"   ├ Бот: <code>{bot_id[:15]}...</code>\n"
+            text += f"   ├ ↑{conv.messages_sent} ↓{conv.messages_received}\n"
+            text += f"   └ 🕐 {time_str}\n"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="bot_outgoing_contacts")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_conversations")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_top_contacts")
+async def bot_top_contacts(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    all_contacts = []
+    for bot_id, convs in bot_activity_tracker.conversations.items():
+        for user_id, conv in convs.items():
+            total_msgs = conv.messages_sent + conv.messages_received
+            all_contacts.append((bot_id, conv, total_msgs))
+    
+    all_contacts.sort(key=lambda x: x[2], reverse=True)
+    
+    text = "<b>🔥 ТОП КОНТАКТИ</b>\n"
+    text += "═══════════════════════\n"
+    text += "<i>За кількістю повідомлень</i>\n\n"
+    
+    if not all_contacts:
+        text += "<i>Немає даних</i>"
+    else:
+        for i, (bot_id, conv, total) in enumerate(all_contacts[:15], 1):
+            name = conv.user_username or conv.user_name or str(conv.user_id)
+            direction = "📩" if conv.is_incoming else "📤"
+            
+            text += f"<b>{i}. {direction} {name}</b>\n"
+            text += f"   ├ Всього: {total} повідомлень\n"
+            text += f"   └ ↑{conv.messages_sent} ↓{conv.messages_received}\n"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="bot_top_contacts")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_conversations")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_detailed_report")
+async def bot_detailed_report(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    summaries = await bot_activity_tracker.get_all_bots_summary()
+    
+    text = "<b>📋 ДЕТАЛЬНИЙ ЗВІТ БОТІВ</b>\n"
+    text += "═══════════════════════\n\n"
+    
+    if not summaries:
+        text += "<i>Немає даних</i>"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_activity_dashboard")]
+        ])
+    else:
+        buttons = []
+        for bot in summaries[:10]:
+            bot_id = bot['bot_id']
+            short_id = bot_id[:15] + "..." if len(bot_id) > 15 else bot_id
+            status = "🟢" if bot["is_active"] else "🔴"
+            buttons.append([InlineKeyboardButton(
+                text=f"{status} {short_id} ({bot['messages_sent']}↑ {bot['messages_received']}↓)",
+                callback_data=f"bot_report:{bot_id[:30]}"
+            )])
+        
+        text += "Виберіть бота для детального звіту:\n"
+        
+        buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="bot_activity_dashboard")])
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data.startswith("bot_report:"))
+async def show_bot_report(query: CallbackQuery):
+    await query.answer("⏳ Генерую звіт...")
+    if not query.message or not query.data:
+        return
+    
+    bot_id = query.data.replace("bot_report:", "")
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    report = await bot_activity_tracker.get_bot_report(bot_id)
+    text = bot_activity_tracker.format_report(report)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Переписки", callback_data=f"bot_convs:{bot_id[:30]}")],
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data=f"bot_report:{bot_id[:30]}")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_detailed_report")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data.startswith("bot_convs:"))
+async def show_bot_conversations(query: CallbackQuery):
+    await query.answer()
+    if not query.message or not query.data:
+        return
+    
+    bot_id = query.data.replace("bot_convs:", "")
+    
+    from core.bot_activity_tracker import bot_activity_tracker
+    
+    conversations = list(bot_activity_tracker.conversations.get(bot_id, {}).values())
+    conversations.sort(key=lambda x: x.last_message, reverse=True)
+    
+    text = bot_activity_tracker.format_conversations_list(
+        conversations,
+        f"💬 ПЕРЕПИСКИ БОТА"
+    )
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data=f"bot_convs:{bot_id[:30]}")],
+        [InlineKeyboardButton(text="◀️ До звіту", callback_data=f"bot_report:{bot_id[:30]}")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "bot_commands_menu")
+async def bot_commands_menu(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    stats = bot_commands.get_stats()
+    
+    text = "<b>⚡ КОМАНДИ БОТАМ</b>\n"
+    text += "═══════════════════════\n\n"
+    text += f"<b>📊 Статистика:</b>\n"
+    text += f"├ Команд в черзі: {stats['total_pending_commands']}\n"
+    text += f"├ Ботів з командами: {stats['bots_with_commands']}\n"
+    text += f"└ Виконано: {stats['command_history_size']}\n\n"
+    text += "<b>Доступні команди:</b>\n"
+    text += "├ 👍 Реакції на пости\n"
+    text += "├ 💬 Відправка повідомлень\n"
+    text += "├ 📥 Вхід в чати\n"
+    text += "└ 📤 Вихід з чатів"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👍 Поставити реакцію", callback_data="cmd_add_reaction")],
+        [InlineKeyboardButton(text="💬 Відправити повідомлення", callback_data="cmd_send_message")],
+        [InlineKeyboardButton(text="📥 Вступити в чат", callback_data="cmd_join_chat")],
+        [InlineKeyboardButton(text="📋 Черга команд", callback_data="cmd_queue_view")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "cmd_add_reaction")
+async def cmd_add_reaction_menu(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    reactions = bot_commands.available_reactions[:32]
+    reaction_text = " ".join(reactions)
+    
+    text = "<b>👍 ДОДАТИ РЕАКЦІЮ</b>\n"
+    text += "═══════════════════════\n\n"
+    text += "<b>Доступні реакції:</b>\n"
+    text += f"{reaction_text}\n\n"
+    text += "<b>Виберіть популярну реакцію:</b>"
+    
+    buttons = []
+    row = []
+    for i, r in enumerate(reactions[:16]):
+        row.append(InlineKeyboardButton(text=r, callback_data=f"reaction_select:{r}"))
+        if len(row) == 4:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    
+    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="bot_commands_menu")])
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data.startswith("reaction_select:"))
+async def reaction_selected(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    if not query.message or not query.data:
+        return
+    
+    reaction = query.data.replace("reaction_select:", "")
+    await state.update_data(selected_reaction=reaction)
+    await state.set_state(BotnetStates.waiting_reaction_target)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="bot_commands_menu")]
+    ])
+    
+    await query.message.edit_text(
+        f"👍 <b>РЕАКЦІЯ: {reaction}</b>\n"
+        f"═══════════════════════\n\n"
+        f"<b>Введіть посилання на пост:</b>\n"
+        f"<i>https://t.me/channel/123</i>\n\n"
+        f"Або у форматі:\n"
+        f"<code>@channel 123</code>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@botnet_router.message(BotnetStates.waiting_reaction_target)
+async def process_reaction_target(message: Message, state: FSMContext):
+    data = await state.get_data()
+    reaction = data.get("selected_reaction", "👍")
+    target = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    if not target:
+        await message.answer("❌ Порожній ввід")
+        return
+    
+    from core.bot_commands import bot_commands, CommandType
+    from core.session_manager import session_manager
+    
+    sessions = session_manager.get_active_sessions()
+    if not sessions:
+        await message.answer("❌ Немає активних ботів")
+        return
+    
+    chat_id = 0
+    message_id = 0
+    
+    if "t.me/" in target:
+        parts = target.split("/")
+        if len(parts) >= 2:
+            try:
+                message_id = int(parts[-1])
+                chat_id = parts[-2] if not parts[-2].isdigit() else int(parts[-2])
+            except:
+                pass
+    elif " " in target:
+        parts = target.split()
+        if len(parts) >= 2:
+            chat_id = parts[0]
+            try:
+                message_id = int(parts[1])
+            except:
+                pass
+    
+    if not message_id:
+        await message.answer("❌ Не вдалось розпарсити посилання")
+        return
+    
+    queued = 0
+    for session in sessions[:5]:
+        bot_id = session.get("phone", session.get("session_id", "unknown"))
+        await bot_commands.queue_command(
+            bot_id=bot_id,
+            command_type=CommandType.ADD_REACTION,
+            target_id=chat_id if isinstance(chat_id, int) else None,
+            target_username=chat_id if isinstance(chat_id, str) else None,
+            params={"message_id": message_id, "reaction": reaction}
+        )
+        queued += 1
+    
+    await message.answer(
+        f"✅ <b>Команди додано в чергу</b>\n\n"
+        f"├ Реакція: {reaction}\n"
+        f"├ Чат: <code>{chat_id}</code>\n"
+        f"├ Повідомлення: {message_id}\n"
+        f"└ Ботів: {queued}",
+        parse_mode="HTML"
+    )
+
+
+@botnet_router.callback_query(F.data == "cmd_queue_view")
+async def cmd_queue_view(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    text = "<b>📋 ЧЕРГА КОМАНД</b>\n"
+    text += "═══════════════════════\n\n"
+    
+    total = 0
+    for bot_id, commands in bot_commands.pending_commands.items():
+        if commands:
+            total += len(commands)
+            text += f"<b>{bot_id[:20]}...</b>\n"
+            for cmd in commands[:3]:
+                text += f"  └ {cmd.command_type.value}\n"
+            if len(commands) > 3:
+                text += f"  └ ...ще {len(commands) - 3}\n"
+    
+    if total == 0:
+        text += "<i>Черга порожня</i>"
+    else:
+        text += f"\n<b>Всього команд:</b> {total}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🗑 Очистити чергу", callback_data="cmd_clear_queue")],
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="cmd_queue_view")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_commands_menu")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "cmd_clear_queue")
+async def cmd_clear_queue(query: CallbackQuery):
+    from core.bot_commands import bot_commands
+    bot_commands.pending_commands.clear()
+    await query.answer("✅ Чергу очищено", show_alert=True)
+    await cmd_queue_view(query)
+
+
+@botnet_router.callback_query(F.data == "bot_watch_menu")
+async def bot_watch_menu(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    stats = bot_commands.get_stats()
+    unread_alerts = stats['unread_alerts']
+    
+    alert_badge = f" ({unread_alerts})" if unread_alerts > 0 else ""
+    
+    text = "<b>👁 СТЕЖЕННЯ ЗА ЮЗЕРАМИ</b>\n"
+    text += "═══════════════════════\n\n"
+    text += f"<b>📊 Статистика:</b>\n"
+    text += f"├ Відстежується: {stats['total_watched_users']}\n"
+    text += f"├ Сповіщень: {stats['total_alerts']}\n"
+    text += f"└ Непрочитаних: {unread_alerts}\n\n"
+    text += "<b>🔔 Відстежувані зміни:</b>\n"
+    text += "├ 👤 Зміна юзернейму\n"
+    text += "├ 📝 Зміна імені\n"
+    text += "├ 🖼 Зміна фото\n"
+    text += "├ 📄 Зміна біо\n"
+    text += "└ 🟢 Онлайн статус"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"🔔 Сповіщення{alert_badge}", callback_data="watch_alerts")],
+        [InlineKeyboardButton(text="➕ Додати юзера", callback_data="watch_add_user")],
+        [InlineKeyboardButton(text="📋 Список відстежуваних", callback_data="watch_list")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="botnet_main")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "watch_add_user")
+async def watch_add_user(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    if not query.message:
+        return
+    
+    await state.set_state(BotnetStates.waiting_watch_user)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="bot_watch_menu")]
+    ])
+    
+    await query.message.edit_text(
+        "<b>➕ ДОДАТИ ДО СТЕЖЕННЯ</b>\n"
+        "═══════════════════════\n\n"
+        "<b>Введіть юзера:</b>\n"
+        "<i>@username або Telegram ID</i>\n\n"
+        "<b>Що відстежується:</b>\n"
+        "├ Зміна юзернейму\n"
+        "├ Зміна імені\n"
+        "├ Зміна фото\n"
+        "└ Зміна біо",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@botnet_router.message(BotnetStates.waiting_watch_user)
+async def process_watch_user(message: Message, state: FSMContext):
+    target = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    if not target:
+        await message.answer("❌ Порожній ввід")
+        return
+    
+    from core.bot_commands import bot_commands, WatchEventType
+    from core.session_manager import session_manager
+    
+    sessions = session_manager.get_active_sessions()
+    if not sessions:
+        await message.answer("❌ Немає активних ботів")
+        return
+    
+    username = target.lstrip("@") if target.startswith("@") else None
+    try:
+        user_id = int(target) if not username else 0
+    except:
+        user_id = 0
+    
+    if not username and not user_id:
+        await message.answer("❌ Невірний формат")
+        return
+    
+    bot_id = sessions[0].get("phone", sessions[0].get("session_id", "unknown"))
+    
+    await bot_commands.watch_user(
+        bot_id=bot_id,
+        user_id=user_id or hash(username) % 1000000000,
+        username=username,
+        events=[
+            WatchEventType.USERNAME_CHANGED,
+            WatchEventType.NAME_CHANGED,
+            WatchEventType.PHOTO_CHANGED,
+            WatchEventType.BIO_CHANGED
+        ],
+        notify_user_id=message.from_user.id if message.from_user else 0
+    )
+    
+    await message.answer(
+        f"✅ <b>Додано до стеження</b>\n\n"
+        f"├ Юзер: <code>{username or user_id}</code>\n"
+        f"├ Бот: <code>{bot_id[:20]}</code>\n"
+        f"└ Сповіщення: увімкнено",
+        parse_mode="HTML"
+    )
+
+
+@botnet_router.callback_query(F.data == "watch_list")
+async def watch_list(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    all_watched = await bot_commands.get_all_watched_users()
+    
+    text = "<b>📋 СПИСОК ВІДСТЕЖУВАНИХ</b>\n"
+    text += "═══════════════════════\n\n"
+    
+    total = 0
+    for bot_id, targets in all_watched.items():
+        if targets:
+            total += len(targets)
+            text += f"<b>🤖 {bot_id[:15]}...</b>\n"
+            for target in targets[:5]:
+                name = target.target_username or target.target_name or str(target.target_id)
+                text += f"  └ 👁 {name}\n"
+            if len(targets) > 5:
+                text += f"  └ ...ще {len(targets) - 5}\n"
+    
+    if total == 0:
+        text += "<i>Список порожній</i>"
+    else:
+        text += f"\n<b>Всього:</b> {total}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="watch_list")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="bot_watch_menu")]
+    ])
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data == "watch_alerts")
+async def watch_alerts(query: CallbackQuery):
+    await query.answer()
+    if not query.message:
+        return
+    
+    from core.bot_commands import bot_commands
+    
+    alerts = await bot_commands.get_unread_alerts()
+    text = bot_commands.format_alerts(alerts)
+    
+    buttons = []
+    if alerts:
+        alert_ids = [a.alert_id for a in alerts]
+        buttons.append([InlineKeyboardButton(
+            text="✅ Прочитано",
+            callback_data=f"mark_alerts_read:{len(alert_ids)}"
+        )])
+    
+    buttons.append([InlineKeyboardButton(text="🔄 Оновити", callback_data="watch_alerts")])
+    buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="bot_watch_menu")])
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    await query.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+
+@botnet_router.callback_query(F.data.startswith("mark_alerts_read:"))
+async def mark_alerts_read(query: CallbackQuery):
+    from core.bot_commands import bot_commands
+    
+    alerts = await bot_commands.get_unread_alerts()
+    alert_ids = [a.alert_id for a in alerts]
+    await bot_commands.mark_alerts_notified(alert_ids)
+    
+    await query.answer(f"✅ {len(alert_ids)} сповіщень прочитано", show_alert=True)
+    await watch_alerts(query)
+
+
+@botnet_router.callback_query(F.data == "cmd_send_message")
+async def cmd_send_message(query: CallbackQuery):
+    await query.answer("🔧 В розробці", show_alert=True)
+
+
+@botnet_router.callback_query(F.data == "cmd_join_chat")
+async def cmd_join_chat(query: CallbackQuery):
+    await query.answer("🔧 В розробці", show_alert=True)

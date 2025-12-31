@@ -16,6 +16,7 @@ from .osint_handler import osint_router as osint_handler_router
 from .proxy import proxy_router
 from .referral import referral_router
 from .profile import profile_router
+from .ai_styles import ai_styles_router
 
 __all__ = [
     "botnet_router",
@@ -35,4 +36,5 @@ __all__ = [
     "proxy_router",
     "referral_router",
     "profile_router",
+    "ai_styles_router",
 ]

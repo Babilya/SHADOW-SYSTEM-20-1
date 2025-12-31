@@ -22,25 +22,29 @@ class OSINTStates(StatesGroup):
     waiting_email = State()
     waiting_deep_parse = State()
     waiting_monitor_chats = State()
+    waiting_unified_search = State()
+    waiting_phone_search = State()
+    waiting_username_search = State()
 
 def osint_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔎 МУЛЬТИ-ПОШУК", callback_data="osint_unified")],
+        [
+            InlineKeyboardButton(text="📱 ТЕЛЕФОН", callback_data="osint_phone"),
+            InlineKeyboardButton(text="📧 EMAIL", callback_data="osint_email"),
+            InlineKeyboardButton(text="👤 ЮЗЕРНЕЙМ", callback_data="osint_username")
+        ],
         [
             InlineKeyboardButton(text="🌐 DNS", callback_data="osint_dns"),
             InlineKeyboardButton(text="📋 WHOIS", callback_data="osint_whois"),
             InlineKeyboardButton(text="🌍 GEO", callback_data="osint_geoip")
         ],
         [
-            InlineKeyboardButton(text="📧 EMAIL", callback_data="osint_email"),
-            InlineKeyboardButton(text="👤 ЮЗЕРИ", callback_data="user_analysis"),
-            InlineKeyboardButton(text="💬 ЧАТИ", callback_data="chat_analysis")
+            InlineKeyboardButton(text="💬 ЧАТИ", callback_data="chat_analysis"),
+            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse")
         ],
         [
-            InlineKeyboardButton(text="🔬 АНАЛІЗ", callback_data="deep_parse"),
-            InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor")
-        ],
-        [
-            InlineKeyboardButton(text="📥 ЕКСПОРТ", callback_data="export_contacts"),
+            InlineKeyboardButton(text="📡 РЕАЛТАЙМ", callback_data="realtime_monitor"),
             InlineKeyboardButton(text="📈 СТАТИ", callback_data="osint_stats")
         ],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="user_menu")]
@@ -527,3 +531,191 @@ async def adjust_monitor_settings(query: CallbackQuery):
     
     await query.answer("✅ Оновлено")
     await monitor_settings(query)
+
+
+@osint_router.callback_query(F.data == "osint_unified")
+async def osint_unified_menu(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    if not query.message:
+        return
+    await state.set_state(OSINTStates.waiting_unified_search)
+    
+    from core.multi_osint import multi_osint
+    stats = multi_osint.get_stats()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        f"🔎 <b>МУЛЬТИ-БАЗА OSINT</b>\n"
+        f"═══════════════════════\n"
+        f"<i>Пошук по всіх базах одночасно</i>\n\n"
+        f"<b>📊 Статистика:</b>\n"
+        f"├ Всього пошуків: {stats['total_searches']}\n"
+        f"├ По телефонах: {stats['phone_searches']}\n"
+        f"├ По email: {stats['email_searches']}\n"
+        f"├ По юзернеймах: {stats['username_searches']}\n"
+        f"└ Джерел опитано: {stats['sources_queried']}\n\n"
+        f"<b>📝 Введіть запит:</b>\n"
+        f"<i>Телефон, email, @username або Telegram ID</i>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.message(OSINTStates.waiting_unified_search)
+async def process_unified_search(message: Message, state: FSMContext):
+    query_text = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    if not query_text:
+        await message.answer("❌ Порожній запит")
+        return
+    
+    from core.multi_osint import multi_osint
+    
+    await message.answer(f"🔍 Шукаю <code>{query_text}</code> по всіх базах...\n<i>Це може зайняти кілька секунд</i>", parse_mode="HTML")
+    
+    result = await multi_osint.unified_search(query_text)
+    formatted = multi_osint.format_result(result)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Новий пошук", callback_data="osint_unified")],
+        [InlineKeyboardButton(text="📥 Експорт", callback_data=f"export_osint:{result.query}")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    
+    await message.answer(formatted, reply_markup=kb, parse_mode="HTML")
+
+
+@osint_router.callback_query(F.data == "osint_phone")
+async def osint_phone_menu(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    if not query.message:
+        return
+    await state.set_state(OSINTStates.waiting_phone_search)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "📱 <b>ПОШУК ПО ТЕЛЕФОНУ</b>\n"
+        "═══════════════════════\n"
+        "<i>Перевірка по базах операторів та соцмережах</i>\n\n"
+        "<b>📝 Введіть номер:</b>\n"
+        "<code>+380501234567</code>\n"
+        "<code>0501234567</code>\n"
+        "<code>380501234567</code>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.message(OSINTStates.waiting_phone_search)
+async def process_phone_search(message: Message, state: FSMContext):
+    phone = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    if not phone:
+        await message.answer("❌ Порожній номер")
+        return
+    
+    from core.multi_osint import multi_osint, SearchType
+    
+    await message.answer(f"📱 Аналізую <code>{phone}</code>...", parse_mode="HTML")
+    
+    result = await multi_osint.unified_search(phone, SearchType.PHONE)
+    formatted = multi_osint.format_result(result)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Новий пошук", callback_data="osint_phone")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    
+    await message.answer(formatted, reply_markup=kb, parse_mode="HTML")
+
+
+@osint_router.callback_query(F.data == "osint_username")
+async def osint_username_menu(query: CallbackQuery, state: FSMContext):
+    await query.answer()
+    if not query.message:
+        return
+    await state.set_state(OSINTStates.waiting_username_search)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Скасувати", callback_data="osint_main")]
+    ])
+    await query.message.edit_text(
+        "👤 <b>ПОШУК ПО ЮЗЕРНЕЙМУ</b>\n"
+        "═══════════════════════\n"
+        "<i>Перевірка наявності на платформах</i>\n\n"
+        "<b>🔎 Платформи:</b>\n"
+        "├ Telegram\n"
+        "├ Instagram\n"
+        "├ Twitter/X\n"
+        "├ GitHub\n"
+        "├ TikTok\n"
+        "├ LinkedIn\n"
+        "├ Facebook\n"
+        "└ VK\n\n"
+        "<b>📝 Введіть юзернейм:</b>\n"
+        "<i>@username або просто username</i>",
+        reply_markup=kb, parse_mode="HTML"
+    )
+
+
+@osint_router.message(OSINTStates.waiting_username_search)
+async def process_username_search(message: Message, state: FSMContext):
+    username = message.text.strip() if message.text else ""
+    await state.clear()
+    
+    if not username:
+        await message.answer("❌ Порожній юзернейм")
+        return
+    
+    from core.multi_osint import multi_osint, SearchType
+    
+    await message.answer(f"👤 Шукаю <code>{username}</code> на платформах...", parse_mode="HTML")
+    
+    result = await multi_osint.unified_search(username, SearchType.USERNAME)
+    formatted = multi_osint.format_result(result)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Новий пошук", callback_data="osint_username")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+    ])
+    
+    await message.answer(formatted, reply_markup=kb, parse_mode="HTML")
+
+
+@osint_router.callback_query(F.data.startswith("export_osint:"))
+async def export_osint_result(query: CallbackQuery):
+    await query.answer("📥 Експорт готується...")
+    if not query.data or not query.message:
+        return
+    
+    search_query = query.data.replace("export_osint:", "")
+    
+    from core.multi_osint import multi_osint
+    
+    if search_query in [r.query for r in multi_osint.cache.values()]:
+        result = multi_osint.cache.get(f"auto:{search_query}") or list(multi_osint.cache.values())[0]
+        
+        import json
+        export_data = {
+            "query": result.query,
+            "type": result.query_type.value,
+            "sources_found": result.sources_found,
+            "risk_score": result.risk_score,
+            "profile": result.merged_profile,
+            "timestamp": result.timestamp.isoformat()
+        }
+        
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="osint_main")]
+        ])
+        
+        await query.message.edit_text(
+            f"📥 <b>ЕКСПОРТ РЕЗУЛЬТАТУ</b>\n"
+            f"═══════════════════════\n"
+            f"<pre>{json.dumps(export_data, indent=2, ensure_ascii=False)[:3000]}</pre>",
+            reply_markup=kb, parse_mode="HTML"
+        )
+    else:
+        await query.message.edit_text("❌ Результат не знайдено в кеші")

@@ -4,9 +4,18 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from datetime import datetime
 import logging
+from core.role_constants import UserRole
 
 logger = logging.getLogger(__name__)
 missing_router = Router()
+
+def _is_admin(user_role: str) -> bool:
+    """Перевірка чи користувач адмін"""
+    return user_role == UserRole.ADMIN
+
+def _is_leader_or_admin(user_role: str) -> bool:
+    """Перевірка чи користувач лідер або адмін"""
+    return user_role in [UserRole.LEADER, UserRole.ADMIN]
 
 class KeyStates(StatesGroup):
     waiting_key = State()
@@ -149,7 +158,10 @@ async def process_key(message: Message, state: FSMContext):
     await state.clear()
 
 @missing_router.callback_query(F.data == "admin_analytics")
-async def admin_analytics(query: CallbackQuery):
+async def admin_analytics(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📈 Графіки", callback_data="analytics_charts")],
         [InlineKeyboardButton(text="📊 Звіти", callback_data="analytics_reports")],
@@ -166,7 +178,10 @@ async def admin_analytics(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_applications")
-async def admin_applications(query: CallbackQuery):
+async def admin_applications(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📥 Нові", callback_data="apps_new")],
         [InlineKeyboardButton(text="✅ Підтверджені", callback_data="apps_confirmed")],
@@ -183,7 +198,10 @@ async def admin_applications(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_bots")
-async def admin_bots(query: CallbackQuery):
+async def admin_bots(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 Активні", callback_data="bots_active")],
         [InlineKeyboardButton(text="🔴 Помилки", callback_data="bots_error")],
@@ -201,7 +219,10 @@ async def admin_bots(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_campaigns")
-async def admin_campaigns(query: CallbackQuery):
+async def admin_campaigns(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="▶️ Активні", callback_data="campaigns_active")],
         [InlineKeyboardButton(text="⏸ Пауза", callback_data="campaigns_paused")],
@@ -219,7 +240,10 @@ async def admin_campaigns(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_keys")
-async def admin_keys(query: CallbackQuery):
+async def admin_keys(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     from core.encryption import encryption_manager
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -237,7 +261,10 @@ async def admin_keys(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "gen_new_key")
-async def gen_new_key(query: CallbackQuery):
+async def gen_new_key(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     from core.encryption import encryption_manager
     
     new_key = encryption_manager.generate_secure_key("SHADOW")
@@ -255,7 +282,10 @@ async def gen_new_key(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_security")
-async def admin_security(query: CallbackQuery):
+async def admin_security(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚫 Заблокувати", callback_data="sec_ban")],
         [InlineKeyboardButton(text="📋 Логи", callback_data="security_logs")],
@@ -271,7 +301,10 @@ async def admin_security(query: CallbackQuery):
     await query.answer()
 
 @missing_router.callback_query(F.data == "admin_settings")
-async def admin_settings(query: CallbackQuery):
+async def admin_settings(query: CallbackQuery, user_role: str = UserRole.GUEST, **kwargs):
+    if not _is_admin(user_role):
+        await query.answer("❌ Доступ заборонено", show_alert=True)
+        return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚙️ CMS", callback_data="config_menu")],
         [InlineKeyboardButton(text="🔔 Сповіщення", callback_data="settings_notifications")],

@@ -33,3 +33,5 @@ telethon
 cryptg
 psutil
 argon2-cffi
+pytest
+pytest-asyncio

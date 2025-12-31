@@ -162,28 +162,51 @@ class BotSession(Base):
     
     def is_available(self) -> bool:
         """Перевірка доступності бота"""
-        if self.status in [BotSessionStatus.BANNED, BotSessionStatus.DEAD]:
-            return False
-        
-        if self.flood_wait_until and datetime.now() < self.flood_wait_until:
-            return False
-        
-        if self.success_rate < 30.0:
-            return False
+        try:
+            status_str = str(self.status) if self.status else ""
+            if status_str in [BotSessionStatus.BANNED, BotSessionStatus.DEAD]:
+                return False
             
-        return self.is_active
+            flood_dt = self.flood_wait_until
+            if flood_dt is not None:
+                try:
+                    if datetime.now() < flood_dt:
+                        return False
+                except (TypeError, ValueError):
+                    pass
+            
+            rate_val = self.success_rate
+            if rate_val is not None:
+                try:
+                    if float(rate_val) < 30.0:
+                        return False
+                except (TypeError, ValueError):
+                    pass
+            
+            active_val = self.is_active
+            return active_val is True or active_val == 1
+        except Exception:
+            return False
     
     def update_statistics(self, success: bool):
         """Оновлення статистики"""
-        self.messages_sent += 1
-        if not success:
-            self.messages_failed += 1
-        
-        total = self.messages_sent
-        if total > 0:
-            self.success_rate = ((total - self.messages_failed) / total) * 100
-        
-        self.last_active = datetime.now()
+        try:
+            sent = self.messages_sent
+            failed = self.messages_failed
+            
+            current_sent = int(sent) if sent is not None else 0
+            current_failed = int(failed) if failed is not None else 0
+            
+            self.messages_sent = current_sent + 1
+            if not success:
+                self.messages_failed = current_failed + 1
+            
+            total = int(self.messages_sent) if self.messages_sent else 1
+            fail_count = int(self.messages_failed) if self.messages_failed else 0
+            self.success_rate = ((total - fail_count) / total) * 100
+            self.last_active = datetime.now()
+        except Exception:
+            pass
 
 class Ticket(Base):
     __tablename__ = "tickets"

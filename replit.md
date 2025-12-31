@@ -220,3 +220,59 @@ SHADOW SYSTEM iO v2.0 is a professional Ukrainian-language Telegram marketing au
 - **Single Source of Truth:** One file for all menu definitions
 - **Easy Maintenance:** Changes to UI styling affect all roles uniformly
 - **Extensibility:** New menus added to one place, instantly available to all handlers
+
+## Keyboard System Consolidation (December 31, 2025 - COMPLETE)
+
+### Full Consolidation Status
+✅ **100% Complete** - All 8 specialized keyboard files merged into `keyboards/role_menus.py`
+
+#### Files Consolidated:
+1. **keyboards/advanced_kb.py** → 8 functions (AI analysis, spam check, drip campaigns, behavior, keywords, reports)
+2. **keyboards/notifications_kb.py** → 14 functions (notifications, bans management, project stats)
+3. **keyboards/forensics_kb.py** → 13 functions (forensics, monitoring, sentiment analysis, metadata)
+4. **keyboards/templates_kb.py** → 10 functions (templates, scheduling)
+5. **keyboards/support_kb.py** → 7 functions (support tickets, categories, ratings)
+6. **keyboards/application_kb.py** → 1 function (application duration)
+7. **keyboards/guest_kb.py** → 2 functions (guest menu, tariffs)
+8. **keyboards/user_kb.py** → 1 function (user main menu)
+
+**Total: 56 functions consolidated into single file**
+
+#### Handler Updates:
+✅ All 6 handlers updated to import from `keyboards.role_menus`:
+- `handlers/advanced_tools.py`
+- `handlers/forensics.py`
+- `handlers/guest_flow.py`
+- `handlers/notifications_handler.py`
+- `handlers/support_handler.py`
+- `handlers/templates_handler.py`
+
+#### Backup Created:
+All original files backed up with `.bak` extension in `keyboards/` directory
+
+#### Benefits Achieved:
+1. **Single Source of Truth** - All 431 keyboard buttons in one file
+2. **Consistent Styling** - All menus use same dividers, back buttons, formatting
+3. **Easier Maintenance** - Changes to UI style affect all roles uniformly
+4. **No Function Loss** - All 56 functions preserved with identical functionality
+5. **Clear Organization** - Menus grouped by functional area (Advanced Tools, Notifications, Forensics, etc.)
+
+#### Architecture:
+```
+keyboards/role_menus.py
+├─ Universal Components (back_button, DIVIDER)
+├─ Role-Based Menus (Guest, Manager, Leader, Admin)
+├─ Additional Menus (License, Subscription, Settings, Broadcast)
+├─ Advanced Tools (8 functions)
+├─ Notifications & Bans (14 functions)
+├─ Forensics (13 functions)
+├─ Templates & Scheduling (10 functions)
+├─ Support (7 functions)
+└─ Misc Keyboards (3 functions)
+```
+
+#### System Status:
+- ✅ Bot running successfully
+- ✅ All services initialized
+- ✅ Database connected
+- ✅ Imports working correctly

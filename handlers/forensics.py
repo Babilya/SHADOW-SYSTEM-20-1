@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import logging
 
-from keyboards.forensics_kb import (
+from keyboards.role_menus import (
     forensics_main_kb, forensic_snapshot_kb, ai_sentiment_kb,
     ghost_recovery_kb, xray_metadata_kb, memory_indexer_kb,
     monitoring_main_kb, monitoring_target_kb, monitoring_alerts_kb,

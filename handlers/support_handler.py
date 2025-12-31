@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from keyboards.support_kb import (
+from keyboards.role_menus import (
     support_menu_kb, ticket_category_kb, ticket_priority_kb,
     tickets_list_kb, ticket_view_kb, ticket_status_kb, ticket_rating_kb
 )

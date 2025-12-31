@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from keyboards.notifications_kb import (
+from keyboards.role_menus import (
     notifications_menu_kb, notification_create_type_kb, notification_target_kb,
     notification_role_kb, notification_multi_role_kb, notification_priority_kb,
     notifications_list_kb, notification_view_kb, bans_menu_kb, ban_type_kb,

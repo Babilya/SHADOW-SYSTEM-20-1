@@ -14,7 +14,7 @@ from core.drip_campaign import drip_campaign_manager
 from core.behavior_profiler import behavior_profiler
 from core.keyword_analyzer import keyword_analyzer
 from core.enhanced_reports import enhanced_report_generator
-from keyboards.advanced_kb import (
+from keyboards.role_menus import (
     get_ai_analysis_menu, get_spam_analyzer_menu, get_drip_campaign_menu,
     get_behavior_menu, get_keyword_menu, get_reports_menu, get_advanced_tools_menu
 )

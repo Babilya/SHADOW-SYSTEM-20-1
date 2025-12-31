@@ -3,30 +3,42 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from . import admin_router, AdminStates
 from .utils import safe_edit_message
+from core.system_stats import system_stats
+from core.cache_service import cache_service
+from core.health_dashboard import health_dashboard
 
 @admin_router.callback_query(F.data == "admin_system")
 async def admin_system(query: CallbackQuery):
     await query.answer()
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏥 Health Dashboard", callback_data="system_health")],
+        [InlineKeyboardButton(text="📦 Кеш статистика", callback_data="system_cache_stats")],
         [InlineKeyboardButton(text="🔄 Перезапуск", callback_data="system_restart")],
         [InlineKeyboardButton(text="🗑️ Очистити кеш", callback_data="system_clear_cache")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
     ])
-    text = """⚙️ <b>СИСТЕМА</b>
+    text = system_stats.format_stats_message()
+    await safe_edit_message(query, text, kb)
 
-<b>📊 Статус компонентів:</b>
-├ 🟢 Telegram Bot: Працює
-├ 🟢 База даних: OK
-├ 🟢 Scheduler: Активний
-├ 🟢 Campaign Manager: OK
-└ 🟢 Alert System: Готовий
+@admin_router.callback_query(F.data == "system_health")
+async def system_health(query: CallbackQuery):
+    await query.answer()
+    await health_dashboard.check_all()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Оновити", callback_data="system_health")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_system")]
+    ])
+    text = health_dashboard.format_dashboard_message()
+    await safe_edit_message(query, text, kb)
 
-<b>💾 Ресурси:</b>
-├ CPU: 12%
-├ RAM: 256 MB / 1 GB
-└ Uptime: 24д 5г 30хв
-
-<b>📦 Версія:</b> v2.0.0"""
+@admin_router.callback_query(F.data == "system_cache_stats")
+async def system_cache_stats(query: CallbackQuery):
+    await query.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🗑️ Очистити кеш", callback_data="system_clear_cache")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_system")]
+    ])
+    text = cache_service.format_stats_message()
     await safe_edit_message(query, text, kb)
 
 @admin_router.callback_query(F.data == "system_restart")

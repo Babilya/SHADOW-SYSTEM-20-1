@@ -676,7 +676,7 @@ def bans_menu_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📋 Активні", callback_data="bans_active"),
             InlineKeyboardButton(text="📜 Історія", callback_data="bans_history")
         ],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_panel")]
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_menu")]
     ])
 
 def ban_type_kb() -> InlineKeyboardMarkup:
